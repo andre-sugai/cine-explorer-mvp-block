@@ -1,9 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { ApiConfigModal } from './ApiConfigModal';
 import { Header } from './Header';
 import { HomePage } from './HomePage';
 import { FavoritesPage } from './FavoritesPage';
 import { WatchedPage } from './WatchedPage';
+import { SettingsPage } from './SettingsPage';
 import { AboutPage } from './AboutPage';
 
 const TMDB_API_KEY = 'tmdb_api_key';
@@ -43,6 +45,8 @@ export const CineExplorer: React.FC = () => {
         return <FavoritesPage />;
       case 'watched':
         return <WatchedPage />;
+      case 'settings':
+        return <SettingsPage />;
       case 'about':
         return <AboutPage />;
       default:

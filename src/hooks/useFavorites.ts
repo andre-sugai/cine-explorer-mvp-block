@@ -7,6 +7,12 @@ interface FavoriteItem {
   title: string;
   poster_path?: string;
   profile_path?: string;
+  release_date?: string;
+  first_air_date?: string;
+  vote_average?: number;
+  genre_ids?: number[];
+  known_for_department?: string;
+  addedAt: string;
 }
 
 export const useFavorites = () => {
@@ -19,8 +25,12 @@ export const useFavorites = () => {
     }
   }, []);
 
-  const addToFavorites = (item: FavoriteItem) => {
-    const newFavorites = [...favorites, item];
+  const addToFavorites = (item: Omit<FavoriteItem, 'addedAt'>) => {
+    const favoriteItem: FavoriteItem = {
+      ...item,
+      addedAt: new Date().toISOString()
+    };
+    const newFavorites = [...favorites, favoriteItem];
     setFavorites(newFavorites);
     localStorage.setItem('cine-explorer-favorites', JSON.stringify(newFavorites));
   };
@@ -31,9 +41,39 @@ export const useFavorites = () => {
     localStorage.setItem('cine-explorer-favorites', JSON.stringify(newFavorites));
   };
 
+  const clearAllFavorites = () => {
+    setFavorites([]);
+    localStorage.removeItem('cine-explorer-favorites');
+  };
+
+  const getFavoritesByType = (type: 'movie' | 'tv' | 'person') => {
+    return favorites.filter(fav => fav.type === type);
+  };
+
+  const getStats = () => {
+    const movies = getFavoritesByType('movie');
+    const series = getFavoritesByType('tv');
+    const people = getFavoritesByType('person');
+    
+    return {
+      total: favorites.length,
+      movies: movies.length,
+      series: series.length,
+      people: people.length
+    };
+  };
+
   const isFavorite = (id: number, type: string) => {
     return favorites.some(fav => fav.id === id && fav.type === type);
   };
 
-  return { favorites, addToFavorites, removeFromFavorites, isFavorite };
+  return { 
+    favorites, 
+    addToFavorites, 
+    removeFromFavorites, 
+    clearAllFavorites,
+    getFavoritesByType,
+    getStats,
+    isFavorite 
+  };
 };

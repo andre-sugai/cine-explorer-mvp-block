@@ -1,6 +1,8 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Film, Home, Heart, CheckCircle, Info } from 'lucide-react';
+import { Film, Home, Heart, CheckCircle, Info, Settings } from 'lucide-react';
+import { LuckyButton } from './LuckyButton';
 
 interface HeaderProps {
   activeTab: string;
@@ -12,6 +14,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
     { id: 'home', label: 'Home', icon: Home },
     { id: 'favorites', label: 'Favoritos', icon: Heart },
     { id: 'watched', label: 'Assistidos', icon: CheckCircle },
+    { id: 'settings', label: 'Configurações', icon: Settings },
     { id: 'about', label: 'Sobre', icon: Info }
   ];
 
@@ -27,8 +30,13 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
             <h1 className="text-2xl font-bold text-primary">Cine Explorer</h1>
           </div>
 
+          {/* Lucky Button - Desktop */}
+          <div className="hidden md:block">
+            <LuckyButton variant="hero" />
+          </div>
+
           {/* Navigation */}
-          <nav className="hidden md:flex items-center gap-2">
+          <nav className="hidden lg:flex items-center gap-2">
             {navItems.map((item) => {
               const Icon = item.icon;
               return (
@@ -52,7 +60,12 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
           </nav>
 
           {/* Mobile Navigation */}
-          <div className="md:hidden flex items-center gap-1">
+          <div className="lg:hidden flex items-center gap-1">
+            {/* Lucky Button - Mobile */}
+            <div className="md:hidden mr-2">
+              <LuckyButton className="px-2" />
+            </div>
+            
             {navItems.map((item) => {
               const Icon = item.icon;
               return (
