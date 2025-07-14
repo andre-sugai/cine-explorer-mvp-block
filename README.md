@@ -1,6 +1,73 @@
-# Welcome to your Lovable project
+# 🎬 Cine Explorer
 
-## Project info
+Aplicativo React para explorar filmes e séries usando a API do The Movie Database (TMDB).
+
+## 📋 Funcionalidades
+
+- **Modal de Configuração da API**: Aparece automaticamente na primeira visita para configurar a chave API do TMDB
+- **Navegação Intuitiva**: Home, Favoritos, Assistidos e Sobre
+- **Design Cinematográfico**: Tema com cores azul escuro, dourado e preto
+- **Armazenamento Local**: Chave API salva no localStorage do navegador
+- **Layout Responsivo**: Funciona perfeitamente em desktop e mobile
+- **Validação de API**: Verificação do formato correto da chave API
+
+## 🎨 Design System
+
+O aplicativo utiliza um design system cinematográfico com:
+- **Cores principais**: Azul escuro, dourado e preto
+- **Gradientes**: Efeitos visuais cinematográficos
+- **Componentes**: Baseados em shadcn/ui
+- **Animações**: Transições suaves e efeitos hover
+
+## 🚀 Como usar
+
+1. **Primeira vez**: O modal de configuração da API aparecerá automaticamente
+2. **Obter chave API**: Siga as instruções para obter sua chave no TMDB
+3. **Configurar**: Cole a chave API no modal e clique em "Confirmar e Entrar"
+4. **Explorar**: Use a navegação para explorar diferentes seções
+
+## 🔧 Tecnologias
+
+- React 18
+- TypeScript
+- Tailwind CSS
+- shadcn/ui
+- The Movie Database (TMDB) API
+- Vite
+
+## 📁 Estrutura do Projeto
+
+```
+src/
+├── components/
+│   ├── ui/                 # Componentes UI base
+│   ├── ApiConfigModal.tsx  # Modal de configuração da API
+│   ├── Header.tsx          # Header com navegação
+│   ├── HomePage.tsx        # Página inicial
+│   ├── FavoritesPage.tsx   # Página de favoritos
+│   ├── WatchedPage.tsx     # Página de assistidos
+│   ├── AboutPage.tsx       # Página sobre
+│   └── CineExplorer.tsx    # Componente principal
+├── pages/
+│   ├── Index.tsx           # Página inicial da aplicação
+│   └── NotFound.tsx        # Página 404
+├── utils/
+│   └── tmdb.ts            # Utilitários para API TMDB
+└── styles/
+    └── index.css          # Estilos globais e design system
+```
+
+## 🎯 Próximas Funcionalidades
+
+- [ ] Busca de filmes e séries
+- [ ] Detalhes de filmes com trailers
+- [ ] Sistema de favoritos funcional
+- [ ] Controle de filmes assistidos
+- [ ] Avaliações pessoais
+- [ ] Descoberta de filmes por gênero
+- [ ] Recomendações personalizadas
+
+## 📝 Projeto info
 
 **URL**: https://lovable.dev/projects/54a2f377-6b46-4cfb-9f3d-8767f06a729a
 
