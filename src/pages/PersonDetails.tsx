@@ -7,15 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getPersonDetails, buildImageUrl } from '@/utils/tmdb';
+import ActionButtons from '@/components/ActionButtons';
+import PersonCredits from '@/components/PersonCredits';
 import { 
   ChevronLeft, 
   Calendar, 
   MapPin, 
   Star, 
-  Film, 
-  Tv,
-  Users,
-  Award 
+  Users
 } from 'lucide-react';
 
 const PersonDetails: React.FC = () => {
@@ -38,10 +37,6 @@ const PersonDetails: React.FC = () => {
             <Skeleton className="h-12 w-3/4" />
             <Skeleton className="h-6 w-1/2" />
             <Skeleton className="h-32 w-full" />
-            <div className="grid grid-cols-2 gap-4">
-              <Skeleton className="h-20" />
-              <Skeleton className="h-20" />
-            </div>
           </div>
         </div>
       </div>
@@ -70,14 +65,6 @@ const PersonDetails: React.FC = () => {
   const tvCredits = person.tv_credits?.cast || [];
   const directorCredits = person.movie_credits?.crew?.filter((c: any) => c.job === 'Director') || [];
 
-  const topMovies = movieCredits
-    .sort((a: any, b: any) => b.popularity - a.popularity)
-    .slice(0, 12);
-
-  const topTVShows = tvCredits
-    .sort((a: any, b: any) => b.popularity - a.popularity)
-    .slice(0, 12);
-
   return (
     <div className="container mx-auto px-4 py-8">
       <Button 
@@ -101,7 +88,7 @@ const PersonDetails: React.FC = () => {
               />
               <h1 className="text-2xl font-bold text-primary mb-4">{person.name}</h1>
               
-              <div className="space-y-3">
+              <div className="space-y-3 mb-6">
                 <div className="flex items-center gap-2">
                   <Users className="w-4 h-4 text-muted-foreground" />
                   <Badge variant="secondary">{person.known_for_department}</Badge>
@@ -129,6 +116,13 @@ const PersonDetails: React.FC = () => {
                   </div>
                 )}
               </div>
+
+              <ActionButtons 
+                id={person.id}
+                type="person"
+                title={person.name}
+                profile_path={person.profile_path}
+              />
             </CardContent>
           </Card>
 
@@ -171,133 +165,10 @@ const PersonDetails: React.FC = () => {
             </Card>
           )}
 
-          {/* Filmes Principais */}
-          {topMovies.length > 0 && (
-            <Card className="bg-gradient-cinema border-primary/20">
-              <CardHeader>
-                <CardTitle className="text-primary flex items-center gap-2">
-                  <Film className="w-5 h-5" />
-                  Filmes Principais
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {topMovies.map((movie: any) => (
-                    <div
-                      key={movie.id}
-                      className="cursor-pointer transform hover:scale-105 transition-transform"
-                      onClick={() => navigate(`/filme/${movie.id}`)}
-                    >
-                      <img
-                        src={buildImageUrl(movie.poster_path, 'w342')}
-                        alt={movie.title}
-                        className="w-full rounded-lg shadow-md"
-                      />
-                      <div className="mt-2">
-                        <p className="text-sm text-foreground line-clamp-2 font-medium">
-                          {movie.title}
-                        </p>
-                        {movie.character && (
-                          <p className="text-xs text-muted-foreground line-clamp-1">
-                            {movie.character}
-                          </p>
-                        )}
-                        {movie.release_date && (
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(movie.release_date).getFullYear()}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Séries Principais */}
-          {topTVShows.length > 0 && (
-            <Card className="bg-gradient-cinema border-primary/20">
-              <CardHeader>
-                <CardTitle className="text-primary flex items-center gap-2">
-                  <Tv className="w-5 h-5" />
-                  Séries Principais
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {topTVShows.map((show: any) => (
-                    <div
-                      key={show.id}
-                      className="cursor-pointer transform hover:scale-105 transition-transform"
-                      onClick={() => navigate(`/serie/${show.id}`)}
-                    >
-                      <img
-                        src={buildImageUrl(show.poster_path, 'w342')}
-                        alt={show.name}
-                        className="w-full rounded-lg shadow-md"
-                      />
-                      <div className="mt-2">
-                        <p className="text-sm text-foreground line-clamp-2 font-medium">
-                          {show.name}
-                        </p>
-                        {show.character && (
-                          <p className="text-xs text-muted-foreground line-clamp-1">
-                            {show.character}
-                          </p>
-                        )}
-                        {show.first_air_date && (
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(show.first_air_date).getFullYear()}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Direção (se aplicável) */}
-          {directorCredits.length > 0 && (
-            <Card className="bg-gradient-cinema border-primary/20">
-              <CardHeader>
-                <CardTitle className="text-primary flex items-center gap-2">
-                  <Award className="w-5 h-5" />
-                  Como Diretor
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {directorCredits.slice(0, 8).map((movie: any) => (
-                    <div
-                      key={movie.id}
-                      className="cursor-pointer transform hover:scale-105 transition-transform"
-                      onClick={() => navigate(`/filme/${movie.id}`)}
-                    >
-                      <img
-                        src={buildImageUrl(movie.poster_path, 'w342')}
-                        alt={movie.title}
-                        className="w-full rounded-lg shadow-md"
-                      />
-                      <div className="mt-2">
-                        <p className="text-sm text-foreground line-clamp-2 font-medium">
-                          {movie.title}
-                        </p>
-                        <p className="text-xs text-muted-foreground">Diretor</p>
-                        {movie.release_date && (
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(movie.release_date).getFullYear()}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          <PersonCredits 
+            movieCredits={person.movie_credits}
+            tvCredits={person.tv_credits}
+          />
         </div>
       </div>
     </div>

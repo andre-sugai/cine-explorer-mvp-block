@@ -7,15 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getMovieDetails, buildImageUrl } from '@/utils/tmdb';
+import ActionButtons from '@/components/ActionButtons';
+import TrailerPlayer from '@/components/TrailerPlayer';
+import RecommendedContent from '@/components/RecommendedContent';
 import { 
   ChevronLeft, 
   Calendar, 
   Clock, 
   Star, 
-  Heart, 
-  Check, 
-  Plus,
-  Play,
   Users,
   Globe,
   DollarSign 
@@ -58,10 +57,6 @@ const MovieDetails: React.FC = () => {
               <Skeleton className="h-6 w-16" />
             </div>
             <Skeleton className="h-32 w-full" />
-            <div className="grid grid-cols-2 gap-4">
-              <Skeleton className="h-20" />
-              <Skeleton className="h-20" />
-            </div>
           </div>
         </div>
       </div>
@@ -160,26 +155,12 @@ const MovieDetails: React.FC = () => {
                   </p>
                 )}
 
-                <div className="flex flex-wrap gap-3">
-                  <Button className="bg-gradient-gold text-cinema-dark hover:opacity-90">
-                    <Heart className="w-4 h-4 mr-2" />
-                    Adicionar aos Favoritos
-                  </Button>
-                  <Button variant="outline">
-                    <Check className="w-4 h-4 mr-2" />
-                    Marcar como Assistido
-                  </Button>
-                  <Button variant="outline">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Adicionar à Lista
-                  </Button>
-                  {movie.videos?.results?.length > 0 && (
-                    <Button variant="outline">
-                      <Play className="w-4 h-4 mr-2" />
-                      Trailer
-                    </Button>
-                  )}
-                </div>
+                <ActionButtons 
+                  id={movie.id}
+                  type="movie"
+                  title={movie.title}
+                  poster_path={movie.poster_path}
+                />
               </div>
             </div>
           </div>
@@ -289,31 +270,13 @@ const MovieDetails: React.FC = () => {
             </Card>
           )}
 
-          {movie.recommendations?.results?.length > 0 && (
-            <Card className="bg-gradient-cinema border-primary/20">
-              <CardHeader>
-                <CardTitle className="text-primary">Filmes Similares</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {movie.recommendations.results.slice(0, 8).map((rec: any) => (
-                    <div
-                      key={rec.id}
-                      className="cursor-pointer transform hover:scale-105 transition-transform"
-                      onClick={() => navigate(`/filme/${rec.id}`)}
-                    >
-                      <img
-                        src={buildImageUrl(rec.poster_path, 'w342')}
-                        alt={rec.title}
-                        className="w-full rounded-lg shadow-md"
-                      />
-                      <p className="text-sm text-foreground mt-2 line-clamp-2">{rec.title}</p>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          <TrailerPlayer videos={movie.videos} />
+          
+          <RecommendedContent 
+            recommendations={movie.recommendations}
+            type="movie"
+            title="Filmes Similares"
+          />
         </div>
       </div>
     </div>

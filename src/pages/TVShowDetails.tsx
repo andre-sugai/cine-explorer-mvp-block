@@ -7,15 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getTVShowDetails, buildImageUrl } from '@/utils/tmdb';
+import ActionButtons from '@/components/ActionButtons';
+import TrailerPlayer from '@/components/TrailerPlayer';
+import RecommendedContent from '@/components/RecommendedContent';
 import { 
   ChevronLeft, 
   Calendar, 
   Tv, 
   Star, 
-  Heart, 
-  Check, 
-  Plus,
-  Play,
   Users,
   Globe 
 } from 'lucide-react';
@@ -44,10 +43,6 @@ const TVShowDetails: React.FC = () => {
               <Skeleton className="h-6 w-16" />
             </div>
             <Skeleton className="h-32 w-full" />
-            <div className="grid grid-cols-2 gap-4">
-              <Skeleton className="h-20" />
-              <Skeleton className="h-20" />
-            </div>
           </div>
         </div>
       </div>
@@ -149,26 +144,12 @@ const TVShowDetails: React.FC = () => {
                   </p>
                 )}
 
-                <div className="flex flex-wrap gap-3">
-                  <Button className="bg-gradient-gold text-cinema-dark hover:opacity-90">
-                    <Heart className="w-4 h-4 mr-2" />
-                    Adicionar aos Favoritos
-                  </Button>
-                  <Button variant="outline">
-                    <Check className="w-4 h-4 mr-2" />
-                    Marcar como Assistido
-                  </Button>
-                  <Button variant="outline">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Adicionar à Lista
-                  </Button>
-                  {show.videos?.results?.length > 0 && (
-                    <Button variant="outline">
-                      <Play className="w-4 h-4 mr-2" />
-                      Trailer
-                    </Button>
-                  )}
-                </div>
+                <ActionButtons 
+                  id={show.id}
+                  type="tv"
+                  title={show.name}
+                  poster_path={show.poster_path}
+                />
               </div>
             </div>
           </div>
@@ -211,14 +192,6 @@ const TVShowDetails: React.FC = () => {
                       </p>
                     ))}
                   </div>
-                </div>
-              )}
-              {show.production_countries?.length > 0 && (
-                <div>
-                  <h4 className="font-semibold text-foreground mb-1">Países</h4>
-                  <p className="text-muted-foreground">
-                    {show.production_countries.map((country: any) => country.name).join(', ')}
-                  </p>
                 </div>
               )}
             </CardContent>
@@ -327,31 +300,13 @@ const TVShowDetails: React.FC = () => {
             </Card>
           )}
 
-          {show.recommendations?.results?.length > 0 && (
-            <Card className="bg-gradient-cinema border-primary/20">
-              <CardHeader>
-                <CardTitle className="text-primary">Séries Similares</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {show.recommendations.results.slice(0, 8).map((rec: any) => (
-                    <div
-                      key={rec.id}
-                      className="cursor-pointer transform hover:scale-105 transition-transform"
-                      onClick={() => navigate(`/serie/${rec.id}`)}
-                    >
-                      <img
-                        src={buildImageUrl(rec.poster_path, 'w342')}
-                        alt={rec.name}
-                        className="w-full rounded-lg shadow-md"
-                      />
-                      <p className="text-sm text-foreground mt-2 line-clamp-2">{rec.name}</p>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          <TrailerPlayer videos={show.videos} />
+          
+          <RecommendedContent 
+            recommendations={show.recommendations}
+            type="tv"
+            title="Séries Similares"
+          />
         </div>
       </div>
     </div>
