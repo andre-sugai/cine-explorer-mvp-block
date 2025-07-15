@@ -112,7 +112,10 @@ const SearchResults: React.FC = () => {
           const dateB = ('release_date' in b ? b.release_date : 'first_air_date' in b ? b.first_air_date : '') || '';
           return new Date(dateB).getTime() - new Date(dateA).getTime();
         case 'rating':
-          return (b.vote_average || 0) - (a.vote_average || 0);
+          // Only sort by vote_average if both items have it (movies and TV shows)
+          const ratingA = ('vote_average' in a ? a.vote_average : 0) || 0;
+          const ratingB = ('vote_average' in b ? b.vote_average : 0) || 0;
+          return ratingB - ratingA;
         case 'relevance':
         default:
           return 0; // Keep original order
