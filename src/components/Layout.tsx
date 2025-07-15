@@ -2,6 +2,7 @@
 import React from 'react';
 import { Header } from './Header';
 import { Breadcrumbs } from './Breadcrumbs';
+import { ScrollToTopButton } from './ScrollToTopButton';
 import { useBreadcrumbs } from '@/hooks/useBreadcrumbs';
 import { useLocation } from 'react-router-dom';
 
@@ -30,6 +31,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       <main className="container mx-auto px-4 py-8">
         {children}
       </main>
+
+      {/* Scroll to Top Button */}
+      <ScrollToTopButton />
     </div>
   );
 };
