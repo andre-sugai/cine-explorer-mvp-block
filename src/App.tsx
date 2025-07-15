@@ -9,6 +9,9 @@ import SearchResults from "./pages/SearchResults";
 import MovieDetails from "./pages/MovieDetails";
 import TVShowDetails from "./pages/TVShowDetails";
 import PersonDetails from "./pages/PersonDetails";
+import FavoritesPage from "./pages/FavoritesPage";
+import WatchedPage from "./pages/WatchedPage";
+import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +28,9 @@ const App = () => (
           <Route path="/filme/:id" element={<MovieDetails />} />
           <Route path="/serie/:id" element={<TVShowDetails />} />
           <Route path="/pessoa/:id" element={<PersonDetails />} />
+          <Route path="/favoritos" element={<FavoritesPage />} />
+          <Route path="/vistos" element={<WatchedPage />} />
+          <Route path="/configuracoes" element={<SettingsPage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

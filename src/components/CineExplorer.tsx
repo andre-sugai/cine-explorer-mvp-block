@@ -3,11 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { ApiConfigModal } from './ApiConfigModal';
 import { Layout } from './Layout';
 import { HomePage } from './HomePage';
-import { FavoritesPage } from './FavoritesPage';
-import { WatchedPage } from './WatchedPage';
-import { SettingsPage } from './SettingsPage';
-import { AboutPage } from './AboutPage';
-import { useLocation } from 'react-router-dom';
 
 const TMDB_API_KEY = 'tmdb_api_key';
 
@@ -15,7 +10,6 @@ export const CineExplorer: React.FC = () => {
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [showApiModal, setShowApiModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const location = useLocation();
 
   useEffect(() => {
     // Verificar se já existe uma chave API salva
@@ -36,20 +30,6 @@ export const CineExplorer: React.FC = () => {
     localStorage.setItem(TMDB_API_KEY, newApiKey);
     setApiKey(newApiKey);
     setShowApiModal(false);
-  };
-
-  const renderCurrentPage = () => {
-    const path = location.pathname;
-    
-    // Roteamento baseado no pathname
-    if (path === '/') return <HomePage />;
-    if (path === '/favoritos') return <FavoritesPage />;
-    if (path === '/vistos') return <WatchedPage />;
-    if (path === '/configuracoes') return <SettingsPage />;
-    if (path === '/sobre') return <AboutPage />;
-    
-    // Default para home se rota não encontrada
-    return <HomePage />;
   };
 
   if (isLoading) {
@@ -76,10 +56,10 @@ export const CineExplorer: React.FC = () => {
         onComplete={handleApiKeyComplete}
       />
 
-      {/* Layout principal com header fixo e breadcrumbs */}
+      {/* Layout principal com header fixo e breadcrumbs - apenas para a home page */}
       {apiKey && (
         <Layout>
-          {renderCurrentPage()}
+          <HomePage />
         </Layout>
       )}
     </>

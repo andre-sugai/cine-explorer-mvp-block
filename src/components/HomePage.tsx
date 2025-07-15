@@ -28,8 +28,18 @@ export const HomePage: React.FC = () => {
           response = await getPopularTVShows(pageNum);
           break;
         case 'actors':
+          response = await getPopularPeople(pageNum);
+          // Filter only actors
+          response.results = response.results.filter((person: TMDBPerson) => 
+            person.known_for_department === 'Acting'
+          );
+          break;
         case 'directors':
           response = await getPopularPeople(pageNum);
+          // Filter only directors
+          response.results = response.results.filter((person: TMDBPerson) => 
+            person.known_for_department === 'Directing'
+          );
           break;
         default:
           return;
