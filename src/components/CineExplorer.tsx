@@ -1,20 +1,21 @@
 
 import React, { useState, useEffect } from 'react';
 import { ApiConfigModal } from './ApiConfigModal';
-import { Header } from './Header';
+import { Layout } from './Layout';
 import { HomePage } from './HomePage';
 import { FavoritesPage } from './FavoritesPage';
 import { WatchedPage } from './WatchedPage';
 import { SettingsPage } from './SettingsPage';
 import { AboutPage } from './AboutPage';
+import { useLocation } from 'react-router-dom';
 
 const TMDB_API_KEY = 'tmdb_api_key';
 
 export const CineExplorer: React.FC = () => {
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [showApiModal, setShowApiModal] = useState(false);
-  const [activeTab, setActiveTab] = useState('home');
   const [isLoading, setIsLoading] = useState(true);
+  const location = useLocation();
 
   useEffect(() => {
     // Verificar se já existe uma chave API salva
@@ -38,20 +39,17 @@ export const CineExplorer: React.FC = () => {
   };
 
   const renderCurrentPage = () => {
-    switch (activeTab) {
-      case 'home':
-        return <HomePage />;
-      case 'favorites':
-        return <FavoritesPage />;
-      case 'watched':
-        return <WatchedPage />;
-      case 'settings':
-        return <SettingsPage />;
-      case 'about':
-        return <AboutPage />;
-      default:
-        return <HomePage />;
-    }
+    const path = location.pathname;
+    
+    // Roteamento baseado no pathname
+    if (path === '/') return <HomePage />;
+    if (path === '/favoritos') return <FavoritesPage />;
+    if (path === '/vistos') return <WatchedPage />;
+    if (path === '/configuracoes') return <SettingsPage />;
+    if (path === '/sobre') return <AboutPage />;
+    
+    // Default para home se rota não encontrada
+    return <HomePage />;
   };
 
   if (isLoading) {
@@ -71,22 +69,19 @@ export const CineExplorer: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <>
       {/* Modal de configuração da API */}
       <ApiConfigModal 
         open={showApiModal} 
         onComplete={handleApiKeyComplete}
       />
 
-      {/* Layout principal */}
+      {/* Layout principal com header fixo e breadcrumbs */}
       {apiKey && (
-        <>
-          <Header activeTab={activeTab} onTabChange={setActiveTab} />
-          <main className="container mx-auto px-4 py-8">
-            {renderCurrentPage()}
-          </main>
-        </>
+        <Layout>
+          {renderCurrentPage()}
+        </Layout>
       )}
-    </div>
+    </>
   );
 };
