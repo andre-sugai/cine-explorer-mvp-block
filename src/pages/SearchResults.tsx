@@ -6,20 +6,17 @@ import { searchMulti, searchMovies, searchTVShows, searchPeople } from '@/utils/
 import { TMDBMovie, TMDBTVShow, TMDBPerson } from '@/utils/tmdb';
 import { Layout } from '@/components/Layout';
 import { SearchHeader } from '@/components/search/SearchHeader';
-import { SearchFilters } from '@/components/search/SearchFilters';
+import { SearchFilters, FilterType, SortOption } from '@/components/search/SearchFilters';
 import { SearchGrid } from '@/components/search/SearchGrid';
 import { SearchPagination } from '@/components/search/SearchPagination';
 import { SearchSkeleton } from '@/components/search/SearchSkeleton';
 import { NoResults } from '@/components/search/NoResults';
 
-export type SearchFilter = 'all' | 'movies' | 'tv' | 'people';
-export type SortOption = 'relevance' | 'date' | 'rating';
-
 const SearchResults: React.FC = () => {
   const { term } = useParams<{ term: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   
-  const [activeFilter, setActiveFilter] = useState<SearchFilter>('all');
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [sortBy, setSortBy] = useState<SortOption>('relevance');
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -27,7 +24,7 @@ const SearchResults: React.FC = () => {
 
   // Sync URL params with state
   useEffect(() => {
-    const filter = searchParams.get('filter') as SearchFilter || 'all';
+    const filter = searchParams.get('filter') as FilterType || 'all';
     const sort = searchParams.get('sort') as SortOption || 'relevance';
     const page = parseInt(searchParams.get('page') || '1');
 
@@ -36,7 +33,7 @@ const SearchResults: React.FC = () => {
     setCurrentPage(page);
   }, [searchParams]);
 
-  const updateUrlParams = (updates: Partial<{ filter: SearchFilter; sort: SortOption; page: number }>) => {
+  const updateUrlParams = (updates: Partial<{ filter: FilterType; sort: SortOption; page: number }>) => {
     const newParams = new URLSearchParams(searchParams);
     
     if (updates.filter) newParams.set('filter', updates.filter);
@@ -52,11 +49,11 @@ const SearchResults: React.FC = () => {
       if (!decodedTerm) return { results: [], total_pages: 0, total_results: 0 };
       
       switch (activeFilter) {
-        case 'movies':
+        case 'movie':
           return await searchMovies(decodedTerm, currentPage);
         case 'tv':
           return await searchTVShows(decodedTerm, currentPage);
-        case 'people':
+        case 'person':
           return await searchPeople(decodedTerm, currentPage);
         default:
           return await searchMulti(decodedTerm, currentPage);
@@ -65,7 +62,7 @@ const SearchResults: React.FC = () => {
     enabled: !!decodedTerm,
   });
 
-  const handleFilterChange = (filter: SearchFilter) => {
+  const handleFilterChange = (filter: FilterType) => {
     setCurrentPage(1);
     updateUrlParams({ filter, page: 1 });
   };
@@ -104,13 +101,21 @@ const SearchResults: React.FC = () => {
     }
   }, [data?.results, sortBy]);
 
+  // Calculate results count for filters
+  const resultsCount = React.useMemo(() => {
+    const results = data?.results || [];
+    return {
+      all: results.length,
+      movie: results.filter(item => 'title' in item && 'release_date' in item).length,
+      tv: results.filter(item => 'name' in item && 'first_air_date' in item).length,
+      person: results.filter(item => 'known_for' in item).length,
+    };
+  }, [data?.results]);
+
   if (!decodedTerm) {
     return (
       <Layout>
-        <NoResults 
-          searchTerm=""
-          message="Digite um termo de busca para começar"
-        />
+        <NoResults />
       </Layout>
     );
   }
@@ -122,7 +127,6 @@ const SearchResults: React.FC = () => {
           <SearchHeader 
             searchTerm={decodedTerm}
             totalResults={0}
-            isLoading={true}
           />
           <SearchSkeleton />
         </div>
@@ -133,10 +137,7 @@ const SearchResults: React.FC = () => {
   if (error) {
     return (
       <Layout>
-        <NoResults 
-          searchTerm={decodedTerm}
-          message="Erro ao buscar resultados. Tente novamente."
-        />
+        <NoResults />
       </Layout>
     );
   }
@@ -149,7 +150,6 @@ const SearchResults: React.FC = () => {
         <SearchHeader 
           searchTerm={decodedTerm}
           totalResults={data?.total_results || 0}
-          isLoading={false}
         />
 
         {hasResults && (
@@ -159,12 +159,14 @@ const SearchResults: React.FC = () => {
               onFilterChange={handleFilterChange}
               sortBy={sortBy}
               onSortChange={handleSortChange}
-              results={data?.results || []}
+              resultsCount={resultsCount}
             />
 
             <SearchGrid 
               results={sortedResults}
-              searchTerm={decodedTerm}
+              isLoading={false}
+              error={null}
+              activeFilter={activeFilter}
             />
 
             {(data?.total_pages || 0) > 1 && (
@@ -178,10 +180,7 @@ const SearchResults: React.FC = () => {
         )}
 
         {!hasResults && (
-          <NoResults 
-            searchTerm={decodedTerm}
-            message="Nenhum resultado encontrado para sua busca"
-          />
+          <NoResults />
         )}
       </div>
     </Layout>
