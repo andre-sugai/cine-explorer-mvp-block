@@ -272,21 +272,29 @@ const MovieDetails: React.FC = () => {
                   <CardTitle className="text-primary">Equipe Técnica</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {movie.credits.crew
                       .filter((person: any) => ['Director', 'Producer', 'Writer', 'Screenplay'].includes(person.job))
-                      .slice(0, 8)
+                      .slice(0, 12)
                       .map((person: any, index: number) => (
-                        <div key={`${person.id}-${index}`} className="flex justify-between items-center">
-                          <span 
-                            className={`text-foreground font-medium ${
-                              person.job === 'Director' ? 'text-primary hover:text-primary/80 cursor-pointer transition-colors' : ''
-                            }`}
-                            onClick={person.job === 'Director' ? () => handleDirectorClick(person.id, person.name) : undefined}
-                          >
-                            {person.name}
-                          </span>
-                          <span className="text-muted-foreground text-sm">{person.job}</span>
+                        <div 
+                          key={`${person.id}-${index}`} 
+                          className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50 hover:bg-secondary/70 transition-colors cursor-pointer"
+                          onClick={() => navigate(`/pessoa/${person.id}`)}
+                        >
+                          <img
+                            src={buildImageUrl(person.profile_path, 'w185')}
+                            alt={person.name}
+                            className="w-12 h-12 rounded-full object-cover"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-foreground text-sm truncate">
+                              {person.name}
+                            </p>
+                            <p className="text-muted-foreground text-xs truncate">
+                              {person.job}
+                            </p>
+                          </div>
                         </div>
                       ))}
                   </div>

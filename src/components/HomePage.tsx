@@ -36,7 +36,7 @@ export const HomePage: React.FC = () => {
           break;
         case 'directors':
           response = await getPopularPeople(pageNum);
-          // Filter only directors
+          // Filter only directors - using 'Directing' as the correct department
           response.results = response.results.filter((person: TMDBPerson) => 
             person.known_for_department === 'Directing'
           );
