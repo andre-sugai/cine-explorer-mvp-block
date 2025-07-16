@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -54,7 +53,7 @@ const MovieDetails: React.FC = () => {
   };
 
   const handleDirectorClick = (directorId: number, directorName: string) => {
-    navigate(`/diretor/${directorId}?name=${encodeURIComponent(directorName)}`);
+    navigate(`/pessoa/${directorId}?name=${encodeURIComponent(directorName)}`);
   };
 
   if (isLoading) {
@@ -84,7 +83,7 @@ const MovieDetails: React.FC = () => {
       <Layout>
         <Card className="bg-gradient-cinema border-destructive/20">
           <CardContent className="p-8 text-center">
-            <h3 ClassName="text-lg font-semibold text-foreground mb-2">Erro ao carregar filme</h3>
+            <h3 className="text-lg font-semibold text-foreground mb-2">Erro ao carregar filme</h3>
             <p className="text-muted-foreground mb-4">
               Não foi possível carregar os detalhes do filme.
             </p>
