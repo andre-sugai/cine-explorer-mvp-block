@@ -53,6 +53,10 @@ const MovieDetails: React.FC = () => {
     return `${hours}h ${mins}min`;
   };
 
+  const handleDirectorClick = (directorId: number, directorName: string) => {
+    navigate(`/diretor/${directorId}?name=${encodeURIComponent(directorName)}`);
+  };
+
   if (isLoading) {
     return (
       <Layout>
@@ -80,7 +84,7 @@ const MovieDetails: React.FC = () => {
       <Layout>
         <Card className="bg-gradient-cinema border-destructive/20">
           <CardContent className="p-8 text-center">
-            <h3 className="text-lg font-semibold text-foreground mb-2">Erro ao carregar filme</h3>
+            <h3 ClassName="text-lg font-semibold text-foreground mb-2">Erro ao carregar filme</h3>
             <p className="text-muted-foreground mb-4">
               Não foi possível carregar os detalhes do filme.
             </p>
@@ -173,6 +177,7 @@ const MovieDetails: React.FC = () => {
                     type="movie"
                     title={movie.title}
                     poster_path={movie.poster_path}
+                    movie={movie}
                   />
                 </div>
               </div>
@@ -274,7 +279,14 @@ const MovieDetails: React.FC = () => {
                       .slice(0, 8)
                       .map((person: any, index: number) => (
                         <div key={`${person.id}-${index}`} className="flex justify-between items-center">
-                          <span className="text-foreground font-medium">{person.name}</span>
+                          <span 
+                            className={`text-foreground font-medium ${
+                              person.job === 'Director' ? 'text-primary hover:text-primary/80 cursor-pointer transition-colors' : ''
+                            }`}
+                            onClick={person.job === 'Director' ? () => handleDirectorClick(person.id, person.name) : undefined}
+                          >
+                            {person.name}
+                          </span>
                           <span className="text-muted-foreground text-sm">{person.job}</span>
                         </div>
                       ))}

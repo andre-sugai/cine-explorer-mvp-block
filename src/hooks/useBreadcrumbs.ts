@@ -63,6 +63,7 @@ export const useBreadcrumbs = (): BreadcrumbItem[] => {
     // Static pages
     const staticPages: Record<string, string> = {
       '/favoritos': 'Favoritos',
+      '/quero-assistir': 'Quero Assistir',
       '/vistos': 'Vistos',
       '/configuracoes': 'Configurações',
       '/sobre': 'Sobre'

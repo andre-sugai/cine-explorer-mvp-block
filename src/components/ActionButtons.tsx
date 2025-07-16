@@ -2,9 +2,10 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Heart, Check, Share } from 'lucide-react';
+import { Heart, Check, Share, Bookmark } from 'lucide-react';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useWatched } from '@/hooks/useWatched';
+import { useWantToWatch } from '@/hooks/useWantToWatch';
 import { toast } from '@/components/ui/sonner';
 
 interface ActionButtonsProps {
@@ -13,14 +14,24 @@ interface ActionButtonsProps {
   title: string;
   poster_path?: string;
   profile_path?: string;
+  movie?: any; // Para dados completos do filme
 }
 
-const ActionButtons: React.FC<ActionButtonsProps> = ({ id, type, title, poster_path, profile_path }) => {
+const ActionButtons: React.FC<ActionButtonsProps> = ({ 
+  id, 
+  type, 
+  title, 
+  poster_path, 
+  profile_path,
+  movie 
+}) => {
   const { addToFavorites, removeFromFavorites, isFavorite } = useFavorites();
   const { addToWatched, removeFromWatched, isWatched } = useWatched();
+  const { addToWantToWatch, removeFromWantToWatch, isInWantToWatch } = useWantToWatch();
 
   const favorite = isFavorite(id, type);
   const watched = isWatched(id, type);
+  const wantToWatch = isInWantToWatch(id);
 
   const handleFavorite = () => {
     if (favorite) {
@@ -38,6 +49,25 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ id, type, title, poster_p
     }
   };
 
+  const handleWantToWatch = () => {
+    if (type === 'person') return;
+    
+    if (wantToWatch) {
+      removeFromWantToWatch(id);
+      toast.success('Removido da lista de filmes para assistir');
+    } else {
+      addToWantToWatch({
+        id,
+        title,
+        poster_path,
+        release_date: movie?.release_date || '',
+        rating: movie?.vote_average || 0,
+        genres: movie?.genres?.map((g: any) => g.name) || []
+      });
+      toast.success('Adicionado à lista de filmes para assistir');
+    }
+  };
+
   const handleWatched = () => {
     if (type === 'person') return;
     
@@ -50,6 +80,12 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ id, type, title, poster_p
         type: type as 'movie' | 'tv',
         title
       });
+      
+      // Se estava na lista "quero assistir", remover de lá
+      if (wantToWatch) {
+        removeFromWantToWatch(id);
+      }
+      
       toast.success('Marcado como assistido');
     }
   };
@@ -68,6 +104,17 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ id, type, title, poster_p
         <Heart className={`w-4 h-4 mr-2 ${favorite ? 'fill-current' : ''}`} />
         {favorite ? 'Favorito' : 'Adicionar aos Favoritos'}
       </Button>
+      
+      {type !== 'person' && (
+        <Button 
+          onClick={handleWantToWatch}
+          className={wantToWatch ? "bg-blue-500 hover:bg-blue-600 text-white" : "bg-gradient-cinema border-primary/20 hover:bg-primary/10"}
+          variant={wantToWatch ? "default" : "outline"}
+        >
+          <Bookmark className={`w-4 h-4 mr-2 ${wantToWatch ? 'fill-current' : ''}`} />
+          {wantToWatch ? 'Na Lista' : 'Quero Assistir'}
+        </Button>
+      )}
       
       {type !== 'person' && (
         <Button 

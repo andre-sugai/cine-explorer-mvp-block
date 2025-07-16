@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Film, Home, Heart, CheckCircle, Settings } from 'lucide-react';
+import { Film, Home, Heart, Calendar, CheckCircle, Settings } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
 interface HeaderProps {
@@ -16,6 +16,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
   const navItems = [
     { id: 'home', label: 'Home', icon: Home, path: '/' },
     { id: 'favorites', label: 'Favoritos', icon: Heart, path: '/favoritos' },
+    { id: 'want-to-watch', label: 'Quero Assistir', icon: Calendar, path: '/quero-assistir' },
     { id: 'watched', label: 'Vistos', icon: CheckCircle, path: '/vistos' },
     { id: 'settings', label: 'Configurações', icon: Settings, path: '/configuracoes' }
   ];
