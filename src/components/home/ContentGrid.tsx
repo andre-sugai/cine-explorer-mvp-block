@@ -21,25 +21,41 @@ export const ContentGrid: React.FC<ContentGridProps> = ({
   category,
   isLoading,
   hasMore,
-  onLoadMore
+  onLoadMore,
 }) => {
   const navigate = useNavigate();
   const observerRef = useRef<IntersectionObserver>();
   const lastElementRef = useRef<HTMLDivElement>(null);
 
+  // Filtra apenas diretores quando a categoria for 'directors'
+  const filteredContent = React.useMemo(() => {
+    if (category === 'directors') {
+      return content.filter(
+        (item) =>
+          'known_for_department' in item &&
+          (item.known_for_department === 'Directing' ||
+            item.known_for_department === 'Direção')
+      );
+    }
+    return content;
+  }, [content, category]);
+
   // Infinite scroll observer
-  const lastElementRefCallback = useCallback((node: HTMLDivElement) => {
-    if (isLoading) return;
-    if (observerRef.current) observerRef.current.disconnect();
-    
-    observerRef.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMore) {
-        onLoadMore();
-      }
-    });
-    
-    if (node) observerRef.current.observe(node);
-  }, [isLoading, hasMore, onLoadMore]);
+  const lastElementRefCallback = useCallback(
+    (node: HTMLDivElement) => {
+      if (isLoading) return;
+      if (observerRef.current) observerRef.current.disconnect();
+
+      observerRef.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && hasMore) {
+          onLoadMore();
+        }
+      });
+
+      if (node) observerRef.current.observe(node);
+    },
+    [isLoading, hasMore, onLoadMore]
+  );
 
   const handleItemClick = (item: TMDBMovie | TMDBTVShow | TMDBPerson) => {
     if ('title' in item) {
@@ -54,11 +70,14 @@ export const ContentGrid: React.FC<ContentGridProps> = ({
     }
   };
 
-  const renderContentCard = (item: TMDBMovie | TMDBTVShow | TMDBPerson, index: number) => {
+  const renderContentCard = (
+    item: TMDBMovie | TMDBTVShow | TMDBPerson,
+    index: number
+  ) => {
     const isLastItem = index === content.length - 1;
-    
+
     return (
-      <Card 
+      <Card
         key={`${item.id}-${index}`}
         ref={isLastItem ? lastElementRefCallback : null}
         className="
@@ -73,8 +92,11 @@ export const ContentGrid: React.FC<ContentGridProps> = ({
           <div className="relative aspect-[2/3] overflow-hidden">
             <img
               src={buildImageUrl(
-                'poster_path' in item ? item.poster_path : 
-                'profile_path' in item ? item.profile_path : '', 
+                'poster_path' in item
+                  ? item.poster_path
+                  : 'profile_path' in item
+                  ? item.profile_path
+                  : '',
                 'w500'
               )}
               alt={'title' in item ? item.title : item.name}
@@ -82,7 +104,7 @@ export const ContentGrid: React.FC<ContentGridProps> = ({
               loading="lazy"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            
+
             {/* Rating for movies/tv shows */}
             {'vote_average' in item && item.vote_average > 0 && (
               <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded-md text-xs font-semibold flex items-center gap-1">
@@ -97,7 +119,7 @@ export const ContentGrid: React.FC<ContentGridProps> = ({
             <h3 className="font-semibold text-foreground text-sm leading-tight mb-2 line-clamp-2">
               {'title' in item ? item.title : item.name}
             </h3>
-            
+
             <div className="space-y-1 text-xs text-muted-foreground">
               {/* Release Date / Air Date */}
               {'release_date' in item && item.release_date && (
@@ -112,7 +134,7 @@ export const ContentGrid: React.FC<ContentGridProps> = ({
                   {new Date(item.first_air_date).getFullYear()}
                 </div>
               )}
-              
+
               {/* Department for people */}
               {'known_for_department' in item && (
                 <div className="flex items-center gap-1">
@@ -123,13 +145,24 @@ export const ContentGrid: React.FC<ContentGridProps> = ({
             </div>
 
             {/* Action Icons - Only for movies and TV shows */}
-            {('title' in item || ('name' in item && 'first_air_date' in item)) && (
+            {('title' in item ||
+              ('name' in item && 'first_air_date' in item)) && (
               <MovieCardActions
                 id={item.id}
                 title={'title' in item ? item.title : item.name}
-                poster_path={'poster_path' in item ? item.poster_path : undefined}
-                release_date={'release_date' in item ? item.release_date : 'first_air_date' in item ? item.first_air_date : undefined}
-                vote_average={'vote_average' in item ? item.vote_average : undefined}
+                poster_path={
+                  'poster_path' in item ? item.poster_path : undefined
+                }
+                release_date={
+                  'release_date' in item
+                    ? item.release_date
+                    : 'first_air_date' in item
+                    ? item.first_air_date
+                    : undefined
+                }
+                vote_average={
+                  'vote_average' in item ? item.vote_average : undefined
+                }
                 genre_ids={'genre_ids' in item ? item.genre_ids : undefined}
                 type={'title' in item ? 'movie' : 'tv'}
               />
@@ -171,15 +204,11 @@ export const ContentGrid: React.FC<ContentGridProps> = ({
       <div className="max-w-7xl mx-auto">
         {/* Content Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-          {content.map((item, index) => renderContentCard(item, index))}
+          {filteredContent.map((item, index) => renderContentCard(item, index))}
         </div>
 
         {/* Loading State */}
-        {isLoading && (
-          <div className="mt-12">
-            {renderLoadingSkeleton()}
-          </div>
-        )}
+        {isLoading && <div className="mt-12">{renderLoadingSkeleton()}</div>}
 
         {/* End Message */}
         {!hasMore && content.length > 0 && (
