@@ -6,43 +6,52 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getMovieDetails, buildImageUrl } from '@/utils/tmdb';
+import { translateJob } from '@/utils/translations';
 import ActionButtons from '@/components/ActionButtons';
 import TrailerPlayer from '@/components/TrailerPlayer';
 import RecommendedContent from '@/components/RecommendedContent';
 import { Layout } from '@/components/Layout';
-import { 
-  ChevronLeft, 
-  Calendar, 
-  Clock, 
-  Star, 
+import {
+  ChevronLeft,
+  Calendar,
+  Clock,
+  Star,
   Users,
   Globe,
-  DollarSign 
+  DollarSign,
 } from 'lucide-react';
+import { useDetailNameContext } from '@/context/DetailNameContext';
 
 const MovieDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { setDetailName } = useDetailNameContext();
 
-  const { data: movie, isLoading, error } = useQuery({
+  const {
+    data: movie,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['movie-details', id],
     queryFn: () => getMovieDetails(Number(id)),
     enabled: !!id,
   });
 
-  // Update URL with movie title for breadcrumbs
+  // Update URL with movie title for breadcrumbs and document title
   useEffect(() => {
     if (movie && movie.title) {
       const currentUrl = new URL(window.location.href);
       currentUrl.searchParams.set('title', movie.title);
       window.history.replaceState({}, '', currentUrl.toString());
+      document.title = `${movie.title} - Cine Explorer`;
+      setDetailName(movie.title);
     }
-  }, [movie]);
+  }, [movie, setDetailName]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'USD',
     }).format(amount);
   };
 
@@ -83,13 +92,13 @@ const MovieDetails: React.FC = () => {
       <Layout>
         <Card className="bg-gradient-cinema border-destructive/20">
           <CardContent className="p-8 text-center">
-            <h3 className="text-lg font-semibold text-foreground mb-2">Erro ao carregar filme</h3>
+            <h3 className="text-lg font-semibold text-foreground mb-2">
+              Erro ao carregar filme
+            </h3>
             <p className="text-muted-foreground mb-4">
               Não foi possível carregar os detalhes do filme.
             </p>
-            <Button onClick={() => navigate('/')}>
-              Voltar ao início
-            </Button>
+            <Button onClick={() => navigate('/')}>Voltar ao início</Button>
           </CardContent>
         </Card>
       </Layout>
@@ -99,24 +108,23 @@ const MovieDetails: React.FC = () => {
   return (
     <Layout>
       <div className="space-y-8">
-        <Button 
-          variant="ghost" 
-          onClick={() => navigate(-1)}
-          className="mb-6"
-        >
+        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-6">
           <ChevronLeft className="w-4 h-4 mr-2" />
           Voltar
         </Button>
 
         {/* Hero Section */}
-        <div 
+        <div
           className="relative rounded-lg overflow-hidden mb-8"
           style={{
-            backgroundImage: movie.backdrop_path 
-              ? `linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url(${buildImageUrl(movie.backdrop_path, 'w1280')})` 
+            backgroundImage: movie.backdrop_path
+              ? `linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url(${buildImageUrl(
+                  movie.backdrop_path,
+                  'w1280'
+                )})`
               : 'linear-gradient(135deg, hsl(var(--cinema-dark)), hsl(var(--cinema-accent)))',
             backgroundSize: 'cover',
-            backgroundPosition: 'center'
+            backgroundPosition: 'center',
           }}
         >
           <div className="p-8">
@@ -128,16 +136,18 @@ const MovieDetails: React.FC = () => {
                   className="w-full rounded-lg shadow-cinema"
                 />
               </div>
-              
+
               <div className="md:col-span-3 space-y-6">
                 <div>
-                  <h1 className="text-4xl font-bold text-primary mb-2">{movie.title}</h1>
+                  <h1 className="text-4xl font-bold text-primary mb-2">
+                    {movie.title}
+                  </h1>
                   {movie.original_title !== movie.title && (
                     <p className="text-lg text-muted-foreground mb-4">
                       Título Original: {movie.original_title}
                     </p>
                   )}
-                  
+
                   <div className="flex flex-wrap gap-2 mb-4">
                     {movie.genres?.map((genre: any) => (
                       <Badge key={genre.id} variant="secondary">
@@ -157,7 +167,8 @@ const MovieDetails: React.FC = () => {
                     </div>
                     <div className="flex items-center gap-2">
                       <Star className="w-4 h-4 text-primary" />
-                      {movie.vote_average.toFixed(1)} ({movie.vote_count} avaliações)
+                      {movie.vote_average.toFixed(1)} ({movie.vote_count}{' '}
+                      avaliações)
                     </div>
                     <div className="flex items-center gap-2">
                       <Globe className="w-4 h-4" />
@@ -171,7 +182,7 @@ const MovieDetails: React.FC = () => {
                     </p>
                   )}
 
-                  <ActionButtons 
+                  <ActionButtons
                     id={movie.id}
                     type="movie"
                     title={movie.title}
@@ -194,33 +205,52 @@ const MovieDetails: React.FC = () => {
               <CardContent className="space-y-4">
                 {movie.budget > 0 && (
                   <div>
-                    <h4 className="font-semibold text-foreground mb-1">Orçamento</h4>
-                    <p className="text-muted-foreground">{formatCurrency(movie.budget)}</p>
+                    <h4 className="font-semibold text-foreground mb-1">
+                      Orçamento
+                    </h4>
+                    <p className="text-muted-foreground">
+                      {formatCurrency(movie.budget)}
+                    </p>
                   </div>
                 )}
                 {movie.revenue > 0 && (
                   <div>
-                    <h4 className="font-semibold text-foreground mb-1">Receita</h4>
-                    <p className="text-muted-foreground">{formatCurrency(movie.revenue)}</p>
+                    <h4 className="font-semibold text-foreground mb-1">
+                      Receita
+                    </h4>
+                    <p className="text-muted-foreground">
+                      {formatCurrency(movie.revenue)}
+                    </p>
                   </div>
                 )}
                 {movie.production_companies?.length > 0 && (
                   <div>
-                    <h4 className="font-semibold text-foreground mb-1">Produção</h4>
+                    <h4 className="font-semibold text-foreground mb-1">
+                      Produção
+                    </h4>
                     <div className="space-y-1">
-                      {movie.production_companies.slice(0, 3).map((company: any) => (
-                        <p key={company.id} className="text-muted-foreground text-sm">
-                          {company.name}
-                        </p>
-                      ))}
+                      {movie.production_companies
+                        .slice(0, 3)
+                        .map((company: any) => (
+                          <p
+                            key={company.id}
+                            className="text-muted-foreground text-sm"
+                          >
+                            {company.name}
+                          </p>
+                        ))}
                     </div>
                   </div>
                 )}
                 {movie.production_countries?.length > 0 && (
                   <div>
-                    <h4 className="font-semibold text-foreground mb-1">Países</h4>
+                    <h4 className="font-semibold text-foreground mb-1">
+                      Países
+                    </h4>
                     <p className="text-muted-foreground">
-                      {movie.production_countries.map((country: any) => country.name).join(', ')}
+                      {movie.production_countries
+                        .map((country: any) => country.name)
+                        .join(', ')}
                     </p>
                   </div>
                 )}
@@ -241,10 +271,16 @@ const MovieDetails: React.FC = () => {
                 <CardContent>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {movie.credits.cast.slice(0, 12).map((person: any) => (
-                      <div 
-                        key={person.id} 
+                      <div
+                        key={person.id}
                         className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50 hover:bg-secondary/70 transition-colors cursor-pointer"
-                        onClick={() => navigate(`/pessoa/${person.id}`)}
+                        onClick={() =>
+                          navigate(
+                            `/pessoa/${person.id}?name=${encodeURIComponent(
+                              person.name
+                            )}`
+                          )
+                        }
                       >
                         <img
                           src={buildImageUrl(person.profile_path, 'w185')}
@@ -274,13 +310,26 @@ const MovieDetails: React.FC = () => {
                 <CardContent>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {movie.credits.crew
-                      .filter((person: any) => ['Director', 'Producer', 'Writer', 'Screenplay'].includes(person.job))
+                      .filter((person: any) =>
+                        [
+                          'Director',
+                          'Producer',
+                          'Writer',
+                          'Screenplay',
+                        ].includes(person.job)
+                      )
                       .slice(0, 12)
                       .map((person: any, index: number) => (
-                        <div 
-                          key={`${person.id}-${index}`} 
+                        <div
+                          key={`${person.id}-${index}`}
                           className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50 hover:bg-secondary/70 transition-colors cursor-pointer"
-                          onClick={() => navigate(`/pessoa/${person.id}`)}
+                          onClick={() =>
+                            navigate(
+                              `/pessoa/${person.id}?name=${encodeURIComponent(
+                                person.name
+                              )}`
+                            )
+                          }
                         >
                           <img
                             src={buildImageUrl(person.profile_path, 'w185')}
@@ -292,7 +341,7 @@ const MovieDetails: React.FC = () => {
                               {person.name}
                             </p>
                             <p className="text-muted-foreground text-xs truncate">
-                              {person.job}
+                              {translateJob(person.job)}
                             </p>
                           </div>
                         </div>
@@ -303,8 +352,8 @@ const MovieDetails: React.FC = () => {
             )}
 
             <TrailerPlayer videos={movie.videos} />
-            
-            <RecommendedContent 
+
+            <RecommendedContent
               recommendations={movie.recommendations}
               type="movie"
               title="Filmes Similares"

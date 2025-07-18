@@ -1,4 +1,10 @@
-import { useState, useEffect } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from 'react';
 
 interface FavoriteItem {
   id: number;
@@ -14,7 +20,26 @@ interface FavoriteItem {
   addedAt: string;
 }
 
-export const useFavorites = () => {
+interface FavoritesContextData {
+  favorites: FavoriteItem[];
+  addToFavorites: (item: Omit<FavoriteItem, 'addedAt'>) => void;
+  removeFromFavorites: (id: number, type: string) => void;
+  clearAllFavorites: () => void;
+  getFavoritesByType: (type: 'movie' | 'tv' | 'person') => FavoriteItem[];
+  getStats: () => {
+    total: number;
+    movies: number;
+    series: number;
+    people: number;
+  };
+  isFavorite: (id: number, type: string) => boolean;
+}
+
+const FavoritesContext = createContext<FavoritesContextData | undefined>(
+  undefined
+);
+
+export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
 
   useEffect(() => {
@@ -71,7 +96,6 @@ export const useFavorites = () => {
     const movies = getFavoritesByType('movie');
     const series = getFavoritesByType('tv');
     const people = getFavoritesByType('person');
-
     return {
       total: favorites.length,
       movies: movies.length,
@@ -84,20 +108,35 @@ export const useFavorites = () => {
     return favorites.some((fav) => fav.id === id && fav.type === type);
   };
 
-  // Retorna todos os favoritos ordenados por data de adição (mais recente primeiro)
-  const getSortedFavorites = () => {
-    return [...favorites].sort(
-      (a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime()
-    );
-  };
-
-  return {
-    favorites: getSortedFavorites(),
-    addToFavorites,
-    removeFromFavorites,
-    clearAllFavorites,
-    getFavoritesByType,
-    getStats,
-    isFavorite,
-  };
+  return (
+    <FavoritesContext.Provider
+      value={{
+        favorites,
+        addToFavorites,
+        removeFromFavorites,
+        clearAllFavorites,
+        getFavoritesByType,
+        getStats,
+        isFavorite,
+      }}
+    >
+      {children}
+    </FavoritesContext.Provider>
+  );
 };
+
+export function useFavoritesContext(): FavoritesContextData {
+  const context = useContext(FavoritesContext);
+  if (!context) {
+    throw new Error(
+      'useFavoritesContext deve ser usado dentro de um FavoritesProvider'
+    );
+  }
+  return context;
+}
+
+/**
+ * Contexto global para favoritos usando Context API.
+ * Fornece métodos para adicionar, remover, limpar e consultar favoritos de qualquer lugar da aplicação.
+ * Deve envolver o App ou o componente de mais alto nível que precisa acessar favoritos.
+ */

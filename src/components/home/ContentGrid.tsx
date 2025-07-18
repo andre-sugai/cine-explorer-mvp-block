@@ -1,10 +1,10 @@
-
 import React, { useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Star, Calendar, Users } from 'lucide-react';
 import { TMDBMovie, TMDBTVShow, TMDBPerson, buildImageUrl } from '@/utils/tmdb';
 import { useNavigate } from 'react-router-dom';
+import { MovieCardActions } from '@/components/MovieCardActions';
 
 type ContentCategory = 'movies' | 'tv' | 'actors' | 'directors';
 
@@ -121,6 +121,19 @@ export const ContentGrid: React.FC<ContentGridProps> = ({
                 </div>
               )}
             </div>
+
+            {/* Action Icons - Only for movies and TV shows */}
+            {('title' in item || ('name' in item && 'first_air_date' in item)) && (
+              <MovieCardActions
+                id={item.id}
+                title={'title' in item ? item.title : item.name}
+                poster_path={'poster_path' in item ? item.poster_path : undefined}
+                release_date={'release_date' in item ? item.release_date : 'first_air_date' in item ? item.first_air_date : undefined}
+                vote_average={'vote_average' in item ? item.vote_average : undefined}
+                genre_ids={'genre_ids' in item ? item.genre_ids : undefined}
+                type={'title' in item ? 'movie' : 'tv'}
+              />
+            )}
           </div>
         </CardContent>
       </Card>

@@ -1,19 +1,26 @@
-
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import { Heart, Search, Trash2, User, Film, Tv, Star, Calendar } from 'lucide-react';
-import { useFavorites } from '@/hooks/useFavorites';
-import { buildImageUrl } from '@/utils/tmdb';
+import { Heart, Search, Trash2 } from 'lucide-react';
+import { useFavoritesContext } from '@/context/FavoritesContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
+import { PersonalListCard } from '@/components/personal/PersonalListCard';
 
 export const FavoritesPage: React.FC = () => {
-  const { favorites, removeFromFavorites, clearAllFavorites, getFavoritesByType, getStats } = useFavorites();
+  const {
+    favorites,
+    removeFromFavorites,
+    clearAllFavorites,
+    getFavoritesByType,
+    getStats,
+  } = useFavoritesContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('all');
+  const [orderBy, setOrderBy] = useState<'date' | 'rating'>('date');
+  const [orderDirection, setOrderDirection] = useState<'asc' | 'desc'>('desc');
   const navigate = useNavigate();
 
   const stats = getStats();
@@ -21,17 +28,21 @@ export const FavoritesPage: React.FC = () => {
   const handleRemoveFavorite = (id: number, type: string, title: string) => {
     removeFromFavorites(id, type);
     toast({
-      title: "Removido dos favoritos",
+      title: 'Removido dos favoritos',
       description: `${title} foi removido da sua lista de favoritos.`,
     });
   };
 
   const handleClearAll = () => {
-    if (window.confirm('Tem certeza que deseja remover todos os favoritos? Esta ação não pode ser desfeita.')) {
+    if (
+      window.confirm(
+        'Tem certeza que deseja remover todos os favoritos? Esta ação não pode ser desfeita.'
+      )
+    ) {
       clearAllFavorites();
       toast({
-        title: "Favoritos limpos",
-        description: "Todos os favoritos foram removidos.",
+        title: 'Favoritos limpos',
+        description: 'Todos os favoritos foram removidos.',
       });
     }
   };
@@ -47,87 +58,45 @@ export const FavoritesPage: React.FC = () => {
   };
 
   const filterFavorites = (items: any[]) => {
-    return items.filter(item =>
+    return items.filter((item) =>
       item.title.toLowerCase().includes(searchTerm.toLowerCase())
     );
   };
 
-  const FavoriteCard = ({ item }: { item: any }) => (
-    <Card className="bg-gradient-cinema border-primary/20 hover:shadow-glow transition-all duration-300 group">
-      <CardHeader className="pb-3">
-        <div 
-          className="w-full h-48 bg-secondary/50 rounded-md mb-3 flex items-center justify-center cursor-pointer overflow-hidden"
-          onClick={() => navigateToDetails(item)}
-        >
-          {(item.poster_path || item.profile_path) ? (
-            <img
-              src={buildImageUrl(item.poster_path || item.profile_path)}
-              alt={item.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            />
-          ) : (
-            <div className="flex flex-col items-center gap-2 text-muted-foreground">
-              {item.type === 'movie' ? <Film className="w-8 h-8" /> :
-               item.type === 'tv' ? <Tv className="w-8 h-8" /> :
-               <User className="w-8 h-8" />}
-              <span className="text-sm">Sem imagem</span>
-            </div>
-          )}
-        </div>
-        <CardTitle className="text-lg text-primary line-clamp-2">{item.title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-2">
-          {item.vote_average && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Star className="w-4 h-4 text-yellow-500" />
-              <span>{item.vote_average.toFixed(1)}/10</span>
-            </div>
-          )}
-          
-          {(item.release_date || item.first_air_date) && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Calendar className="w-4 h-4" />
-              <span>{new Date(item.release_date || item.first_air_date).getFullYear()}</span>
-            </div>
-          )}
-
-          {item.known_for_department && (
-            <div className="text-sm text-muted-foreground">
-              {item.known_for_department}
-            </div>
-          )}
-
-          <div className="text-xs text-muted-foreground">
-            Adicionado em: {new Date(item.addedAt).toLocaleDateString('pt-BR')}
-          </div>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleRemoveFavorite(item.id, item.type, item.title)}
-            className="w-full mt-3 text-red-500 border-red-500/20 hover:bg-red-500/10"
-          >
-            <Heart className="w-4 h-4 mr-2 fill-current" />
-            Remover dos favoritos
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
+  const sortFavorites = (items: any[]) => {
+    if (orderBy === 'date') {
+      return [...items].sort((a, b) => {
+        const dateA = new Date(a.addedAt).getTime();
+        const dateB = new Date(b.addedAt).getTime();
+        return orderDirection === 'asc' ? dateA - dateB : dateB - dateA;
+      });
+    } else if (orderBy === 'rating') {
+      return [...items].sort((a, b) => {
+        const ratingA = a.vote_average || 0;
+        const ratingB = b.vote_average || 0;
+        return orderDirection === 'asc' ? ratingA - ratingB : ratingB - ratingA;
+      });
+    }
+    return items;
+  };
 
   const renderFavoritesList = (items: any[]) => {
     const filteredItems = filterFavorites(items);
+    const sortedItems = sortFavorites(filteredItems);
 
-    if (filteredItems.length === 0) {
+    if (sortedItems.length === 0) {
       return (
         <div className="text-center py-12">
           <Heart className="w-16 h-16 text-primary mx-auto mb-4 opacity-50" />
           <h3 className="text-xl font-semibold text-primary mb-2">
-            {searchTerm ? 'Nenhum resultado encontrado' : 'Nenhum favorito nesta categoria'}
+            {searchTerm
+              ? 'Nenhum resultado encontrado'
+              : 'Nenhum favorito nesta categoria'}
           </h3>
           <p className="text-muted-foreground">
-            {searchTerm ? 'Tente ajustar sua busca' : 'Explore conteúdos e adicione aos seus favoritos'}
+            {searchTerm
+              ? 'Tente ajustar sua busca'
+              : 'Explore conteúdos e adicione aos seus favoritos'}
           </p>
         </div>
       );
@@ -135,8 +104,22 @@ export const FavoritesPage: React.FC = () => {
 
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {filteredItems.map((item) => (
-          <FavoriteCard key={`${item.type}-${item.id}`} item={item} />
+        {sortedItems.map((item) => (
+          <PersonalListCard
+            key={`${item.type}-${item.id}`}
+            item={item}
+            onDetailsClick={() => navigateToDetails(item)}
+            showDate={true}
+            dateLabel="Adicionado em"
+            actions={[
+              {
+                label: 'Remover',
+                onClick: () =>
+                  handleRemoveFavorite(item.id, item.type, item.title),
+                variant: 'destructive',
+              },
+            ]}
+          />
         ))}
       </div>
     );
@@ -150,6 +133,54 @@ export const FavoritesPage: React.FC = () => {
           Gerencie todos os seus filmes, séries e pessoas favoritas
         </p>
       </div>
+      {/* Controles: busca e filtros de ordenação */}
+      <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+        <div className="flex flex-1 gap-2 items-center max-w-xl w-full">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+            <Input
+              placeholder="Buscar nos favoritos..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 bg-secondary/50 border-primary/20"
+            />
+          </div>
+          {/* Filtros de ordenação ao lado do campo de busca */}
+          <div className="flex gap-2 items-center">
+            <label className="text-sm text-muted-foreground">
+              Ordenar por:
+            </label>
+            <select
+              value={orderBy}
+              onChange={(e) => setOrderBy(e.target.value as 'date' | 'rating')}
+              className="border rounded px-2 py-1 text-sm bg-secondary/50 border-primary/20 focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="date">Data de Adição</option>
+              <option value="rating">Nota</option>
+            </select>
+            <select
+              value={orderDirection}
+              onChange={(e) =>
+                setOrderDirection(e.target.value as 'asc' | 'desc')
+              }
+              className="border rounded px-2 py-1 text-sm bg-secondary/50 border-primary/20 focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="desc">Decrescente</option>
+              <option value="asc">Crescente</option>
+            </select>
+          </div>
+        </div>
+        {favorites.length > 0 && (
+          <Button
+            variant="outline"
+            onClick={handleClearAll}
+            className="text-red-500 border-red-500/20 hover:bg-red-500/10"
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Limpar todos
+          </Button>
+        )}
+      </div>
 
       {/* Estatísticas */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -161,46 +192,28 @@ export const FavoritesPage: React.FC = () => {
         </Card>
         <Card className="bg-gradient-cinema border-primary/20">
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-primary">{stats.movies}</div>
+            <div className="text-2xl font-bold text-primary">
+              {stats.movies}
+            </div>
             <div className="text-sm text-muted-foreground">Filmes</div>
           </CardContent>
         </Card>
         <Card className="bg-gradient-cinema border-primary/20">
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-primary">{stats.series}</div>
+            <div className="text-2xl font-bold text-primary">
+              {stats.series}
+            </div>
             <div className="text-sm text-muted-foreground">Séries</div>
           </CardContent>
         </Card>
         <Card className="bg-gradient-cinema border-primary/20">
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-primary">{stats.people}</div>
+            <div className="text-2xl font-bold text-primary">
+              {stats.people}
+            </div>
             <div className="text-sm text-muted-foreground">Pessoas</div>
           </CardContent>
         </Card>
-      </div>
-
-      {/* Controles */}
-      <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-          <Input
-            placeholder="Buscar nos favoritos..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 bg-secondary/50 border-primary/20"
-          />
-        </div>
-        
-        {favorites.length > 0 && (
-          <Button
-            variant="outline"
-            onClick={handleClearAll}
-            className="text-red-500 border-red-500/20 hover:bg-red-500/10"
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Limpar todos
-          </Button>
-        )}
       </div>
 
       {/* Abas */}

@@ -1,8 +1,17 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Film, Home, Heart, Calendar, CheckCircle, Settings } from 'lucide-react';
+import {
+  Film,
+  Home,
+  Heart,
+  Calendar,
+  CheckCircle,
+  Settings,
+} from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import { Input } from '@/components/ui/input';
+import { Search } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface HeaderProps {
   activeTab?: string;
@@ -12,13 +21,34 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
   const location = useLocation();
   const currentPath = location.pathname;
+  const [searchTerm, setSearchTerm] = React.useState('');
+  const [isSearchFocused, setIsSearchFocused] = React.useState(false);
+  const navigate = useNavigate();
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchTerm.trim()) {
+      navigate(`/busca/${encodeURIComponent(searchTerm.trim())}`);
+      setSearchTerm('');
+    }
+  };
 
   const navItems = [
     { id: 'home', label: 'Home', icon: Home, path: '/' },
     { id: 'favorites', label: 'Favoritos', icon: Heart, path: '/favoritos' },
-    { id: 'want-to-watch', label: 'Quero Assistir', icon: Calendar, path: '/quero-assistir' },
+    {
+      id: 'want-to-watch',
+      label: 'Quero Assistir',
+      icon: Calendar,
+      path: '/quero-assistir',
+    },
     { id: 'watched', label: 'Vistos', icon: CheckCircle, path: '/vistos' },
-    { id: 'settings', label: 'Configurações', icon: Settings, path: '/configuracoes' }
+    {
+      id: 'settings',
+      label: 'Configurações',
+      icon: Settings,
+      path: '/configuracoes',
+    },
   ];
 
   const isActive = (path: string) => currentPath === path;
@@ -28,7 +58,10 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+          <Link
+            to="/"
+            className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+          >
             <div className="w-10 h-10 bg-gradient-gold rounded-lg flex items-center justify-center shadow-glow">
               <Film className="w-6 h-6 text-cinema-dark" />
             </div>
@@ -37,26 +70,55 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
 
           {/* Navigation - Desktop */}
           <nav className="hidden md:flex items-center gap-2">
-            {navItems.map((item) => {
+            {navItems.map((item, idx) => {
               const Icon = item.icon;
               const active = isActive(item.path);
-              
+
               return (
-                <Link key={item.id} to={item.path}>
-                  <Button
-                    variant={active ? 'default' : 'ghost'}
-                    className={`
-                      flex items-center gap-2 transition-all duration-200
-                      ${active 
-                        ? 'bg-gradient-gold text-cinema-dark shadow-glow' 
-                        : 'text-foreground hover:text-primary hover:bg-secondary/50'
-                      }
-                    `}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {item.label}
-                  </Button>
-                </Link>
+                <React.Fragment key={item.id}>
+                  <Link to={item.path}>
+                    <Button
+                      variant={active ? 'default' : 'ghost'}
+                      className={`
+                        flex items-center gap-2 transition-all duration-200
+                        ${
+                          active
+                            ? 'bg-gradient-gold text-cinema-dark shadow-glow'
+                            : 'text-foreground hover:text-primary hover:bg-secondary/50'
+                        }
+                      `}
+                    >
+                      <Icon className="w-4 h-4" />
+                      {item.label}
+                    </Button>
+                  </Link>
+                  {/* Insere o campo de busca logo após o botão 'Vistos' */}
+                  {item.id === 'watched' && (
+                    <form
+                      onSubmit={handleSearch}
+                      className={`
+                        relative ml-4
+                        transition-all duration-200
+                        ${
+                          isSearchFocused
+                            ? 'shadow-glow border-primary/40 scale-[1.02]'
+                            : ''
+                        }
+                      `}
+                      style={{ minWidth: 220, maxWidth: 320 }}
+                    >
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onFocus={() => setIsSearchFocused(true)}
+                        onBlur={() => setIsSearchFocused(false)}
+                        placeholder="Buscar..."
+                        className="pl-10 pr-3 h-10 text-base bg-secondary/50 border-none focus:bg-background focus:ring-2 focus:ring-primary/50 text-foreground placeholder:text-muted-foreground"
+                      />
+                    </form>
+                  )}
+                </React.Fragment>
               );
             })}
           </nav>
@@ -66,7 +128,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
             {navItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.path);
-              
+
               return (
                 <Link key={item.id} to={item.path}>
                   <Button
@@ -74,9 +136,10 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
                     size="sm"
                     className={`
                       p-2 transition-all duration-200
-                      ${active 
-                        ? 'bg-gradient-gold text-cinema-dark shadow-glow' 
-                        : 'text-foreground hover:text-primary hover:bg-secondary/50'
+                      ${
+                        active
+                          ? 'bg-gradient-gold text-cinema-dark shadow-glow'
+                          : 'text-foreground hover:text-primary hover:bg-secondary/50'
                       }
                     `}
                   >

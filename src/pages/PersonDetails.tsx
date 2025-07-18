@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -7,35 +6,38 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getPersonDetails, buildImageUrl } from '@/utils/tmdb';
+import { translateJob } from '@/utils/translations';
 import ActionButtons from '@/components/ActionButtons';
 import PersonCredits from '@/components/PersonCredits';
 import { Layout } from '@/components/Layout';
-import { 
-  ChevronLeft, 
-  Calendar, 
-  MapPin, 
-  Star, 
-  Users
-} from 'lucide-react';
+import { ChevronLeft, Calendar, MapPin, Star, Users } from 'lucide-react';
+import { useDetailNameContext } from '@/context/DetailNameContext';
 
 const PersonDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { setDetailName } = useDetailNameContext();
 
-  const { data: person, isLoading, error } = useQuery({
+  const {
+    data: person,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['person-details', id],
     queryFn: () => getPersonDetails(Number(id)),
     enabled: !!id,
   });
 
-  // Update URL with person name for breadcrumbs
+  // Update URL with person name for breadcrumbs and document title
   useEffect(() => {
     if (person && person.name) {
+      setDetailName(person.name);
       const currentUrl = new URL(window.location.href);
       currentUrl.searchParams.set('name', person.name);
       window.history.replaceState({}, '', currentUrl.toString());
+      document.title = `${person.name} - Cine Explorer`;
     }
-  }, [person]);
+  }, [person, setDetailName]);
 
   if (isLoading) {
     return (
@@ -60,13 +62,13 @@ const PersonDetails: React.FC = () => {
       <Layout>
         <Card className="bg-gradient-cinema border-destructive/20">
           <CardContent className="p-8 text-center">
-            <h3 className="text-lg font-semibold text-foreground mb-2">Erro ao carregar pessoa</h3>
+            <h3 className="text-lg font-semibold text-foreground mb-2">
+              Erro ao carregar pessoa
+            </h3>
             <p className="text-muted-foreground mb-4">
               Não foi possível carregar os detalhes da pessoa.
             </p>
-            <Button onClick={() => navigate('/')}>
-              Voltar ao início
-            </Button>
+            <Button onClick={() => navigate('/')}>Voltar ao início</Button>
           </CardContent>
         </Card>
       </Layout>
@@ -75,16 +77,13 @@ const PersonDetails: React.FC = () => {
 
   const movieCredits = person.movie_credits?.cast || [];
   const tvCredits = person.tv_credits?.cast || [];
-  const directorCredits = person.movie_credits?.crew?.filter((c: any) => c.job === 'Director') || [];
+  const directorCredits =
+    person.movie_credits?.crew?.filter((c: any) => c.job === 'Director') || [];
 
   return (
     <Layout>
       <div className="space-y-8">
-        <Button 
-          variant="ghost" 
-          onClick={() => navigate(-1)}
-          className="mb-6"
-        >
+        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-6">
           <ChevronLeft className="w-4 h-4 mr-2" />
           Voltar
         </Button>
@@ -99,22 +98,29 @@ const PersonDetails: React.FC = () => {
                   alt={person.name}
                   className="w-full rounded-lg shadow-cinema mb-4"
                 />
-                <h1 className="text-2xl font-bold text-primary mb-4">{person.name}</h1>
-                
+                <h1 className="text-2xl font-bold text-primary mb-4">
+                  {person.name}
+                </h1>
+
                 <div className="space-y-3 mb-6">
                   <div className="flex items-center gap-2">
                     <Users className="w-4 h-4 text-muted-foreground" />
-                    <Badge variant="secondary">{person.known_for_department}</Badge>
+                    <Badge variant="secondary">
+                      {translateJob(person.known_for_department)}
+                    </Badge>
                   </div>
-                  
+
                   {person.birthday && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Calendar className="w-4 h-4" />
                       {new Date(person.birthday).toLocaleDateString('pt-BR')}
-                      {person.deathday && ` - ${new Date(person.deathday).toLocaleDateString('pt-BR')}`}
+                      {person.deathday &&
+                        ` - ${new Date(person.deathday).toLocaleDateString(
+                          'pt-BR'
+                        )}`}
                     </div>
                   )}
-                  
+
                   {person.place_of_birth && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <MapPin className="w-4 h-4" />
@@ -130,7 +136,7 @@ const PersonDetails: React.FC = () => {
                   )}
                 </div>
 
-                <ActionButtons 
+                <ActionButtons
                   id={person.id}
                   type="person"
                   title={person.name}
@@ -147,16 +153,22 @@ const PersonDetails: React.FC = () => {
               <CardContent className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Filmes</span>
-                  <span className="font-semibold text-foreground">{movieCredits.length}</span>
+                  <span className="font-semibold text-foreground">
+                    {movieCredits.length}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Séries</span>
-                  <span className="font-semibold text-foreground">{tvCredits.length}</span>
+                  <span className="font-semibold text-foreground">
+                    {tvCredits.length}
+                  </span>
                 </div>
                 {directorCredits.length > 0 && (
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Como Diretor</span>
-                    <span className="font-semibold text-foreground">{directorCredits.length}</span>
+                    <span className="font-semibold text-foreground">
+                      {directorCredits.length}
+                    </span>
                   </div>
                 )}
               </CardContent>
@@ -178,7 +190,7 @@ const PersonDetails: React.FC = () => {
               </Card>
             )}
 
-            <PersonCredits 
+            <PersonCredits
               movieCredits={person.movie_credits}
               tvCredits={person.tv_credits}
             />

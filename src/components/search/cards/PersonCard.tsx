@@ -1,9 +1,9 @@
-
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import { buildImageUrl, TMDBPerson } from '@/utils/tmdb';
+import { MovieCardActions } from '@/components/MovieCardActions';
 
 interface PersonCardProps {
   person: TMDBPerson;
@@ -13,7 +13,7 @@ export const PersonCard: React.FC<PersonCardProps> = ({ person }) => {
   const navigate = useNavigate();
 
   return (
-    <Card 
+    <Card
       className="group cursor-pointer overflow-hidden bg-gradient-cinema border-primary/20 hover:shadow-glow transition-all duration-300 transform hover:scale-105"
       onClick={() => navigate(`/pessoa/${person.id}`)}
     >
@@ -25,7 +25,8 @@ export const PersonCard: React.FC<PersonCardProps> = ({ person }) => {
           loading="lazy"
           onError={(e) => {
             const target = e.target as HTMLImageElement;
-            target.src = 'https://images.unsplash.com/photo-1527576539890-dfa815648363?w=342&h=513&fit=crop';
+            target.src =
+              'https://images.unsplash.com/photo-1527576539890-dfa815648363?w=342&h=513&fit=crop';
           }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -33,7 +34,7 @@ export const PersonCard: React.FC<PersonCardProps> = ({ person }) => {
           {person.known_for_department}
         </Badge>
       </div>
-      
+
       <CardContent className="p-3">
         <h3 className="font-bold text-foreground line-clamp-1 mb-2">
           {person.name}
@@ -47,6 +48,15 @@ export const PersonCard: React.FC<PersonCardProps> = ({ person }) => {
           ))}
         </div>
       </CardContent>
+      {/* Botão de favorito para pessoa */}
+      <div className="px-3 pb-3">
+        <MovieCardActions
+          id={person.id}
+          title={person.name}
+          poster_path={person.profile_path}
+          type="person"
+        />
+      </div>
     </Card>
   );
 };
