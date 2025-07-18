@@ -5,13 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getPersonDetails, buildImageUrl } from '@/utils/tmdb';
+import { getPersonDetails, buildImageUrl, getPersonImages } from '@/utils/tmdb';
 import { translateJob } from '@/utils/translations';
 import ActionButtons from '@/components/ActionButtons';
 import PersonCredits from '@/components/PersonCredits';
 import { Layout } from '@/components/Layout';
 import { ChevronLeft, Calendar, MapPin, Star, Users } from 'lucide-react';
 import { useDetailNameContext } from '@/context/DetailNameContext';
+import { ImageGallery } from '@/components/ImageGallery';
 
 const PersonDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -25,6 +26,13 @@ const PersonDetails: React.FC = () => {
   } = useQuery({
     queryKey: ['person-details', id],
     queryFn: () => getPersonDetails(Number(id)),
+    enabled: !!id,
+  });
+
+  // Busca imagens extras da pessoa
+  const { data: images, isLoading: isLoadingImages } = useQuery({
+    queryKey: ['person-images', id],
+    queryFn: () => getPersonImages(Number(id)),
     enabled: !!id,
   });
 
@@ -196,6 +204,16 @@ const PersonDetails: React.FC = () => {
             />
           </div>
         </div>
+
+        {/* Galeria de Imagens Extras */}
+        {images && images.profiles.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-xl font-bold text-primary mb-4">
+              Galeria de Fotos
+            </h2>
+            <ImageGallery images={images.profiles} maxThumbs={15} />
+          </div>
+        )}
       </div>
     </Layout>
   );

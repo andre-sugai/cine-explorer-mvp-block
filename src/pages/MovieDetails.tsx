@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getMovieDetails, buildImageUrl } from '@/utils/tmdb';
+import { getMovieDetails, buildImageUrl, getMovieImages } from '@/utils/tmdb';
 import { translateJob } from '@/utils/translations';
 import ActionButtons from '@/components/ActionButtons';
 import TrailerPlayer from '@/components/TrailerPlayer';
@@ -21,6 +21,7 @@ import {
   DollarSign,
 } from 'lucide-react';
 import { useDetailNameContext } from '@/context/DetailNameContext';
+import { ImageGallery } from '@/components/ImageGallery';
 
 const MovieDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -34,6 +35,13 @@ const MovieDetails: React.FC = () => {
   } = useQuery({
     queryKey: ['movie-details', id],
     queryFn: () => getMovieDetails(Number(id)),
+    enabled: !!id,
+  });
+
+  // Busca imagens extras do filme
+  const { data: images, isLoading: isLoadingImages } = useQuery({
+    queryKey: ['movie-images', id],
+    queryFn: () => getMovieImages(Number(id)),
     enabled: !!id,
   });
 
@@ -194,6 +202,40 @@ const MovieDetails: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Galeria de Imagens Extras */}
+        {images &&
+          (images.backdrops.length > 0 || images.posters.length > 0) && (
+            <div className="mb-8">
+              <h2 className="text-xl font-bold text-primary mb-4">
+                Galeria de Imagens
+              </h2>
+              <ImageGallery
+                images={[...images.backdrops, ...images.posters]}
+                maxThumbs={15}
+              />
+            </div>
+          )}
+
+        {/* Galeria de Vídeos (todos os vídeos disponíveis) */}
+        {movie.videos?.results?.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-xl font-bold text-primary mb-4">Vídeos</h2>
+            <div className="flex flex-wrap gap-4 overflow-x-auto pb-2">
+              {movie.videos.results.map((video: any) => (
+                <iframe
+                  key={video.key}
+                  width="320"
+                  height="180"
+                  src={`https://www.youtube.com/embed/${video.key}`}
+                  title={video.name}
+                  className="rounded-lg shadow-cinema"
+                  allowFullScreen
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="grid md:grid-cols-3 gap-8">
           {/* Informações Técnicas */}

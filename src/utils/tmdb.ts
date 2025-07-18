@@ -1,4 +1,3 @@
-
 // TMDB API utilities
 // This file contains helper functions for interacting with The Movie Database API
 
@@ -14,7 +13,10 @@ export const buildImageUrl = (path: string, size: string = 'w500'): string => {
   return `${TMDB_IMAGE_BASE_URL}/${size}${path}`;
 };
 
-export const buildApiUrl = (endpoint: string, params: Record<string, string> = {}): string => {
+export const buildApiUrl = (
+  endpoint: string,
+  params: Record<string, string> = {}
+): string => {
   const apiKey = getApiKey();
   if (!apiKey) {
     throw new Error('API key not found');
@@ -82,12 +84,15 @@ export interface TMDBSearchResponse<T> {
 }
 
 // Multi-search (busca geral)
-export const searchMulti = async (query: string, page: number = 1): Promise<TMDBSearchResponse<TMDBMovie | TMDBTVShow | TMDBPerson>> => {
+export const searchMulti = async (
+  query: string,
+  page: number = 1
+): Promise<TMDBSearchResponse<TMDBMovie | TMDBTVShow | TMDBPerson>> => {
   try {
     const url = buildApiUrl('/search/multi', {
       query: query.trim(),
       page: page.toString(),
-      include_adult: 'false'
+      include_adult: 'false',
     });
 
     const response = await fetch(url);
@@ -103,12 +108,15 @@ export const searchMulti = async (query: string, page: number = 1): Promise<TMDB
 };
 
 // Busca específica por filmes
-export const searchMovies = async (query: string, page: number = 1): Promise<TMDBSearchResponse<TMDBMovie>> => {
+export const searchMovies = async (
+  query: string,
+  page: number = 1
+): Promise<TMDBSearchResponse<TMDBMovie>> => {
   try {
     const url = buildApiUrl('/search/movie', {
       query: query.trim(),
       page: page.toString(),
-      include_adult: 'false'
+      include_adult: 'false',
     });
 
     const response = await fetch(url);
@@ -124,12 +132,15 @@ export const searchMovies = async (query: string, page: number = 1): Promise<TMD
 };
 
 // Busca específica por séries
-export const searchTVShows = async (query: string, page: number = 1): Promise<TMDBSearchResponse<TMDBTVShow>> => {
+export const searchTVShows = async (
+  query: string,
+  page: number = 1
+): Promise<TMDBSearchResponse<TMDBTVShow>> => {
   try {
     const url = buildApiUrl('/search/tv', {
       query: query.trim(),
       page: page.toString(),
-      include_adult: 'false'
+      include_adult: 'false',
     });
 
     const response = await fetch(url);
@@ -145,12 +156,15 @@ export const searchTVShows = async (query: string, page: number = 1): Promise<TM
 };
 
 // Busca específica por pessoas (atores/diretores)
-export const searchPeople = async (query: string, page: number = 1): Promise<TMDBSearchResponse<TMDBPerson>> => {
+export const searchPeople = async (
+  query: string,
+  page: number = 1
+): Promise<TMDBSearchResponse<TMDBPerson>> => {
   try {
     const url = buildApiUrl('/search/person', {
       query: query.trim(),
       page: page.toString(),
-      include_adult: 'false'
+      include_adult: 'false',
     });
 
     const response = await fetch(url);
@@ -169,7 +183,7 @@ export const searchPeople = async (query: string, page: number = 1): Promise<TMD
 export const getMovieDetails = async (id: number) => {
   try {
     const url = buildApiUrl(`/movie/${id}`, {
-      append_to_response: 'credits,videos,recommendations'
+      append_to_response: 'credits,videos,recommendations',
     });
 
     const response = await fetch(url);
@@ -188,7 +202,7 @@ export const getMovieDetails = async (id: number) => {
 export const getTVShowDetails = async (id: number) => {
   try {
     const url = buildApiUrl(`/tv/${id}`, {
-      append_to_response: 'credits,videos,recommendations'
+      append_to_response: 'credits,videos,recommendations',
     });
 
     const response = await fetch(url);
@@ -207,7 +221,7 @@ export const getTVShowDetails = async (id: number) => {
 export const getPersonDetails = async (id: number) => {
   try {
     const url = buildApiUrl(`/person/${id}`, {
-      append_to_response: 'movie_credits,tv_credits'
+      append_to_response: 'movie_credits,tv_credits',
     });
 
     const response = await fetch(url);
@@ -223,7 +237,9 @@ export const getPersonDetails = async (id: number) => {
 };
 
 // Trending movies
-export const getTrendingMovies = async (timeWindow: 'day' | 'week' = 'week') => {
+export const getTrendingMovies = async (
+  timeWindow: 'day' | 'week' = 'week'
+) => {
   try {
     const url = buildApiUrl(`/trending/movie/${timeWindow}`);
 
@@ -243,7 +259,7 @@ export const getTrendingMovies = async (timeWindow: 'day' | 'week' = 'week') => 
 export const getPopularMovies = async (page: number = 1) => {
   try {
     const url = buildApiUrl('/movie/popular', {
-      page: page.toString()
+      page: page.toString(),
     });
 
     const response = await fetch(url);
@@ -262,7 +278,7 @@ export const getPopularMovies = async (page: number = 1) => {
 export const getPopularTVShows = async (page: number = 1) => {
   try {
     const url = buildApiUrl('/tv/popular', {
-      page: page.toString()
+      page: page.toString(),
     });
 
     const response = await fetch(url);
@@ -281,7 +297,7 @@ export const getPopularTVShows = async (page: number = 1) => {
 export const getPopularPeople = async (page: number = 1) => {
   try {
     const url = buildApiUrl('/person/popular', {
-      page: page.toString()
+      page: page.toString(),
     });
 
     const response = await fetch(url);
@@ -292,6 +308,67 @@ export const getPopularPeople = async (page: number = 1) => {
     return await response.json();
   } catch (error) {
     console.error('Error getting popular people:', error);
+    throw error;
+  }
+};
+
+/**
+ * Busca imagens extras (backdrops, posters, stills) de um filme.
+ * @param id ID do filme
+ * @returns Imagens do filme (backdrops, posters)
+ */
+export const getMovieImages = async (id: number) => {
+  try {
+    const url = buildApiUrl(`/movie/${id}/images`, {
+      include_image_language: 'en,null,pt',
+    });
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`TMDB API error: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error getting movie images:', error);
+    throw error;
+  }
+};
+
+/**
+ * Busca imagens extras de uma série.
+ * @param id ID da série
+ * @returns Imagens da série (backdrops, posters)
+ */
+export const getTVShowImages = async (id: number) => {
+  try {
+    const url = buildApiUrl(`/tv/${id}/images`, {
+      include_image_language: 'en,null,pt',
+    });
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`TMDB API error: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error getting TV show images:', error);
+    throw error;
+  }
+};
+
+/**
+ * Busca imagens extras de uma pessoa.
+ * @param id ID da pessoa
+ * @returns Imagens da pessoa (perfis)
+ */
+export const getPersonImages = async (id: number) => {
+  try {
+    const url = buildApiUrl(`/person/${id}/images`);
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`TMDB API error: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error getting person images:', error);
     throw error;
   }
 };

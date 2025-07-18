@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Star, Calendar, Users } from 'lucide-react';
+import { Star, Calendar, Users, Heart } from 'lucide-react';
 import { TMDBMovie, TMDBTVShow, TMDBPerson, buildImageUrl } from '@/utils/tmdb';
 import { useNavigate } from 'react-router-dom';
 import { MovieCardActions } from '@/components/MovieCardActions';
+import { useFavoritesContext } from '@/context/FavoritesContext';
 
 type ContentCategory = 'movies' | 'tv' | 'actors' | 'directors';
 
@@ -26,6 +27,8 @@ export const ContentGrid: React.FC<ContentGridProps> = ({
   const navigate = useNavigate();
   const observerRef = useRef<IntersectionObserver>();
   const lastElementRef = useRef<HTMLDivElement>(null);
+  const { addToFavorites, removeFromFavorites, isFavorite } =
+    useFavoritesContext();
 
   // Filtra apenas diretores quando a categoria for 'directors'
   const filteredContent = React.useMemo(() => {
@@ -76,6 +79,55 @@ export const ContentGrid: React.FC<ContentGridProps> = ({
   ) => {
     const isLastItem = index === content.length - 1;
 
+    // Verifica se é um diretor
+    const isDirector =
+      category === 'directors' &&
+      'known_for_department' in item &&
+      (item.known_for_department === 'Directing' ||
+        item.known_for_department === 'Direção');
+
+    // Verifica se é um ator
+    const isActor =
+      category === 'actors' &&
+      'known_for_department' in item &&
+      (item.known_for_department === 'Acting' ||
+        item.known_for_department === 'Atuação');
+
+    // Favorito para diretores
+    const directorIsFavorite = isDirector && isFavorite(item.id, 'person');
+    // Favorito para atores
+    const actorIsFavorite = isActor && isFavorite(item.id, 'person');
+
+    const handleFavoriteDirector = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!isDirector) return;
+      if (directorIsFavorite) {
+        removeFromFavorites(item.id, 'person');
+      } else {
+        addToFavorites({
+          id: item.id,
+          type: 'person',
+          title: item.name,
+          poster_path: 'profile_path' in item ? item.profile_path : undefined,
+        });
+      }
+    };
+
+    const handleFavoriteActor = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!isActor) return;
+      if (actorIsFavorite) {
+        removeFromFavorites(item.id, 'person');
+      } else {
+        addToFavorites({
+          id: item.id,
+          type: 'person',
+          title: item.name,
+          poster_path: 'profile_path' in item ? item.profile_path : undefined,
+        });
+      }
+    };
+
     return (
       <Card
         key={`${item.id}-${index}`}
@@ -112,6 +164,48 @@ export const ContentGrid: React.FC<ContentGridProps> = ({
                 {item.vote_average.toFixed(1)}
               </div>
             )}
+            {/* Botão de favorito para diretores */}
+            {isDirector && (
+              <button
+                onClick={handleFavoriteDirector}
+                className={`absolute top-2 left-2 p-2 rounded-full bg-black/60 hover:bg-black/80 transition-colors ${
+                  directorIsFavorite
+                    ? 'text-red-500'
+                    : 'text-muted-foreground hover:text-red-500'
+                }`}
+                title={
+                  directorIsFavorite
+                    ? 'Remover dos favoritos'
+                    : 'Adicionar aos favoritos'
+                }
+              >
+                <Heart
+                  className={`w-5 h-5 ${
+                    directorIsFavorite ? 'fill-current' : ''
+                  }`}
+                />
+              </button>
+            )}
+            {/* Botão de favorito para atores */}
+            {isActor && (
+              <button
+                onClick={handleFavoriteActor}
+                className={`absolute top-2 left-2 p-2 rounded-full bg-black/60 hover:bg-black/80 transition-colors ${
+                  actorIsFavorite
+                    ? 'text-red-500'
+                    : 'text-muted-foreground hover:text-red-500'
+                }`}
+                title={
+                  actorIsFavorite
+                    ? 'Remover dos favoritos'
+                    : 'Adicionar aos favoritos'
+                }
+              >
+                <Heart
+                  className={`w-5 h-5 ${actorIsFavorite ? 'fill-current' : ''}`}
+                />
+              </button>
+            )}
           </div>
 
           {/* Content Info */}
@@ -135,8 +229,8 @@ export const ContentGrid: React.FC<ContentGridProps> = ({
                 </div>
               )}
 
-              {/* Department for people */}
-              {'known_for_department' in item && (
+              {/* Department para pessoas - só exibe se não for diretor nem ator */}
+              {'known_for_department' in item && !isDirector && !isActor && (
                 <div className="flex items-center gap-1">
                   <Users className="w-3 h-3" />
                   {item.known_for_department}
@@ -144,7 +238,7 @@ export const ContentGrid: React.FC<ContentGridProps> = ({
               )}
             </div>
 
-            {/* Action Icons - Only for movies and TV shows */}
+            {/* Action Icons - Só para filmes e séries */}
             {('title' in item ||
               ('name' in item && 'first_air_date' in item)) && (
               <MovieCardActions
