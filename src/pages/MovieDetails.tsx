@@ -5,7 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getMovieDetails, buildImageUrl, getMovieImages } from '@/utils/tmdb';
+import {
+  getMovieDetails,
+  buildImageUrl,
+  getMovieImages,
+  getMovieWatchProviders,
+} from '@/utils/tmdb';
 import { translateJob } from '@/utils/translations';
 import ActionButtons from '@/components/ActionButtons';
 import TrailerPlayer from '@/components/TrailerPlayer';
@@ -19,6 +24,7 @@ import {
   Users,
   Globe,
   DollarSign,
+  PlayCircle,
 } from 'lucide-react';
 import { useDetailNameContext } from '@/context/DetailNameContext';
 import { ImageGallery } from '@/components/ImageGallery';
@@ -27,6 +33,7 @@ const MovieDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { setDetailName } = useDetailNameContext();
+  const [watchProvider, setWatchProvider] = React.useState<any>(null);
 
   const {
     data: movie,
@@ -55,6 +62,27 @@ const MovieDetails: React.FC = () => {
       setDetailName(movie.title);
     }
   }, [movie, setDetailName]);
+
+  useEffect(() => {
+    if (movie && movie.id) {
+      getMovieWatchProviders(movie.id).then((data) => {
+        if (
+          data &&
+          data.results &&
+          data.results.BR &&
+          data.results.BR.flatrate &&
+          data.results.BR.link
+        ) {
+          setWatchProvider({
+            provider: data.results.BR.flatrate[0],
+            link: data.results.BR.link,
+          });
+        } else {
+          setWatchProvider(null);
+        }
+      });
+    }
+  }, [movie]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -197,6 +225,22 @@ const MovieDetails: React.FC = () => {
                     poster_path={movie.poster_path}
                     movie={movie}
                   />
+                  {/* Onde Assistir - texto e ícone do provedor de streaming */}
+                  {watchProvider &&
+                    watchProvider.provider &&
+                    watchProvider.provider.logo_path && (
+                      <div className="mt-6 flex flex-col items-start justify-start">
+                        <span className="block text-lg font-semibold text-primary mb-2">
+                          Onde Assistir?
+                        </span>
+                        <img
+                          src={`https://image.tmdb.org/t/p/w92${watchProvider.provider.logo_path}`}
+                          alt={watchProvider.provider.provider_name}
+                          title={watchProvider.provider.provider_name}
+                          className="h-[100px] w-[100px] object-contain"
+                        />
+                      </div>
+                    )}
                 </div>
               </div>
             </div>
