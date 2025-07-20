@@ -1,16 +1,12 @@
-
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, Dice6 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { LuckyButton } from '@/components/LuckyButton';
 
-interface SearchSectionProps {
-  onLuckyPick: () => void;
-}
-
-export const SearchSection: React.FC<SearchSectionProps> = ({ onLuckyPick }) => {
+export const SearchSection: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const navigate = useNavigate();
@@ -22,41 +18,37 @@ export const SearchSection: React.FC<SearchSectionProps> = ({ onLuckyPick }) => 
     }
   };
 
-  const handleLuckyClick = () => {
-    // Adiciona uma pequena animação antes de executar
-    const button = document.getElementById('lucky-button');
-    if (button) {
-      button.classList.add('animate-pulse');
-      setTimeout(() => {
-        button.classList.remove('animate-pulse');
-        onLuckyPick();
-      }, 300);
-    } else {
-      onLuckyPick();
-    }
-  };
-
   return (
     <section className="relative py-20 px-4">
       <div className="max-w-4xl mx-auto text-center">
         {/* Hero Title */}
         <div className="mb-12">
           <h1 className="text-5xl md:text-6xl font-bold text-primary mb-6 leading-tight">
-            Explore o Mundo do 
-            <span className="bg-gradient-gold bg-clip-text text-transparent"> Cinema</span>
+            Explore o Mundo do
+            <span className="bg-gradient-gold bg-clip-text text-transparent">
+              {' '}
+              Cinema
+            </span>
           </h1>
           <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-            Descubra filmes, séries, atores e diretores. Sua jornada cinematográfica começa aqui.
+            Descubra filmes, séries, atores e diretores. Sua jornada
+            cinematográfica começa aqui.
           </p>
         </div>
 
         {/* Centralized Search */}
         <div className="space-y-6">
-          <Card className={`
+          <Card
+            className={`
             relative overflow-hidden transition-all duration-300 border-primary/20 
-            ${isSearchFocused ? 'shadow-glow border-primary/40 scale-[1.02]' : 'shadow-cinema'}
+            ${
+              isSearchFocused
+                ? 'shadow-glow border-primary/40 scale-[1.02]'
+                : 'shadow-cinema'
+            }
             bg-gradient-cinema
-          `}>
+          `}
+          >
             <form onSubmit={handleSearch} className="p-2">
               <div className="relative">
                 <Search className="absolute left-6 top-1/2 transform -translate-y-1/2 w-6 h-6 text-muted-foreground" />
@@ -73,7 +65,7 @@ export const SearchSection: React.FC<SearchSectionProps> = ({ onLuckyPick }) => 
                     transition-all duration-200
                   "
                 />
-                <Button 
+                <Button
                   type="submit"
                   className="
                     absolute right-2 top-1/2 transform -translate-y-1/2 h-12 px-8
@@ -87,25 +79,12 @@ export const SearchSection: React.FC<SearchSectionProps> = ({ onLuckyPick }) => 
             </form>
           </Card>
 
-          {/* Lucky Button */}
-          <Button
-            id="lucky-button"
-            onClick={handleLuckyClick}
-            variant="outline"
-            size="lg"
-            className="
-              bg-secondary/50 hover:bg-secondary border-primary/30 
-              text-primary hover:text-primary hover:border-primary/50
-              transition-all duration-200 hover:scale-105 hover:shadow-glow
-              font-medium text-base px-8 py-3
-            "
-          >
-            <Dice6 className="w-5 h-5 mr-2" />
-            Estou com Sorte
-          </Button>
+          {/* Lucky Button substituído pelo componente LuckyButton */}
+          <LuckyButton variant="default" className="w-full max-w-xs mx-auto" />
 
           <p className="text-sm text-muted-foreground">
-            Use palavras-chave em português ou inglês para encontrar o que procura
+            Use palavras-chave em português ou inglês para encontrar o que
+            procura
           </p>
         </div>
       </div>
