@@ -1,15 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, Dice6 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { LuckyButton } from '@/components/LuckyButton';
+import { getPopularMovies, getPopularTVShows } from '@/utils/tmdb';
 
 export const SearchSection: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [bgImage, setBgImage] = useState<string | null>(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Busca filmes e séries populares e escolhe uma imagem aleatória
+    const fetchRandomBg = async () => {
+      try {
+        const [movies, tvs] = await Promise.all([
+          getPopularMovies(1),
+          getPopularTVShows(1),
+        ]);
+        const all = [...(movies?.results || []), ...(tvs?.results || [])];
+        const candidates = all.filter(
+          (item) => item.backdrop_path || item.poster_path
+        );
+        if (candidates.length > 0) {
+          const random =
+            candidates[Math.floor(Math.random() * candidates.length)];
+          setBgImage(
+            `https://image.tmdb.org/t/p/original${
+              random.backdrop_path || random.poster_path
+            }`
+          );
+        }
+      } catch (e) {
+        setBgImage(null);
+      }
+    };
+    fetchRandomBg();
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,8 +49,23 @@ export const SearchSection: React.FC = () => {
   };
 
   return (
-    <section className="relative py-20 px-4">
-      <div className="max-w-4xl mx-auto text-center">
+    <section
+      className="relative py-20 px-4 overflow-hidden"
+      style={
+        bgImage
+          ? {
+              backgroundImage: `url(${bgImage})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }
+          : {}
+      }
+    >
+      {/* Overlay escuro */}
+      {bgImage && (
+        <div className="absolute inset-0 bg-black/70 pointer-events-none z-0" />
+      )}
+      <div className="max-w-4xl mx-auto text-center relative z-10">
         {/* Hero Title */}
         <div className="mb-12">
           <h1 className="text-5xl md:text-6xl font-bold text-primary mb-6 leading-tight">
@@ -39,15 +84,13 @@ export const SearchSection: React.FC = () => {
         {/* Centralized Search */}
         <div className="space-y-6">
           <Card
-            className={`
-            relative overflow-hidden transition-all duration-300 border-primary/20 
-            ${
-              isSearchFocused
+            className={
+              `relative overflow-hidden transition-all duration-300 border-primary/20 ` +
+              (isSearchFocused
                 ? 'shadow-glow border-primary/40 scale-[1.02]'
-                : 'shadow-cinema'
+                : 'shadow-cinema') +
+              ' bg-gradient-cinema'
             }
-            bg-gradient-cinema
-          `}
           >
             <form onSubmit={handleSearch} className="p-2">
               <div className="relative">
