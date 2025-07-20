@@ -1,3 +1,3 @@
 [submodule "cine-explorer-mvp-block"]
     path = cine-explorer-mvp-block
-    url = git@github.com:andre-sugai/cine-explorer-mvp-block.git
+    url = https://github.com/andre-sugai/cine-explorer-mvp-block.git
