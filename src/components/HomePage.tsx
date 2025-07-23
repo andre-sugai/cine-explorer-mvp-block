@@ -2,7 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { SearchSection } from './home/SearchSection';
 import { CategoryTabs } from './home/CategoryTabs';
 import { ContentGrid } from './home/ContentGrid';
+import { MovieFilters } from './home/MovieFilters';
 import {
+  getWatchProviders,
+  getLanguages,
   getPopularMovies,
   getPopularTVShows,
   getPopularPeople,
@@ -21,6 +24,28 @@ export const HomePage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [providerOptions, setProviderOptions] = useState([]);
+  const [selectedProvider, setSelectedProvider] = useState('');
+  const [orderOptions] = useState([
+    { value: 'popularity.desc', label: 'Popular' },
+    { value: 'release_date.desc', label: 'Novos' },
+    { value: 'vote_average.desc', label: 'IMDB' },
+  ]);
+  const [selectedOrder, setSelectedOrder] = useState('popularity.desc');
+  const [yearOptions] = useState([
+    { value: '', label: 'Todas' },
+    { value: '2020', label: '2020s' },
+    { value: '2010', label: '2010s' },
+    { value: '2000', label: '2000s' },
+    { value: '1990', label: '1990s' },
+    { value: '1980', label: '1980s' },
+    { value: '1970', label: '1970s' },
+    { value: '1960', label: '1960s' },
+    { value: '1950', label: '1950s' },
+  ]);
+  const [selectedYear, setSelectedYear] = useState('');
+  const [languageOptions, setLanguageOptions] = useState([]);
+  const [selectedLanguage, setSelectedLanguage] = useState('');
 
   // Lista de diretores com americanos primeiro, depois brasileiros, latino-americanos, europeus, asiáticos, africanos, australianos e mulheres diretoras
   const famousDirectors = [
@@ -315,46 +340,70 @@ export const HomePage: React.FC = () => {
     );
   };
 
-  const loadContent = async (
+  // Função de busca combinada para filmes e séries
+  const loadContentComFiltros = async (
     category: ContentCategory,
     pageNum: number = 1,
-    reset: boolean = false
+    reset: boolean = true
   ) => {
     try {
       setIsLoading(true);
       let response;
-
-      switch (category) {
-        case 'movies':
-          response = await getPopularMovies(pageNum);
-          break;
-        case 'tv':
-          response = await getPopularTVShows(pageNum);
-          break;
-        case 'actors':
-          response = await getPopularPeople(pageNum);
-          // Filtra apenas atores
-          response.results = response.results.filter(
-            (person: TMDBPerson) => person.known_for_department === 'Acting'
-          );
-          break;
-        case 'directors':
-          const directors = await fetchDirectors();
-          response = {
-            results: directors,
-            total_pages: 1,
-          };
-          break;
-        default:
-          return;
-      }
-
-      if (reset) {
-        setContent(response.results);
+      if (category === 'movies' || category === 'tv') {
+        // Montar parâmetros para discover
+        const params: any = {
+          page: pageNum,
+          sort_by: selectedOrder,
+        };
+        if (selectedProvider) {
+          params.with_watch_providers = selectedProvider;
+          params.watch_region = 'BR';
+        }
+        if (selectedYear) {
+          params.primary_release_date_gte = `${selectedYear}-01-01`;
+          params.primary_release_date_lte = `${Number(selectedYear) + 9}-12-31`;
+        }
+        if (selectedLanguage) {
+          params.with_original_language = selectedLanguage;
+        }
+        // Corrigido: endpoint correto (movie/tv no singular)
+        const url = `/discover/${category === 'movies' ? 'movie' : 'tv'}`;
+        const apiUrl = new URL('https://api.themoviedb.org/3' + url);
+        Object.entries(params).forEach(([key, value]) => {
+          apiUrl.searchParams.append(key, value as string);
+        });
+        apiUrl.searchParams.append(
+          'api_key',
+          localStorage.getItem('tmdb_api_key') || ''
+        );
+        apiUrl.searchParams.append('language', 'pt-BR');
+        const res = await fetch(apiUrl.toString());
+        response = await res.json();
       } else {
-        setContent((prev) => [...prev, ...response.results]);
+        // Mantém lógica antiga para atores/diretores
+        switch (category) {
+          case 'actors':
+            response = await getPopularPeople(pageNum);
+            response.results = response.results.filter(
+              (person: TMDBPerson) => person.known_for_department === 'Acting'
+            );
+            break;
+          case 'directors':
+            const directors = await fetchDirectors();
+            response = { results: directors, total_pages: 1 };
+            break;
+          default:
+            return;
+        }
       }
-
+      if (reset) {
+        setContent(response && response.results ? response.results : []);
+      } else {
+        setContent((prev) => [
+          ...prev,
+          ...(response && response.results ? response.results : []),
+        ]);
+      }
       setHasMore(pageNum < (response.total_pages || 1));
     } catch (error) {
       console.error('Error loading content:', error);
@@ -366,14 +415,14 @@ export const HomePage: React.FC = () => {
   const handleCategoryChange = (category: ContentCategory) => {
     setActiveCategory(category);
     setPage(1);
-    loadContent(category, 1, true);
+    loadContentComFiltros(category, 1, true);
   };
 
   const handleLoadMore = () => {
     if (!isLoading && hasMore) {
       const nextPage = page + 1;
       setPage(nextPage);
-      loadContent(activeCategory, nextPage, false);
+      loadContentComFiltros(activeCategory, nextPage, false);
     }
   };
 
@@ -394,20 +443,66 @@ export const HomePage: React.FC = () => {
     }
   };
 
+  // Buscar provedores e idiomas ao montar
   useEffect(() => {
-    loadContent(activeCategory, 1, true);
+    getWatchProviders('BR').then((data) => {
+      const all = [
+        { provider_id: '', provider_name: 'Todos', logo_path: null },
+        ...data,
+      ];
+      setProviderOptions(all);
+    });
+    getLanguages().then((data) => {
+      setLanguageOptions([{ value: '', label: 'Todos' }, ...data]);
+    });
+  }, []);
+
+  // Atualizar busca ao mudar filtros
+  useEffect(() => {
+    if (activeCategory === 'movies' || activeCategory === 'tv') {
+      loadContentComFiltros(activeCategory, 1, true);
+    }
+    // eslint-disable-next-line
+  }, [
+    activeCategory,
+    selectedProvider,
+    selectedOrder,
+    selectedYear,
+    selectedLanguage,
+  ]);
+
+  useEffect(() => {
+    loadContentComFiltros(activeCategory, 1, true);
   }, []);
 
   return (
     <div className="min-h-screen space-y-12">
       {/* Hero Section with Centralized Search */}
-      <SearchSection onLuckyPick={handleLuckyPick} />
+      <SearchSection />
 
       {/* Category Navigation */}
       <CategoryTabs
         activeCategory={activeCategory}
         onCategoryChange={handleCategoryChange}
       />
+
+      {/* Filtros avançados para filmes e séries */}
+      {(activeCategory === 'movies' || activeCategory === 'tv') && (
+        <MovieFilters
+          providers={providerOptions}
+          selectedProvider={selectedProvider}
+          onProviderChange={setSelectedProvider}
+          orderOptions={orderOptions}
+          selectedOrder={selectedOrder}
+          onOrderChange={setSelectedOrder}
+          yearOptions={yearOptions}
+          selectedYear={selectedYear}
+          onYearChange={setSelectedYear}
+          languageOptions={languageOptions}
+          selectedLanguage={selectedLanguage}
+          onLanguageChange={setSelectedLanguage}
+        />
+      )}
 
       {/* Infinite Content Grid */}
       <ContentGrid

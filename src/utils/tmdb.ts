@@ -391,3 +391,32 @@ export const getMovieWatchProviders = async (id: number) => {
     throw error;
   }
 };
+
+/**
+ * Busca provedores de streaming disponíveis para filmes no país informado.
+ * @param region Código do país (ex: 'BR')
+ * @returns Array de provedores
+ */
+export const getWatchProviders = async (region = 'BR') => {
+  const url = buildApiUrl('/watch/providers/movie', { watch_region: region });
+  const response = await fetch(url);
+  if (!response.ok) throw new Error('Erro ao buscar provedores');
+  const data = await response.json();
+  return data.results || [];
+};
+
+/**
+ * Busca idiomas suportados pela API do TMDB.
+ * @returns Array de idiomas
+ */
+export const getLanguages = async () => {
+  const url = buildApiUrl('/configuration/languages', {});
+  const response = await fetch(url);
+  if (!response.ok) throw new Error('Erro ao buscar idiomas');
+  const data = await response.json();
+  // Retorna apenas idiomas mais comuns, pode ser filtrado se necessário
+  return data.map((lang: any) => ({
+    value: lang.iso_639_1,
+    label: lang.english_name,
+  }));
+};
