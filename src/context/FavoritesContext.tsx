@@ -5,6 +5,8 @@ import React, {
   useState,
   ReactNode,
 } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
 
 interface FavoriteItem {
   id: number;
@@ -40,48 +42,140 @@ const FavoritesContext = createContext<FavoritesContextData | undefined>(
 );
 
 export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
+  const { user, isAuthenticated } = useAuth();
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
+  // Load data when user changes
   useEffect(() => {
+    if (isAuthenticated && user) {
+      loadFavoritesFromSupabase();
+    } else {
+      loadFavoritesFromLocalStorage();
+    }
+  }, [isAuthenticated, user]);
+
+  const loadFavoritesFromLocalStorage = () => {
     const stored = localStorage.getItem('cine-explorer-favorites');
     if (stored) {
       setFavorites(JSON.parse(stored));
     }
-  }, []);
+  };
 
-  const addToFavorites = (item: Omit<FavoriteItem, 'addedAt'>) => {
+  const loadFavoritesFromSupabase = async () => {
+    if (!user) return;
+
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('user_favorites')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading favorites:', error);
+        return;
+      }
+
+      const formattedFavorites = data?.map((item) => ({
+        ...(item.item_data as any),
+        addedAt: item.created_at,
+      })) || [];
+
+      setFavorites(formattedFavorites);
+    } catch (error) {
+      console.error('Error loading favorites:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const addToFavorites = async (item: Omit<FavoriteItem, 'addedAt'>) => {
     const favoriteItem: FavoriteItem = {
       ...item,
       addedAt: new Date().toISOString(),
     };
-    setFavorites((prev) => {
-      const newFavorites = [...prev, favoriteItem];
-      localStorage.setItem(
-        'cine-explorer-favorites',
-        JSON.stringify(newFavorites)
-      );
-      return newFavorites;
-    });
+
+    if (isAuthenticated && user) {
+      // Add to Supabase
+      try {
+        await supabase.from('user_favorites').insert({
+          user_id: user.id,
+          item_id: item.id,
+          item_type: item.type,
+          item_data: favoriteItem as any,
+        });
+      } catch (error) {
+        console.error('Error adding to favorites in Supabase:', error);
+      }
+    } else {
+      // Add to localStorage for non-authenticated users
+      setFavorites((prev) => {
+        const newFavorites = [...prev, favoriteItem];
+        localStorage.setItem(
+          'cine-explorer-favorites',
+          JSON.stringify(newFavorites)
+        );
+        return newFavorites;
+      });
+    }
+
+    // Update local state
+    setFavorites((prev) => [...prev, favoriteItem]);
   };
 
-  const removeFromFavorites = (id: number, type: string) => {
-    setFavorites((prev) => {
-      const newFavorites = prev.filter(
-        (fav) => !(fav.id === id && fav.type === type)
-      );
-      localStorage.setItem(
-        'cine-explorer-favorites',
-        JSON.stringify(newFavorites)
-      );
-      return newFavorites;
-    });
+  const removeFromFavorites = async (id: number, type: string) => {
+    if (isAuthenticated && user) {
+      // Remove from Supabase
+      try {
+        await supabase
+          .from('user_favorites')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('item_id', id)
+          .eq('item_type', type);
+      } catch (error) {
+        console.error('Error removing from favorites in Supabase:', error);
+      }
+    } else {
+      // Remove from localStorage for non-authenticated users
+      setFavorites((prev) => {
+        const newFavorites = prev.filter(
+          (fav) => !(fav.id === id && fav.type === type)
+        );
+        localStorage.setItem(
+          'cine-explorer-favorites',
+          JSON.stringify(newFavorites)
+        );
+        return newFavorites;
+      });
+    }
+
+    // Update local state
+    setFavorites((prev) => 
+      prev.filter((fav) => !(fav.id === id && fav.type === type))
+    );
   };
 
-  const clearAllFavorites = () => {
-    setFavorites(() => {
+  const clearAllFavorites = async () => {
+    if (isAuthenticated && user) {
+      // Clear from Supabase
+      try {
+        await supabase
+          .from('user_favorites')
+          .delete()
+          .eq('user_id', user.id);
+      } catch (error) {
+        console.error('Error clearing favorites in Supabase:', error);
+      }
+    } else {
+      // Clear from localStorage
       localStorage.removeItem('cine-explorer-favorites');
-      return [];
-    });
+    }
+
+    // Update local state
+    setFavorites([]);
   };
 
   const getFavoritesByType = (type: 'movie' | 'tv' | 'person') => {

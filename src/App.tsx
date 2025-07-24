@@ -17,6 +17,7 @@ import { FavoritesProvider } from '@/context/FavoritesContext';
 import { WantToWatchProvider } from '@/context/WantToWatchContext';
 import { WatchedProvider } from '@/context/WatchedContext';
 import { DetailNameProvider } from '@/context/DetailNameContext';
+import { AuthProvider } from '@/context/AuthContext';
 
 const queryClient = new QueryClient();
 
@@ -25,10 +26,11 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <DetailNameProvider>
-        <FavoritesProvider>
-          <WantToWatchProvider>
-            <WatchedProvider>
+      <AuthProvider>
+        <DetailNameProvider>
+          <FavoritesProvider>
+            <WantToWatchProvider>
+              <WatchedProvider>
               <BrowserRouter>
                 <Routes>
                   <Route path="/" element={<Index />} />
@@ -44,10 +46,11 @@ const App = () => (
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </BrowserRouter>
-            </WatchedProvider>
-          </WantToWatchProvider>
-        </FavoritesProvider>
-      </DetailNameProvider>
+              </WatchedProvider>
+            </WantToWatchProvider>
+          </FavoritesProvider>
+        </DetailNameProvider>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

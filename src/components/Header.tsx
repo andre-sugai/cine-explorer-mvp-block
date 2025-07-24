@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Film,
@@ -7,11 +7,25 @@ import {
   Calendar,
   CheckCircle,
   Settings,
+  User,
+  LogIn,
+  LogOut,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
+import { AuthModal } from '@/components/auth/AuthModal';
+import { DataMigrationModal } from '@/components/auth/DataMigrationModal';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 interface HeaderProps {
   activeTab?: string;
@@ -23,7 +37,15 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
   const currentPath = location.pathname;
   const [searchTerm, setSearchTerm] = React.useState('');
   const [isSearchFocused, setIsSearchFocused] = React.useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showMigrationModal, setShowMigrationModal] = useState(false);
   const navigate = useNavigate();
+  const { user, isAuthenticated, logout } = useAuth();
+
+  const handleAuthSuccess = () => {
+    setShowAuthModal(false);
+    setShowMigrationModal(true);
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,6 +89,38 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
             </div>
             <h1 className="text-2xl font-bold text-primary">Cine Explorer</h1>
           </Link>
+
+          {/* Auth Section */}
+          <div className="flex items-center gap-3">
+            {isAuthenticated ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback>
+                        {user?.email?.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end">
+                  <DropdownMenuItem disabled>
+                    {user?.email}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={logout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sair
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button onClick={() => setShowAuthModal(true)} variant="outline">
+                <LogIn className="mr-2 h-4 w-4" />
+                Entrar
+              </Button>
+            )}
+          </div>
 
           {/* Navigation - Desktop */}
           <nav className="hidden md:flex items-center gap-2">
@@ -151,6 +205,16 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
           </nav>
         </div>
       </div>
+      
+      <AuthModal 
+        isOpen={showAuthModal} 
+        onClose={() => setShowAuthModal(false)} 
+      />
+      <DataMigrationModal
+        isOpen={showMigrationModal}
+        onClose={() => setShowMigrationModal(false)}
+        onMigrationComplete={() => setShowMigrationModal(false)}
+      />
     </header>
   );
 };

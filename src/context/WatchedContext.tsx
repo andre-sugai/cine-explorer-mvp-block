@@ -5,6 +5,8 @@ import React, {
   useState,
   ReactNode,
 } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
 
 interface WatchedItem {
   id: number;
@@ -46,16 +48,52 @@ interface WatchedContextData {
 const WatchedContext = createContext<WatchedContextData | undefined>(undefined);
 
 export const WatchedProvider = ({ children }: { children: ReactNode }) => {
+  const { user, isAuthenticated } = useAuth();
   const [watched, setWatched] = useState<WatchedItem[]>([]);
 
+  // Load data when user changes
   useEffect(() => {
+    if (isAuthenticated && user) {
+      loadWatchedFromSupabase();
+    } else {
+      loadWatchedFromLocalStorage();
+    }
+  }, [isAuthenticated, user]);
+
+  const loadWatchedFromLocalStorage = () => {
     const stored = localStorage.getItem('cine-explorer-watched');
     if (stored) {
       setWatched(JSON.parse(stored));
     }
-  }, []);
+  };
 
-  const addToWatched = (item: Omit<WatchedItem, 'watchedAt' | 'year'>) => {
+  const loadWatchedFromSupabase = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('user_watched')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('watched_date', { ascending: false });
+
+      if (error) {
+        console.error('Error loading watched list:', error);
+        return;
+      }
+
+      const formattedWatched = data?.map((item) => ({
+        ...(item.item_data as any),
+        watchedAt: item.watched_date,
+      })) || [];
+
+      setWatched(formattedWatched);
+    } catch (error) {
+      console.error('Error loading watched list:', error);
+    }
+  };
+
+  const addToWatched = async (item: Omit<WatchedItem, 'watchedAt' | 'year'>) => {
     const releaseYear = item.release_date
       ? new Date(item.release_date).getFullYear()
       : item.first_air_date
@@ -66,28 +104,81 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
       watchedAt: new Date().toISOString(),
       year: releaseYear,
     };
-    setWatched((prev) => {
-      const newWatched = [...prev, watchedItem];
-      localStorage.setItem('cine-explorer-watched', JSON.stringify(newWatched));
-      return newWatched;
-    });
+
+    if (isAuthenticated && user) {
+      // Add to Supabase
+      try {
+        await supabase.from('user_watched').insert({
+          user_id: user.id,
+          item_id: item.id,
+          item_type: item.type,
+          item_data: watchedItem as any,
+          watched_date: watchedItem.watchedAt,
+        });
+      } catch (error) {
+        console.error('Error adding to watched list in Supabase:', error);
+      }
+    } else {
+      // Add to localStorage for non-authenticated users
+      setWatched((prev) => {
+        const newWatched = [...prev, watchedItem];
+        localStorage.setItem('cine-explorer-watched', JSON.stringify(newWatched));
+        return newWatched;
+      });
+    }
+
+    // Update local state
+    setWatched((prev) => [...prev, watchedItem]);
   };
 
-  const removeFromWatched = (id: number, type: string) => {
-    setWatched((prev) => {
-      const newWatched = prev.filter(
-        (item) => !(item.id === id && item.type === type)
-      );
-      localStorage.setItem('cine-explorer-watched', JSON.stringify(newWatched));
-      return newWatched;
-    });
+  const removeFromWatched = async (id: number, type: string) => {
+    if (isAuthenticated && user) {
+      // Remove from Supabase
+      try {
+        await supabase
+          .from('user_watched')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('item_id', id)
+          .eq('item_type', type);
+      } catch (error) {
+        console.error('Error removing from watched list in Supabase:', error);
+      }
+    } else {
+      // Remove from localStorage for non-authenticated users
+      setWatched((prev) => {
+        const newWatched = prev.filter(
+          (item) => !(item.id === id && item.type === type)
+        );
+        localStorage.setItem('cine-explorer-watched', JSON.stringify(newWatched));
+        return newWatched;
+      });
+    }
+
+    // Update local state
+    setWatched((prev) => 
+      prev.filter((item) => !(item.id === id && item.type === type))
+    );
   };
 
-  const clearAllWatched = () => {
-    setWatched(() => {
+  const clearAllWatched = async () => {
+    if (isAuthenticated && user) {
+      // Clear from Supabase
+      try {
+        await supabase
+          .from('user_watched')
+          .delete()
+          .eq('user_id', user.id);
+      } catch (error) {
+        console.error('Error clearing watched list in Supabase:', error);
+      }
+    } else {
+      // Clear from localStorage
       localStorage.removeItem('cine-explorer-watched');
-      return [];
-    });
+    }
+
+    // Update local state
+    setWatched([]);
   };
 
   const cleanInvalidWatched = () => {

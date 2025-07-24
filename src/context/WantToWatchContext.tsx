@@ -5,6 +5,8 @@ import React, {
   useState,
   ReactNode,
 } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
 
 export interface WantToWatchItem {
   id: number;
@@ -32,9 +34,19 @@ const WantToWatchContext = createContext<WantToWatchContextData | undefined>(
 const WANT_TO_WATCH_KEY = 'queroAssistir';
 
 export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
+  const { user, isAuthenticated } = useAuth();
   const [wantToWatchList, setWantToWatchList] = useState<WantToWatchItem[]>([]);
 
+  // Load data when user changes
   useEffect(() => {
+    if (isAuthenticated && user) {
+      loadWantToWatchFromSupabase();
+    } else {
+      loadWantToWatchFromLocalStorage();
+    }
+  }, [isAuthenticated, user]);
+
+  const loadWantToWatchFromLocalStorage = () => {
     const savedList = localStorage.getItem(WANT_TO_WATCH_KEY);
     if (savedList) {
       try {
@@ -47,26 +59,88 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
         setWantToWatchList([]);
       }
     }
-  }, []);
+  };
 
-  const addToWantToWatch = (item: Omit<WantToWatchItem, 'added_date'>) => {
+  const loadWantToWatchFromSupabase = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('user_watchlist')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading watchlist:', error);
+        return;
+      }
+
+      const formattedWatchlist = data?.map((item) => ({
+        ...(item.item_data as any),
+        added_date: item.created_at,
+      })) || [];
+
+      setWantToWatchList(formattedWatchlist);
+    } catch (error) {
+      console.error('Error loading watchlist:', error);
+    }
+  };
+
+  const addToWantToWatch = async (item: Omit<WantToWatchItem, 'added_date'>) => {
     const newItem: WantToWatchItem = {
       ...item,
       added_date: new Date().toISOString(),
     };
-    setWantToWatchList((prev) => {
-      const updatedList = [...prev, newItem];
-      localStorage.setItem(WANT_TO_WATCH_KEY, JSON.stringify(updatedList));
-      return updatedList;
-    });
+
+    if (isAuthenticated && user) {
+      // Add to Supabase
+      try {
+        await supabase.from('user_watchlist').insert({
+          user_id: user.id,
+          item_id: item.id,
+          item_type: item.type,
+          item_data: newItem as any,
+        });
+      } catch (error) {
+        console.error('Error adding to watchlist in Supabase:', error);
+      }
+    } else {
+      // Add to localStorage for non-authenticated users
+      setWantToWatchList((prev) => {
+        const updatedList = [...prev, newItem];
+        localStorage.setItem(WANT_TO_WATCH_KEY, JSON.stringify(updatedList));
+        return updatedList;
+      });
+    }
+
+    // Update local state
+    setWantToWatchList((prev) => [...prev, newItem]);
   };
 
-  const removeFromWantToWatch = (id: number) => {
-    setWantToWatchList((prev) => {
-      const updatedList = prev.filter((item) => item.id !== id);
-      localStorage.setItem(WANT_TO_WATCH_KEY, JSON.stringify(updatedList));
-      return updatedList;
-    });
+  const removeFromWantToWatch = async (id: number) => {
+    if (isAuthenticated && user) {
+      // Remove from Supabase
+      try {
+        await supabase
+          .from('user_watchlist')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('item_id', id);
+      } catch (error) {
+        console.error('Error removing from watchlist in Supabase:', error);
+      }
+    } else {
+      // Remove from localStorage for non-authenticated users
+      setWantToWatchList((prev) => {
+        const updatedList = prev.filter((item) => item.id !== id);
+        localStorage.setItem(WANT_TO_WATCH_KEY, JSON.stringify(updatedList));
+        return updatedList;
+      });
+    }
+
+    // Update local state
+    setWantToWatchList((prev) => prev.filter((item) => item.id !== id));
   };
 
   const isInWantToWatch = (id: number): boolean => {

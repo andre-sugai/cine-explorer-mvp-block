@@ -14,7 +14,90 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      user_favorites: {
+        Row: {
+          created_at: string | null
+          id: string
+          item_data: Json
+          item_id: number
+          item_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          item_data: Json
+          item_id: number
+          item_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          item_data?: Json
+          item_id?: number
+          item_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_watched: {
+        Row: {
+          id: string
+          item_data: Json
+          item_id: number
+          item_type: string
+          rating: number | null
+          user_id: string
+          watched_date: string | null
+        }
+        Insert: {
+          id?: string
+          item_data: Json
+          item_id: number
+          item_type: string
+          rating?: number | null
+          user_id: string
+          watched_date?: string | null
+        }
+        Update: {
+          id?: string
+          item_data?: Json
+          item_id?: number
+          item_type?: string
+          rating?: number | null
+          user_id?: string
+          watched_date?: string | null
+        }
+        Relationships: []
+      }
+      user_watchlist: {
+        Row: {
+          created_at: string | null
+          id: string
+          item_data: Json
+          item_id: number
+          item_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          item_data: Json
+          item_id: number
+          item_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          item_data?: Json
+          item_id?: number
+          item_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
