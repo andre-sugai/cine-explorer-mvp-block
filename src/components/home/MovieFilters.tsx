@@ -49,7 +49,7 @@ export const MovieFilters: React.FC<MovieFiltersProps> = ({
   onLanguageChange,
 }) => {
   return (
-    <div className="flex flex-wrap gap-4 items-center justify-center py-6">
+    <div className="flex flex-wrap gap-4 items-center justify-center my-6">
       {/* Dropdown de Streaming */}
       <div className="min-w-[200px]">
         <label className="block text-sm mb-1 font-medium text-primary">
