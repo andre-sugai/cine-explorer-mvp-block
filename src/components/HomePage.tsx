@@ -497,23 +497,25 @@ export const HomePage: React.FC = () => {
   }, []);
 
   // Atualizar busca ao mudar filtros
+  // Carregar conteúdo inicial
+  useEffect(() => {
+    loadContentComFiltros(activeCategory, 1, true);
+  }, []);
+
+  // Atualizar busca ao mudar filtros
   useEffect(() => {
     if (activeCategory === 'movies' || activeCategory === 'tv') {
+      setPage(1); // Reset page quando filtros mudam
       loadContentComFiltros(activeCategory, 1, true);
     }
     // eslint-disable-next-line
   }, [
-    activeCategory,
     selectedProvider,
     selectedGenre,
     selectedOrder,
     selectedYear,
     selectedLanguage,
   ]);
-
-  useEffect(() => {
-    loadContentComFiltros(activeCategory, 1, true);
-  }, []);
 
   return (
     <div className="min-h-screen space-y-12">
