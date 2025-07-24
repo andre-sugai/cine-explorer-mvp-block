@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { SearchSection } from './home/SearchSection';
-import { CollectionsSection } from './home/CollectionsSection';
 import { CategoryTabs } from './home/CategoryTabs';
 import { ContentGrid } from './home/ContentGrid';
 import { MovieFilters } from './home/MovieFilters';
@@ -490,9 +489,6 @@ export const HomePage: React.FC = () => {
     <div className="min-h-screen space-y-12">
       {/* Hero Section with Centralized Search */}
       <SearchSection />
-
-      {/* Collections Section */}
-      <CollectionsSection />
 
       {/* Category Navigation */}
       <CategoryTabs

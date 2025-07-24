@@ -13,7 +13,6 @@ import WantToWatchPage from './pages/WantToWatchPage';
 import WatchedPage from './pages/WatchedPage';
 import SettingsPage from './pages/SettingsPage';
 import NotFound from './pages/NotFound';
-import { CollectionDetails } from './pages/CollectionDetails';
 import { FavoritesProvider } from '@/context/FavoritesContext';
 import { WantToWatchProvider } from '@/context/WantToWatchContext';
 import { WatchedProvider } from '@/context/WatchedContext';
@@ -37,7 +36,6 @@ const App = () => (
                   <Route path="/filme/:id" element={<MovieDetails />} />
                   <Route path="/serie/:id" element={<TVShowDetails />} />
                   <Route path="/pessoa/:id" element={<PersonDetails />} />
-                  <Route path="/colecao/:id" element={<CollectionDetails />} />
                   <Route path="/favoritos" element={<FavoritesPage />} />
                   <Route path="/quero-assistir" element={<WantToWatchPage />} />
                   <Route path="/vistos" element={<WatchedPage />} />
