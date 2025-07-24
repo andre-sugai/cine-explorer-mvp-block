@@ -10,8 +10,9 @@ import {
   getPopularTVShows,
   getPopularPeople,
   searchPeople,
+  getAllGenres,
 } from '@/utils/tmdb';
-import { TMDBMovie, TMDBTVShow, TMDBPerson } from '@/utils/tmdb';
+import { TMDBMovie, TMDBTVShow, TMDBPerson, TMDBGenre } from '@/utils/tmdb';
 
 type ContentCategory = 'movies' | 'tv' | 'actors' | 'directors';
 
@@ -26,6 +27,8 @@ export const HomePage: React.FC = () => {
   const [hasMore, setHasMore] = useState(true);
   const [providerOptions, setProviderOptions] = useState([]);
   const [selectedProvider, setSelectedProvider] = useState('');
+  const [genreOptions, setGenreOptions] = useState<TMDBGenre[]>([]);
+  const [selectedGenre, setSelectedGenre] = useState('');
   const [orderOptions] = useState([
     { value: 'popularity.desc', label: 'Popular' },
     { value: 'release_date.desc', label: 'Novos' },
@@ -359,6 +362,9 @@ export const HomePage: React.FC = () => {
           params.with_watch_providers = selectedProvider;
           params.watch_region = 'BR';
         }
+        if (selectedGenre) {
+          params.with_genres = selectedGenre;
+        }
         if (selectedYear) {
           params.primary_release_date_gte = `${selectedYear}-01-01`;
           params.primary_release_date_lte = `${Number(selectedYear) + 9}-12-31`;
@@ -443,7 +449,7 @@ export const HomePage: React.FC = () => {
     }
   };
 
-  // Buscar provedores e idiomas ao montar
+  // Buscar provedores, gêneros e idiomas ao montar
   useEffect(() => {
     getWatchProviders('BR').then((data) => {
       const all = [
@@ -451,6 +457,9 @@ export const HomePage: React.FC = () => {
         ...data,
       ];
       setProviderOptions(all);
+    });
+    getAllGenres().then((data) => {
+      setGenreOptions(data);
     });
     getLanguages().then((data) => {
       setLanguageOptions([{ value: '', label: 'Todos' }, ...data]);
@@ -466,6 +475,7 @@ export const HomePage: React.FC = () => {
   }, [
     activeCategory,
     selectedProvider,
+    selectedGenre,
     selectedOrder,
     selectedYear,
     selectedLanguage,
@@ -492,6 +502,9 @@ export const HomePage: React.FC = () => {
           providers={providerOptions}
           selectedProvider={selectedProvider}
           onProviderChange={setSelectedProvider}
+          genres={genreOptions}
+          selectedGenre={selectedGenre}
+          onGenreChange={setSelectedGenre}
           orderOptions={orderOptions}
           selectedOrder={selectedOrder}
           onOrderChange={setSelectedOrder}

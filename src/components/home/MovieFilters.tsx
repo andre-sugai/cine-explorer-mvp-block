@@ -8,10 +8,18 @@ interface Provider {
   logo_path: string | null;
 }
 
+interface Genre {
+  id: number;
+  name: string;
+}
+
 interface MovieFiltersProps {
   providers: Provider[];
   selectedProvider: string;
   onProviderChange: (id: string) => void;
+  genres: Genre[];
+  selectedGenre: string;
+  onGenreChange: (id: string) => void;
   orderOptions: { value: string; label: string }[];
   selectedOrder: string;
   onOrderChange: (value: string) => void;
@@ -27,6 +35,9 @@ export const MovieFilters: React.FC<MovieFiltersProps> = ({
   providers,
   selectedProvider,
   onProviderChange,
+  genres,
+  selectedGenre,
+  onGenreChange,
   orderOptions,
   selectedOrder,
   onOrderChange,
@@ -44,7 +55,6 @@ export const MovieFilters: React.FC<MovieFiltersProps> = ({
         <label className="block text-sm mb-1 font-medium text-primary">
           Streaming
         </label>
-        {/* Substitua pelo Select da MVPBlocks com busca */}
         <select
           value={selectedProvider}
           onChange={(e) => onProviderChange(e.target.value)}
@@ -56,6 +66,24 @@ export const MovieFilters: React.FC<MovieFiltersProps> = ({
               value={provider.provider_id}
             >
               {provider.provider_name}
+            </option>
+          ))}
+        </select>
+      </div>
+      {/* Dropdown de Gêneros */}
+      <div className="min-w-[180px]">
+        <label className="block text-sm mb-1 font-medium text-primary">
+          Gêneros
+        </label>
+        <select
+          value={selectedGenre}
+          onChange={(e) => onGenreChange(e.target.value)}
+          className="w-full rounded px-3 py-2 bg-secondary/50 border border-primary/20"
+        >
+          <option value="">Todos os gêneros</option>
+          {genres.map((genre) => (
+            <option key={genre.id} value={genre.id.toString()}>
+              {genre.name}
             </option>
           ))}
         </select>
