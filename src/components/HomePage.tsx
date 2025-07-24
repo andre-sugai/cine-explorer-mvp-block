@@ -37,14 +37,14 @@ export const HomePage: React.FC = () => {
   const [selectedOrder, setSelectedOrder] = useState('popularity.desc');
   const [yearOptions] = useState([
     { value: '', label: 'Todas' },
-    { value: '2020', label: '2020s' },
-    { value: '2010', label: '2010s' },
-    { value: '2000', label: '2000s' },
-    { value: '1990', label: '1990s' },
-    { value: '1980', label: '1980s' },
-    { value: '1970', label: '1970s' },
-    { value: '1960', label: '1960s' },
-    { value: '1950', label: '1950s' },
+    { value: '2020s', label: '2020s' },
+    { value: '2010s', label: '2010s' },
+    { value: '2000s', label: '2000s' },
+    { value: '1990s', label: '1990s' },
+    { value: '1980s', label: '1980s' },
+    { value: '1970s', label: '1970s' },
+    { value: '1960s', label: '1960s' },
+    { value: 'anteriores', label: 'Anteriores' },
   ]);
   const [selectedYear, setSelectedYear] = useState('');
   const [languageOptions, setLanguageOptions] = useState([]);
@@ -343,6 +343,30 @@ export const HomePage: React.FC = () => {
     );
   };
 
+  // Função para converter década em range de anos
+  const getYearRangeFromDecade = (decade: string) => {
+    switch (decade) {
+      case '2020s':
+        return { startYear: 2020, endYear: 2029 };
+      case '2010s':
+        return { startYear: 2010, endYear: 2019 };
+      case '2000s':
+        return { startYear: 2000, endYear: 2009 };
+      case '1990s':
+        return { startYear: 1990, endYear: 1999 };
+      case '1980s':
+        return { startYear: 1980, endYear: 1989 };
+      case '1970s':
+        return { startYear: 1970, endYear: 1979 };
+      case '1960s':
+        return { startYear: 1960, endYear: 1969 };
+      case 'anteriores':
+        return { startYear: 1900, endYear: 1959 };
+      default:
+        return { startYear: 1900, endYear: new Date().getFullYear() + 5 };
+    }
+  };
+
   // Função de busca combinada para filmes e séries
   const loadContentComFiltros = async (
     category: ContentCategory,
@@ -366,8 +390,14 @@ export const HomePage: React.FC = () => {
           params.with_genres = selectedGenre;
         }
         if (selectedYear) {
-          params.primary_release_date_gte = `${selectedYear}-01-01`;
-          params.primary_release_date_lte = `${Number(selectedYear) + 9}-12-31`;
+          const { startYear, endYear } = getYearRangeFromDecade(selectedYear);
+          if (category === 'movies') {
+            params.primary_release_date_gte = `${startYear}-01-01`;
+            params.primary_release_date_lte = `${endYear}-12-31`;
+          } else if (category === 'tv') {
+            params.first_air_date_gte = `${startYear}-01-01`;
+            params.first_air_date_lte = `${endYear}-12-31`;
+          }
         }
         if (selectedLanguage) {
           params.with_original_language = selectedLanguage;
