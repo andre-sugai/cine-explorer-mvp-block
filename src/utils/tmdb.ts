@@ -498,6 +498,7 @@ export const getAllGenres = async (): Promise<TMDBGenre[]> => {
       getTVGenres()
     ]);
     
+    
     // Combinar e remover duplicatas
     const genresMap = new Map<number, TMDBGenre>();
     [...movieGenres, ...tvGenres].forEach(genre => {
@@ -509,5 +510,34 @@ export const getAllGenres = async (): Promise<TMDBGenre[]> => {
   } catch (error) {
     console.error('Error getting all genres:', error);
     return defaultGenres.sort((a, b) => a.name.localeCompare(b.name));
+  }
+};
+
+// Função para descobrir filmes e séries com filtros
+export const discoverMovies = async (params: Record<string, string> = {}) => {
+  try {
+    const url = buildApiUrl('/discover/movie', params);
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`TMDB API error: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error discovering movies:', error);
+    throw error;
+  }
+};
+
+export const discoverTVShows = async (params: Record<string, string> = {}) => {
+  try {
+    const url = buildApiUrl('/discover/tv', params);
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`TMDB API error: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error discovering TV shows:', error);
+    throw error;
   }
 };

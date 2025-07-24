@@ -11,6 +11,8 @@ import {
   getPopularPeople,
   searchPeople,
   getAllGenres,
+  discoverMovies,
+  discoverTVShows,
 } from '@/utils/tmdb';
 import { TMDBMovie, TMDBTVShow, TMDBPerson, TMDBGenre } from '@/utils/tmdb';
 
@@ -376,19 +378,23 @@ export const HomePage: React.FC = () => {
     try {
       setIsLoading(true);
       let response;
+      
       if (category === 'movies' || category === 'tv') {
         // Montar parâmetros para discover
-        const params: any = {
-          page: pageNum,
+        const params: Record<string, string> = {
+          page: pageNum.toString(),
           sort_by: selectedOrder,
         };
+        
         if (selectedProvider) {
           params.with_watch_providers = selectedProvider;
           params.watch_region = 'BR';
         }
+        
         if (selectedGenre) {
           params.with_genres = selectedGenre;
         }
+        
         if (selectedYear) {
           const { startYear, endYear } = getYearRangeFromDecade(selectedYear);
           if (category === 'movies') {
@@ -399,22 +405,17 @@ export const HomePage: React.FC = () => {
             params.first_air_date_lte = `${endYear}-12-31`;
           }
         }
+        
         if (selectedLanguage) {
           params.with_original_language = selectedLanguage;
         }
-        // Corrigido: endpoint correto (movie/tv no singular)
-        const url = `/discover/${category === 'movies' ? 'movie' : 'tv'}`;
-        const apiUrl = new URL('https://api.themoviedb.org/3' + url);
-        Object.entries(params).forEach(([key, value]) => {
-          apiUrl.searchParams.append(key, value as string);
-        });
-        apiUrl.searchParams.append(
-          'api_key',
-          localStorage.getItem('tmdb_api_key') || ''
-        );
-        apiUrl.searchParams.append('language', 'pt-BR');
-        const res = await fetch(apiUrl.toString());
-        response = await res.json();
+        
+        // Usar função do utils para fazer a requisição
+        if (category === 'movies') {
+          response = await discoverMovies(params);
+        } else {
+          response = await discoverTVShows(params);
+        }
       } else {
         // Mantém lógica antiga para atores/diretores
         switch (category) {
@@ -432,6 +433,7 @@ export const HomePage: React.FC = () => {
             return;
         }
       }
+      
       if (reset) {
         setContent(response && response.results ? response.results : []);
       } else {
