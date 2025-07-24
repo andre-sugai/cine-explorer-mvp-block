@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { SearchSection } from './home/SearchSection';
 import { CategoryTabs } from './home/CategoryTabs';
 import { ContentGrid } from './home/ContentGrid';
 import { MovieFilters } from './home/MovieFilters';
+import { useStickyElement } from '@/hooks/useScrollPosition';
 import {
   getWatchProviders,
   getLanguages,
@@ -19,6 +20,9 @@ type ContentCategory = 'movies' | 'tv' | 'actors' | 'directors';
 export const HomePage: React.FC = () => {
   const [activeCategory, setActiveCategory] =
     useState<ContentCategory>('movies');
+  
+  // Hook para sticky filters
+  const { isSticky: isFiltersSticky, setElementRef: setFiltersRef } = useStickyElement(64);
   const [content, setContent] = useState<
     (TMDBMovie | TMDBTVShow | TMDBPerson)[]
   >([]);
@@ -496,25 +500,41 @@ export const HomePage: React.FC = () => {
         onCategoryChange={handleCategoryChange}
       />
 
-      {/* Filtros avançados para filmes e séries */}
+      {/* Filtros avançados para filmes e séries - Com sticky */}
       {(activeCategory === 'movies' || activeCategory === 'tv') && (
-        <MovieFilters
-          providers={providerOptions}
-          selectedProvider={selectedProvider}
-          onProviderChange={setSelectedProvider}
-          genres={genreOptions}
-          selectedGenre={selectedGenre}
-          onGenreChange={setSelectedGenre}
-          orderOptions={orderOptions}
-          selectedOrder={selectedOrder}
-          onOrderChange={setSelectedOrder}
-          yearOptions={yearOptions}
-          selectedYear={selectedYear}
-          onYearChange={setSelectedYear}
-          languageOptions={languageOptions}
-          selectedLanguage={selectedLanguage}
-          onLanguageChange={setSelectedLanguage}
-        />
+        <>
+          <div 
+            ref={setFiltersRef}
+            className={`transition-all duration-200 ${
+              isFiltersSticky 
+                ? 'fixed top-16 left-0 right-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border shadow-sm' 
+                : 'relative'
+            }`}
+          >
+            <div className="container mx-auto px-4">
+              <MovieFilters
+                providers={providerOptions}
+                selectedProvider={selectedProvider}
+                onProviderChange={setSelectedProvider}
+                genres={genreOptions}
+                selectedGenre={selectedGenre}
+                onGenreChange={setSelectedGenre}
+                orderOptions={orderOptions}
+                selectedOrder={selectedOrder}
+                onOrderChange={setSelectedOrder}
+                yearOptions={yearOptions}
+                selectedYear={selectedYear}
+                onYearChange={setSelectedYear}
+                languageOptions={languageOptions}
+                selectedLanguage={selectedLanguage}
+                onLanguageChange={setSelectedLanguage}
+              />
+            </div>
+          </div>
+          
+          {/* Placeholder para manter espaço quando filtros ficam fixos */}
+          {isFiltersSticky && <div className="h-24" />}
+        </>
       )}
 
       {/* Infinite Content Grid */}
