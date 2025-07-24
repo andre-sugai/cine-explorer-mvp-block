@@ -379,6 +379,18 @@ export const HomePage: React.FC = () => {
       setIsLoading(true);
       let response;
       
+      // Debug logging
+      console.log('Loading content with filters:', {
+        category,
+        pageNum,
+        reset,
+        selectedYear,
+        selectedProvider,
+        selectedGenre,
+        selectedOrder,
+        selectedLanguage
+      });
+      
       if (category === 'movies' || category === 'tv') {
         // Montar parâmetros para discover
         const params: Record<string, string> = {
@@ -397,6 +409,8 @@ export const HomePage: React.FC = () => {
         
         if (selectedYear) {
           const { startYear, endYear } = getYearRangeFromDecade(selectedYear);
+          console.log('Year filter applied:', { selectedYear, startYear, endYear });
+          
           if (category === 'movies') {
             params.primary_release_date_gte = `${startYear}-01-01`;
             params.primary_release_date_lte = `${endYear}-12-31`;
@@ -410,12 +424,21 @@ export const HomePage: React.FC = () => {
           params.with_original_language = selectedLanguage;
         }
         
+        // Debug: log final API parameters
+        console.log('API parameters:', params);
+        
         // Usar função do utils para fazer a requisição
         if (category === 'movies') {
           response = await discoverMovies(params);
         } else {
           response = await discoverTVShows(params);
         }
+        
+        console.log('API response:', { 
+          totalResults: response?.total_results, 
+          totalPages: response?.total_pages,
+          resultsCount: response?.results?.length 
+        });
       } else {
         // Mantém lógica antiga para atores/diretores
         switch (category) {
@@ -430,6 +453,7 @@ export const HomePage: React.FC = () => {
             response = { results: directors, total_pages: 1 };
             break;
           default:
+            console.error('Unknown category:', category);
             return;
         }
       }
@@ -444,16 +468,19 @@ export const HomePage: React.FC = () => {
       }
       setHasMore(pageNum < (response.total_pages || 1));
     } catch (error) {
-      console.error('Error loading content:', error);
+      console.error('Error loading content with filters:', error);
+      // Show user-friendly error handling
+      setContent([]);
+      setHasMore(false);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleCategoryChange = (category: ContentCategory) => {
+    console.log('Category changed to:', category);
     setActiveCategory(category);
-    setPage(1);
-    loadContentComFiltros(category, 1, true);
+    // useEffect will handle the content loading automatically
   };
 
   const handleLoadMore = () => {
@@ -498,20 +525,13 @@ export const HomePage: React.FC = () => {
     });
   }, []);
 
-  // Atualizar busca ao mudar filtros
-  // Carregar conteúdo inicial
+  // Carregar conteúdo inicial e atualizar ao mudar filtros ou categoria
   useEffect(() => {
+    console.log('useEffect triggered - loading content for category:', activeCategory);
+    setPage(1); // Reset page quando categoria ou filtros mudam
     loadContentComFiltros(activeCategory, 1, true);
-  }, []);
-
-  // Atualizar busca ao mudar filtros
-  useEffect(() => {
-    if (activeCategory === 'movies' || activeCategory === 'tv') {
-      setPage(1); // Reset page quando filtros mudam
-      loadContentComFiltros(activeCategory, 1, true);
-    }
-    // eslint-disable-next-line
   }, [
+    activeCategory,
     selectedProvider,
     selectedGenre,
     selectedOrder,
