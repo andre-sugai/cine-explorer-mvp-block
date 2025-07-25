@@ -90,41 +90,9 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
             <h1 className="text-2xl font-bold text-primary">Cine Explorer</h1>
           </Link>
 
-          {/* Auth Section */}
-          <div className="flex items-center gap-3">
-            {isAuthenticated ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback>
-                        {user?.email?.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end">
-                  <DropdownMenuItem disabled>
-                    {user?.email}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={logout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Sair
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Button onClick={() => setShowAuthModal(true)} variant="outline">
-                <LogIn className="mr-2 h-4 w-4" />
-                Entrar
-              </Button>
-            )}
-          </div>
-
           {/* Navigation - Desktop */}
           <nav className="hidden md:flex items-center gap-2">
-            {navItems.map((item, idx) => {
+            {navItems.filter(item => item.id !== 'settings').map((item, idx) => {
               const Icon = item.icon;
               const active = isActive(item.path);
 
@@ -175,6 +143,56 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
                 </React.Fragment>
               );
             })}
+            
+            {/* Auth Section */}
+            <div className="flex items-center gap-2 ml-2">
+              {isAuthenticated ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback>
+                          {user?.email?.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56" align="end">
+                    <DropdownMenuItem disabled>
+                      {user?.email}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={logout}>
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Sair
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button onClick={() => setShowAuthModal(true)} variant="outline">
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Entrar
+                </Button>
+              )}
+              
+              {/* Settings Icon */}
+              <Link to="/configuracoes">
+                <Button
+                  variant={isActive('/configuracoes') ? 'default' : 'ghost'}
+                  size="sm"
+                  className={`
+                    p-2 transition-all duration-200
+                    ${
+                      isActive('/configuracoes')
+                        ? 'bg-gradient-gold text-cinema-dark shadow-glow'
+                        : 'text-foreground hover:text-primary hover:bg-secondary/50'
+                    }
+                  `}
+                >
+                  <Settings className="w-4 h-4" />
+                </Button>
+              </Link>
+            </div>
           </nav>
 
           {/* Navigation - Mobile */}
