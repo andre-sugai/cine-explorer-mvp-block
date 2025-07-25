@@ -7,6 +7,7 @@ import React, {
 } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
+import { StreamingData } from '@/utils/streamingProviders';
 
 interface FavoriteItem {
   id: number;
@@ -20,6 +21,7 @@ interface FavoriteItem {
   genre_ids?: number[];
   known_for_department?: string;
   addedAt: string;
+  streamingData?: StreamingData;
 }
 
 interface FavoritesContextData {

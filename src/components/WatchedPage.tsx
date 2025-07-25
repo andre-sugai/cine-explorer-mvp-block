@@ -1,19 +1,30 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Trash2 } from 'lucide-react';
 import { useWatchedContext } from '@/context/WatchedContext';
+import { useStreamingProviders } from '@/hooks/useStreamingProviders';
+import { StreamingFilter } from '@/components/StreamingFilter';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { PersonalListCard } from '@/components/personal/PersonalListCard';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
-import { PersonalListFiltersTabs } from '@/components/FavoritesPage';
+import { PersonalListFiltersTabsWithStreaming } from '@/components/personal/PersonalListFiltersTabsWithStreaming';
 
 export const WatchedPage: React.FC = () => {
   const { watched, removeFromWatched, clearAllWatched, cleanInvalidWatched } =
     useWatchedContext();
   const navigate = useNavigate();
+  
+  const [streamingFilter, setStreamingFilter] = useState<number | null>(null);
+  
+  // Hook para gerenciar dados de streaming
+  const { 
+    isLoading: isLoadingStreaming, 
+    getStreamingStats,
+    filterByProvider 
+  } = useStreamingProviders(watched);
 
   // Limpeza automática ao carregar a página
   useEffect(() => {
@@ -70,11 +81,16 @@ export const WatchedPage: React.FC = () => {
         </p>
       </div>
 
-      <PersonalListFiltersTabs
+      <PersonalListFiltersTabsWithStreaming
         items={watched}
         getItemsByType={getItemsByType}
         stats={stats}
         onRemove={handleRemove}
+        streamingFilter={streamingFilter}
+        onStreamingFilterChange={setStreamingFilter}
+        streamingStats={getStreamingStats()}
+        isLoadingStreaming={isLoadingStreaming}
+        filteredItems={filterByProvider(streamingFilter)}
         renderCard={(item) => (
           <PersonalListCard
             key={`${item.type}-${item.id}`}
