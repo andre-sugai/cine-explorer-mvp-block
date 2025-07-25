@@ -39,7 +39,6 @@ const App = () => (
                   <Route path="/serie/:id" element={<TVShowDetails />} />
                   <Route path="/pessoa/:id" element={<PersonDetails />} />
                   <Route path="/favoritos" element={<FavoritesPage />} />
-                  <Route path="/quer-ver" element={<WantToWatchPage />} />
                   <Route path="/quero-assistir" element={<WantToWatchPage />} />
                   <Route path="/vistos" element={<WatchedPage />} />
                   <Route path="/configuracoes" element={<SettingsPage />} />
