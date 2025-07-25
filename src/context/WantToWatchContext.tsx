@@ -7,7 +7,6 @@ import React, {
 } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
-import { StreamingData } from '@/utils/streamingProviders';
 
 export interface WantToWatchItem {
   id: number;
@@ -18,7 +17,6 @@ export interface WantToWatchItem {
   added_date: string;
   rating: number;
   genres: string[];
-  streamingData?: StreamingData;
 }
 
 interface WantToWatchContextData {

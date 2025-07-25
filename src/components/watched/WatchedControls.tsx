@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, Trash2, Download } from 'lucide-react';
-import { StreamingFilter } from '@/components/StreamingFilter';
 
 interface WatchedControlsProps {
   searchTerm: string;
@@ -15,14 +14,10 @@ interface WatchedControlsProps {
   setGenreFilter: (genre: string) => void;
   yearFilter: string;
   setYearFilter: (year: string) => void;
-  streamingFilter: number | null;
-  setStreamingFilter: (provider: number | null) => void;
   availableYears: number[];
   onClearAll: () => void;
   onExport: () => void;
   hasWatched: boolean;
-  streamingStats?: Array<{ id: number; name: string; count: number }>;
-  isLoadingStreaming?: boolean;
 }
 
 export const WatchedControls: React.FC<WatchedControlsProps> = ({
@@ -34,14 +29,10 @@ export const WatchedControls: React.FC<WatchedControlsProps> = ({
   setGenreFilter,
   yearFilter,
   setYearFilter,
-  streamingFilter,
-  setStreamingFilter,
   availableYears,
   onClearAll,
   onExport,
-  hasWatched,
-  streamingStats = [],
-  isLoadingStreaming = false
+  hasWatched
 }) => {
   const genres = [
     { id: '28', name: 'Ação' },
@@ -66,14 +57,6 @@ export const WatchedControls: React.FC<WatchedControlsProps> = ({
           className="pl-10 bg-secondary/50 border-primary/20"
         />
       </div>
-
-      {/* Filtro de Streaming */}
-      <StreamingFilter
-        selectedProvider={streamingFilter}
-        onProviderChange={setStreamingFilter}
-        streamingStats={streamingStats}
-        isLoading={isLoadingStreaming}
-      />
 
       {/* Filtros e Controles */}
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">

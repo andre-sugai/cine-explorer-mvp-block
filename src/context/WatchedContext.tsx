@@ -7,7 +7,6 @@ import React, {
 } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
-import { StreamingData } from '@/utils/streamingProviders';
 
 interface WatchedItem {
   id: number;
@@ -21,7 +20,6 @@ interface WatchedItem {
   runtime?: number;
   watchedAt: string;
   year?: number;
-  streamingData?: StreamingData;
 }
 
 interface WatchedContextData {
@@ -41,8 +39,7 @@ interface WatchedContextData {
   getFilteredWatched: (
     searchTerm: string,
     genreFilter: string,
-    yearFilter: string,
-    streamingFilter?: number | null
+    yearFilter: string
   ) => WatchedItem[];
   isWatched: (id: number, type: string) => boolean;
   exportWatchedList: () => void;
@@ -237,8 +234,7 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
   const getFilteredWatched = (
     searchTerm: string,
     genreFilter: string,
-    yearFilter: string,
-    streamingFilter?: number | null
+    yearFilter: string
   ) => {
     return watched.filter((item) => {
       const matchesSearch = item.title
@@ -247,9 +243,7 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
       const matchesGenre =
         !genreFilter || item.genre_ids?.includes(Number(genreFilter));
       const matchesYear = !yearFilter || item.year === Number(yearFilter);
-      const matchesStreaming = !streamingFilter || 
-        (item.streamingData && item.streamingData.providers.includes(streamingFilter));
-      return matchesSearch && matchesGenre && matchesYear && matchesStreaming;
+      return matchesSearch && matchesGenre && matchesYear;
     });
   };
 
