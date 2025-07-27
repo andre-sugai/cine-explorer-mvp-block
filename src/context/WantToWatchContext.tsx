@@ -7,6 +7,7 @@ import React, {
 } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
+import { getMovieWatchProviders, getTVShowWatchProviders } from '@/utils/tmdb';
 
 export interface WantToWatchItem {
   id: number;
@@ -17,6 +18,25 @@ export interface WantToWatchItem {
   added_date: string;
   rating: number;
   genres: string[];
+  streamingData?: {
+    BR?: {
+      flatrate?: Array<{
+        provider_id: number;
+        provider_name: string;
+        logo_path?: string;
+      }>;
+      rent?: Array<{
+        provider_id: number;
+        provider_name: string;
+        logo_path?: string;
+      }>;
+      buy?: Array<{
+        provider_id: number;
+        provider_name: string;
+        logo_path?: string;
+      }>;
+    };
+  };
 }
 
 interface WantToWatchContextData {
@@ -92,6 +112,21 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
       ...item,
       added_date: new Date().toISOString(),
     };
+
+    // Fetch streaming data
+    try {
+      const watchProviders = item.type === 'movie' 
+        ? await getMovieWatchProviders(item.id)
+        : await getTVShowWatchProviders(item.id);
+      
+      if (watchProviders?.results?.BR) {
+        newItem.streamingData = {
+          BR: watchProviders.results.BR
+        };
+      }
+    } catch (error) {
+      console.warn('Failed to fetch streaming data:', error);
+    }
 
     if (isAuthenticated && user) {
       // Add to Supabase
