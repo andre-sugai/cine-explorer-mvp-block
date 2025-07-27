@@ -393,25 +393,6 @@ export const getMovieWatchProviders = async (id: number) => {
 };
 
 /**
- * Busca provedores de streaming (onde assistir) de uma série.
- * @param id ID da série
- * @returns Provedores de streaming por país
- */
-export const getTVShowWatchProviders = async (id: number) => {
-  try {
-    const url = buildApiUrl(`/tv/${id}/watch/providers`);
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`TMDB API error: ${response.status}`);
-    }
-    return await response.json();
-  } catch (error) {
-    console.error('Error getting TV show watch providers:', error);
-    throw error;
-  }
-};
-
-/**
  * Busca provedores de streaming disponíveis para filmes no país informado.
  * @param region Código do país (ex: 'BR')
  * @returns Array de provedores
