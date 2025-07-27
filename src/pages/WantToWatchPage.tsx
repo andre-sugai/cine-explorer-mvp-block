@@ -11,7 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from '@/components/ui/sonner';
 import { Input } from '@/components/ui/input';
 import { PersonalListCard } from '@/components/personal/PersonalListCard';
-import { PersonalListFiltersTabs } from '@/components/FavoritesPage';
+import { PersonalListFiltersTabsWithStreaming } from '@/components/personal/PersonalListFiltersTabsWithStreaming';
 
 const WantToWatchPage: React.FC = () => {
   const { wantToWatchList, removeFromWantToWatch } = useWantToWatchContext();
@@ -62,7 +62,7 @@ const WantToWatchPage: React.FC = () => {
             Gerencie sua lista de filmes e séries para assistir
           </p>
         </div>
-        <PersonalListFiltersTabs
+        <PersonalListFiltersTabsWithStreaming
           items={wantToWatchList}
           getItemsByType={getItemsByType}
           stats={stats}
