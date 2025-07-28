@@ -40,9 +40,51 @@ export const useWatchProviders = (): UseWatchProvidersReturn => {
     setLoadingProviders(true);
     try {
       const providers = await getWatchProviders('BR');
+      
+      // Lista de streamings mais populares e conhecidos no Brasil (por ordem de prioridade)
+      const popularStreamingsOrder = [
+        'Netflix', 'Amazon Prime Video', 'Disney Plus', 'Globoplay', 
+        'HBO Max', 'Max', 'Apple TV Plus', 'Paramount Plus', 'Star Plus',
+        'Crunchyroll', 'Telecine', 'Looke', 'Pluto TV', 'Tubi',
+        'YouTube Premium', 'Google Play Movies', 'Apple iTunes',
+        'Microsoft Store', 'Claro video', 'NOW'
+      ];
+      
+      // Remover duplicatas usando Map com provider_name como chave
+      const uniqueProviders = new Map();
+      providers.forEach(provider => {
+        const normalizedName = provider.provider_name.toLowerCase().trim();
+        if (!uniqueProviders.has(normalizedName)) {
+          uniqueProviders.set(normalizedName, provider);
+        }
+      });
+      
+      // Converter de volta para array
+      const deduplicatedProviders = Array.from(uniqueProviders.values());
+      
+      // Ordenar por popularidade (streamings conhecidos primeiro)
+      const sortedProviders = deduplicatedProviders.sort((a, b) => {
+        const aIndex = popularStreamingsOrder.findIndex(name => 
+          a.provider_name.toLowerCase().includes(name.toLowerCase())
+        );
+        const bIndex = popularStreamingsOrder.findIndex(name => 
+          b.provider_name.toLowerCase().includes(name.toLowerCase())
+        );
+        
+        // Se ambos estão na lista, ordenar pela posição
+        if (aIndex !== -1 && bIndex !== -1) {
+          return aIndex - bIndex;
+        }
+        // Se apenas um está na lista, priorizar ele
+        if (aIndex !== -1) return -1;
+        if (bIndex !== -1) return 1;
+        // Se nenhum está na lista, ordenar alfabeticamente
+        return a.provider_name.localeCompare(b.provider_name);
+      });
+      
       setAvailableStreamings([
         { provider_id: 0, provider_name: 'Todos os Streamings', logo_path: '' },
-        ...providers.slice(0, 15) // Limitar a 15 principais
+        ...sortedProviders.slice(0, 12) // Reduzir para 12 principais para melhor UX
       ]);
     } catch (error) {
       console.error('Error loading streamings:', error);
