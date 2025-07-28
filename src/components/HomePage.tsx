@@ -367,11 +367,15 @@ export const HomePage: React.FC = () => {
         }
         if (selectedYear) {
           if (category === 'movies') {
-            params.release_date_gte = `${selectedYear}-01-01`;
-            params.release_date_lte = `${Number(selectedYear) + 9}-12-31`;
+            // Usar primary_release_date é mais confiável para filtragem
+            params['primary_release_date.gte'] = `${selectedYear}-01-01`;
+            params['primary_release_date.lte'] = `${Number(selectedYear) + 9}-12-31`;
+            // Backup: também usar release_date para máxima cobertura
+            params['release_date.gte'] = `${selectedYear}-01-01`;
+            params['release_date.lte'] = `${Number(selectedYear) + 9}-12-31`;
           } else if (category === 'tv') {
-            params.first_air_date_gte = `${selectedYear}-01-01`;
-            params.first_air_date_lte = `${Number(selectedYear) + 9}-12-31`;
+            params['first_air_date.gte'] = `${selectedYear}-01-01`;
+            params['first_air_date.lte'] = `${Number(selectedYear) + 9}-12-31`;
           }
         }
         if (selectedLanguage) {
@@ -407,13 +411,33 @@ export const HomePage: React.FC = () => {
             return;
         }
       }
+      // Filtrar resultados adicionalmente no frontend para garantir que estão na década correta
+      let filteredResults = response && response.results ? response.results : [];
+      
+      if (selectedYear && category === 'movies') {
+        const startYear = Number(selectedYear);
+        const endYear = startYear + 9;
+        
+        filteredResults = filteredResults.filter((movie: TMDBMovie) => {
+          if (!movie.release_date) return false;
+          const movieYear = new Date(movie.release_date).getFullYear();
+          return movieYear >= startYear && movieYear <= endYear;
+        });
+      } else if (selectedYear && category === 'tv') {
+        const startYear = Number(selectedYear);
+        const endYear = startYear + 9;
+        
+        filteredResults = filteredResults.filter((show: TMDBTVShow) => {
+          if (!show.first_air_date) return false;
+          const showYear = new Date(show.first_air_date).getFullYear();
+          return showYear >= startYear && showYear <= endYear;
+        });
+      }
+      
       if (reset) {
-        setContent(response && response.results ? response.results : []);
+        setContent(filteredResults);
       } else {
-        setContent((prev) => [
-          ...prev,
-          ...(response && response.results ? response.results : []),
-        ]);
+        setContent((prev) => [...prev, ...filteredResults]);
       }
       setHasMore(pageNum < (response.total_pages || 1));
     } catch (error) {
