@@ -406,6 +406,25 @@ export const getWatchProviders = async (region = 'BR') => {
 };
 
 /**
+ * Busca provedores de streaming disponíveis para uma série específica.
+ * @param id ID da série
+ * @param region Região (padrão 'BR')
+ * @returns Array de provedores disponíveis para a série
+ */
+export const getTVWatchProviders = async (id: number, region = 'BR') => {
+  try {
+    const url = buildApiUrl(`/tv/${id}/watch/providers`);
+    const response = await fetch(url);
+    if (!response.ok) return { flatrate: [], rent: [], buy: [] };
+    const data = await response.json();
+    return data.results?.[region] || { flatrate: [], rent: [], buy: [] };
+  } catch (error) {
+    console.error('Error getting TV watch providers:', error);
+    return { flatrate: [], rent: [], buy: [] };
+  }
+};
+
+/**
  * Busca idiomas suportados pela API do TMDB.
  * @returns Array de idiomas
  */

@@ -67,6 +67,7 @@ const WantToWatchPage: React.FC = () => {
           getItemsByType={getItemsByType}
           stats={stats}
           onRemove={handleRemove}
+          enableStreamingFilter={true}
           renderCard={(item) => (
             <PersonalListCard
               key={item.id}

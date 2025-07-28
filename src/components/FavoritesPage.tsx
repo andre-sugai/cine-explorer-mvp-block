@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import { Heart, Search, Trash2 } from 'lucide-react';
+import { Heart, Search, Trash2, MonitorPlay } from 'lucide-react';
 import { useFavoritesContext } from '@/context/FavoritesContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { PersonalListCard } from '@/components/personal/PersonalListCard';
+import { getWatchProviders, getMovieWatchProviders, getTVWatchProviders } from '@/utils/tmdb';
 
 /**
  * PersonalListFiltersTabs
@@ -29,6 +30,8 @@ export const PersonalListFiltersTabs: React.FC<{
   onClearAll?: () => void;
   renderCard: (item: any) => React.ReactNode;
   contextLabel: string;
+  enableStreamingFilter?: boolean;
+  onStreamingFilterChange?: (items: any[]) => Promise<any[]>;
 }> = ({
   items,
   getItemsByType,
@@ -37,11 +40,71 @@ export const PersonalListFiltersTabs: React.FC<{
   onClearAll,
   renderCard,
   contextLabel,
+  enableStreamingFilter = false,
+  onStreamingFilterChange,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [orderBy, setOrderBy] = useState<'date' | 'rating'>('date');
   const [orderDirection, setOrderDirection] = useState<'asc' | 'desc'>('desc');
+  const [selectedStreaming, setSelectedStreaming] = useState('');
+  const [availableStreamings, setAvailableStreamings] = useState<any[]>([]);
+  const [filteredItems, setFilteredItems] = useState(items);
+
+  // Carregar provedores de streaming disponíveis
+  useEffect(() => {
+    if (enableStreamingFilter) {
+      loadAvailableStreamings();
+    }
+  }, [enableStreamingFilter]);
+
+  // Atualizar items filtrados quando mudarem
+  useEffect(() => {
+    setFilteredItems(items);
+  }, [items]);
+
+  const loadAvailableStreamings = async () => {
+    try {
+      const providers = await getWatchProviders('BR');
+      setAvailableStreamings([
+        { provider_id: '', provider_name: 'Todos os Streamings', logo_path: null },
+        ...providers.slice(0, 15) // Limitar a 15 principais
+      ]);
+    } catch (error) {
+      console.error('Error loading streamings:', error);
+    }
+  };
+
+  const handleStreamingFilter = async (streamingId: string) => {
+    setSelectedStreaming(streamingId);
+    
+    if (!streamingId || !enableStreamingFilter) {
+      setFilteredItems(items);
+      return;
+    }
+
+    // Filtrar items que estão disponíveis no streaming selecionado
+    const filtered = [];
+    for (const item of items) {
+      try {
+        let providers;
+        if (item.type === 'movie') {
+          const response = await getMovieWatchProviders(item.id);
+          providers = response.results?.BR;
+        } else if (item.type === 'tv') {
+          const response = await getTVWatchProviders(item.id);
+          providers = response.results?.BR;
+        }
+        
+        if (providers?.flatrate?.some((p: any) => p.provider_id.toString() === streamingId)) {
+          filtered.push(item);
+        }
+      } catch (error) {
+        console.error(`Error checking providers for ${item.title}:`, error);
+      }
+    }
+    setFilteredItems(filtered);
+  };
 
   const filterItems = (list: any[]) =>
     list.filter((item) =>
@@ -68,19 +131,25 @@ export const PersonalListFiltersTabs: React.FC<{
     return list;
   };
   const renderList = (list: any[]) => {
-    const filtered = filterItems(list);
+    // Usar items filtrados se o filtro de streaming estiver ativo
+    const baseList = enableStreamingFilter && selectedStreaming ? filteredItems.filter(item => 
+      activeTab === 'all' || item.type === activeTab
+    ) : list;
+    
+    const filtered = filterItems(baseList);
     const sorted = sortItems(filtered);
+    
     if (sorted.length === 0) {
       return (
         <div className="text-center py-12">
           <h3 className="text-xl font-semibold text-primary mb-2">
-            {searchTerm
+            {searchTerm || selectedStreaming
               ? 'Nenhum resultado encontrado'
               : `Nenhum item em ${contextLabel}`}
           </h3>
           <p className="text-muted-foreground">
-            {searchTerm
-              ? 'Tente ajustar sua busca'
+            {searchTerm || selectedStreaming
+              ? 'Tente ajustar seus filtros'
               : `Explore conteúdos e adicione à sua lista de ${contextLabel.toLowerCase()}`}
           </p>
         </div>
@@ -143,6 +212,40 @@ export const PersonalListFiltersTabs: React.FC<{
           </Button>
         )}
       </div>
+      
+      {/* Filtro de Streaming */}
+      {enableStreamingFilter && (
+        <div className="flex flex-col md:flex-row gap-4 items-center">
+          <div className="flex items-center gap-2">
+            <MonitorPlay className="w-4 h-4 text-primary" />
+            <label className="text-sm font-medium text-muted-foreground">
+              Filtrar por Streaming:
+            </label>
+          </div>
+          <select
+            value={selectedStreaming}
+            onChange={(e) => handleStreamingFilter(e.target.value)}
+            className="border rounded px-3 py-2 text-sm bg-secondary/50 border-primary/20 focus:outline-none focus:ring-2 focus:ring-primary min-w-[200px]"
+          >
+            {availableStreamings.map((streaming) => (
+              <option key={streaming.provider_id} value={streaming.provider_id}>
+                {streaming.provider_name}
+              </option>
+            ))}
+          </select>
+          {selectedStreaming && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleStreamingFilter('')}
+              className="text-xs"
+            >
+              Limpar Filtro
+            </Button>
+          )}
+        </div>
+      )}
+      
       {/* Estatísticas */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="bg-gradient-cinema border-primary/20">
