@@ -366,13 +366,8 @@ export const HomePage: React.FC = () => {
           params.with_genres = selectedGenre;
         }
         if (selectedYear) {
-          if (category === 'movies') {
-            params.primary_release_date_gte = `${selectedYear}-01-01`;
-            params.primary_release_date_lte = `${Number(selectedYear) + 9}-12-31`;
-          } else {
-            params.first_air_date_gte = `${selectedYear}-01-01`;
-            params.first_air_date_lte = `${Number(selectedYear) + 9}-12-31`;
-          }
+          params.primary_release_date_gte = `${selectedYear}-01-01`;
+          params.primary_release_date_lte = `${Number(selectedYear) + 9}-12-31`;
         }
         if (selectedLanguage) {
           params.with_original_language = selectedLanguage;
