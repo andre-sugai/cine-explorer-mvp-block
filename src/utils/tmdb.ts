@@ -376,19 +376,19 @@ export const getPersonImages = async (id: number) => {
 /**
  * Busca provedores de streaming (onde assistir) de um filme.
  * @param id ID do filme
- * @returns Provedores de streaming por país
+ * @param region Região (padrão 'BR')
+ * @returns Provedores de streaming para a região especificada
  */
-export const getMovieWatchProviders = async (id: number) => {
+export const getMovieWatchProviders = async (id: number, region = 'BR') => {
   try {
     const url = buildApiUrl(`/movie/${id}/watch/providers`);
     const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`TMDB API error: ${response.status}`);
-    }
-    return await response.json();
+    if (!response.ok) return { flatrate: [], rent: [], buy: [] };
+    const data = await response.json();
+    return data.results?.[region] || { flatrate: [], rent: [], buy: [] };
   } catch (error) {
     console.error('Error getting movie watch providers:', error);
-    throw error;
+    return { flatrate: [], rent: [], buy: [] };
   }
 };
 

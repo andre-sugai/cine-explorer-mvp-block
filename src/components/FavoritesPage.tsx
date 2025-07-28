@@ -3,12 +3,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import { Heart, Search, Trash2, MonitorPlay } from 'lucide-react';
+import { Heart, Search, Trash2, MonitorPlay, Loader2 } from 'lucide-react';
 import { useFavoritesContext } from '@/context/FavoritesContext';
 import { useNavigate } from 'react-router-dom';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { PersonalListCard } from '@/components/personal/PersonalListCard';
-import { getWatchProviders, getMovieWatchProviders, getTVWatchProviders } from '@/utils/tmdb';
+import { useWatchProviders } from '@/hooks/useWatchProviders';
 
 /**
  * PersonalListFiltersTabs
@@ -31,7 +31,6 @@ export const PersonalListFiltersTabs: React.FC<{
   renderCard: (item: any) => React.ReactNode;
   contextLabel: string;
   enableStreamingFilter?: boolean;
-  onStreamingFilterChange?: (items: any[]) => Promise<any[]>;
 }> = ({
   items,
   getItemsByType,
@@ -41,69 +40,44 @@ export const PersonalListFiltersTabs: React.FC<{
   renderCard,
   contextLabel,
   enableStreamingFilter = false,
-  onStreamingFilterChange,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [orderBy, setOrderBy] = useState<'date' | 'rating'>('date');
   const [orderDirection, setOrderDirection] = useState<'asc' | 'desc'>('desc');
-  const [selectedStreaming, setSelectedStreaming] = useState('');
-  const [availableStreamings, setAvailableStreamings] = useState<any[]>([]);
-  const [filteredItems, setFilteredItems] = useState(items);
+  const [selectedStreaming, setSelectedStreaming] = useState('0');
+  const [streamingFilteredItems, setStreamingFilteredItems] = useState(items);
 
-  // Carregar provedores de streaming disponíveis
-  useEffect(() => {
-    if (enableStreamingFilter) {
-      loadAvailableStreamings();
-    }
-  }, [enableStreamingFilter]);
+  const { 
+    availableStreamings, 
+    loadingProviders, 
+    loadingFilter, 
+    filterItemsByStreaming 
+  } = useWatchProviders();
 
-  // Atualizar items filtrados quando mudarem
+  // Atualizar items quando a lista base mudar
   useEffect(() => {
-    setFilteredItems(items);
+    setStreamingFilteredItems(items);
+    setSelectedStreaming('0'); // Reset streaming filter
   }, [items]);
 
-  const loadAvailableStreamings = async () => {
-    try {
-      const providers = await getWatchProviders('BR');
-      setAvailableStreamings([
-        { provider_id: '', provider_name: 'Todos os Streamings', logo_path: null },
-        ...providers.slice(0, 15) // Limitar a 15 principais
-      ]);
-    } catch (error) {
-      console.error('Error loading streamings:', error);
+  // Aplicar filtro de streaming quando selecionado
+  useEffect(() => {
+    if (enableStreamingFilter && selectedStreaming !== '0') {
+      handleStreamingFilter(selectedStreaming);
+    } else {
+      setStreamingFilteredItems(items);
     }
-  };
+  }, [selectedStreaming, items, enableStreamingFilter, filterItemsByStreaming]);
 
   const handleStreamingFilter = async (streamingId: string) => {
-    setSelectedStreaming(streamingId);
-    
-    if (!streamingId || !enableStreamingFilter) {
-      setFilteredItems(items);
+    if (!enableStreamingFilter || streamingId === '0') {
+      setStreamingFilteredItems(items);
       return;
     }
 
-    // Filtrar items que estão disponíveis no streaming selecionado
-    const filtered = [];
-    for (const item of items) {
-      try {
-        let providers;
-        if (item.type === 'movie') {
-          const response = await getMovieWatchProviders(item.id);
-          providers = response.results?.BR;
-        } else if (item.type === 'tv') {
-          const response = await getTVWatchProviders(item.id);
-          providers = response.results?.BR;
-        }
-        
-        if (providers?.flatrate?.some((p: any) => p.provider_id.toString() === streamingId)) {
-          filtered.push(item);
-        }
-      } catch (error) {
-        console.error(`Error checking providers for ${item.title}:`, error);
-      }
-    }
-    setFilteredItems(filtered);
+    const filtered = await filterItemsByStreaming(items, streamingId);
+    setStreamingFilteredItems(filtered);
   };
 
   const filterItems = (list: any[]) =>
@@ -131,19 +105,28 @@ export const PersonalListFiltersTabs: React.FC<{
     return list;
   };
   const renderList = (list: any[]) => {
-    // Usar items filtrados se o filtro de streaming estiver ativo
-    const baseList = enableStreamingFilter && selectedStreaming ? filteredItems.filter(item => 
+    // Usar items filtrados por streaming primeiro, depois filtrar por tipo de tab
+    const baseList = streamingFilteredItems.filter(item => 
       activeTab === 'all' || item.type === activeTab
-    ) : list;
+    );
     
     const filtered = filterItems(baseList);
     const sorted = sortItems(filtered);
+    
+    if (loadingFilter) {
+      return (
+        <div className="text-center py-12">
+          <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary mb-4" />
+          <p className="text-muted-foreground">Filtrando por streaming...</p>
+        </div>
+      );
+    }
     
     if (sorted.length === 0) {
       return (
         <div className="text-center py-12">
           <h3 className="text-xl font-semibold text-primary mb-2">
-            {searchTerm || selectedStreaming
+            {searchTerm || (selectedStreaming && selectedStreaming !== '0')
               ? 'Nenhum resultado encontrado'
               : `Nenhum item em ${contextLabel}`}
           </h3>
@@ -224,20 +207,25 @@ export const PersonalListFiltersTabs: React.FC<{
           </div>
           <select
             value={selectedStreaming}
-            onChange={(e) => handleStreamingFilter(e.target.value)}
-            className="border rounded px-3 py-2 text-sm bg-secondary/50 border-primary/20 focus:outline-none focus:ring-2 focus:ring-primary min-w-[200px]"
+            onChange={(e) => setSelectedStreaming(e.target.value)}
+            disabled={loadingProviders}
+            className="border rounded px-3 py-2 text-sm bg-secondary/50 border-primary/20 focus:outline-none focus:ring-2 focus:ring-primary min-w-[200px] disabled:opacity-50"
           >
-            {availableStreamings.map((streaming) => (
-              <option key={streaming.provider_id} value={streaming.provider_id}>
-                {streaming.provider_name}
-              </option>
-            ))}
+            {loadingProviders ? (
+              <option>Carregando...</option>
+            ) : (
+              availableStreamings.map((streaming) => (
+                <option key={streaming.provider_id} value={streaming.provider_id}>
+                  {streaming.provider_name}
+                </option>
+              ))
+            )}
           </select>
-          {selectedStreaming && (
+          {selectedStreaming && selectedStreaming !== '0' && (
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handleStreamingFilter('')}
+              onClick={() => setSelectedStreaming('0')}
               className="text-xs"
             >
               Limpar Filtro
@@ -306,10 +294,7 @@ export const FavoritesPage: React.FC = () => {
 
   const handleRemoveFavorite = (id: number, type: string, title: string) => {
     removeFromFavorites(id, type);
-    toast({
-      title: 'Removido dos favoritos',
-      description: `${title} foi removido da sua lista de favoritos.`,
-    });
+    toast.success(`${title} foi removido da sua lista de favoritos.`);
   };
 
   const handleClearAll = () => {
@@ -319,10 +304,7 @@ export const FavoritesPage: React.FC = () => {
       )
     ) {
       clearAllFavorites();
-      toast({
-        title: 'Favoritos limpos',
-        description: 'Todos os favoritos foram removidos.',
-      });
+      toast.success('Todos os favoritos foram removidos.');
     }
   };
 
