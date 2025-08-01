@@ -101,24 +101,17 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
     }
   }, [open]);
 
-  // Criar player YouTube quando API estiver pronta
+  // Criar player YouTube quando API estiver pronta  
   useEffect(() => {
-    if (apiReady && currentTrailer && playerContainerRef.current && !playerRef.current) {
+    if (apiReady && currentTrailer && playerContainerRef.current && !playerRef.current && !isLoading) {
       createYouTubePlayer();
     }
-  }, [apiReady, currentTrailer]);
-
-  // Atualizar vídeo quando trailer muda
-  useEffect(() => {
-    if (playerRef.current && currentTrailer && !isTransitioning && typeof playerRef.current.loadVideoById === 'function') {
-      updatePlayerVideo();
-    }
-  }, [currentTrailer, isTransitioning]);
+  }, [apiReady, currentTrailer, isLoading]);
 
   const createYouTubePlayer = () => {
     if (!window.YT || !playerContainerRef.current || !currentTrailer) return;
 
-    // Limpar container antes de criar novo player
+    // Destruir player existente se houver
     if (playerRef.current) {
       try {
         if (typeof playerRef.current.destroy === 'function') {
@@ -130,39 +123,50 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
       playerRef.current = null;
     }
 
-    // Limpar innerHTML para evitar conflitos
+    // Limpar container
     playerContainerRef.current.innerHTML = '';
 
     // Criar novo elemento div para o player
     const playerDiv = document.createElement('div');
     playerDiv.id = `trailer-player-${Date.now()}`;
+    playerDiv.style.width = '100%';
+    playerDiv.style.height = '100%';
     playerContainerRef.current.appendChild(playerDiv);
 
-    playerRef.current = new window.YT.Player(playerDiv, {
-      height: '100%',
-      width: '100%',
-      videoId: currentTrailer.key,
-      playerVars: {
-        autoplay: 1,
-        controls: 1,
-        rel: 0,
-        showinfo: 0,
-        modestbranding: 1,
-        fs: 1,
-        iv_load_policy: 3
-      },
-      events: {
-        onReady: onPlayerReady,
-        onStateChange: onPlayerStateChange,
-        onError: onPlayerError
-      }
-    });
+    try {
+      playerRef.current = new window.YT.Player(playerDiv, {
+        height: '100%',
+        width: '100%',
+        videoId: currentTrailer.key,
+        playerVars: {
+          autoplay: 1,
+          controls: 1,
+          rel: 0,
+          showinfo: 0,
+          modestbranding: 1,
+          fs: 1,
+          iv_load_policy: 3
+        },
+        events: {
+          onReady: onPlayerReady,
+          onStateChange: onPlayerStateChange,
+          onError: onPlayerError
+        }
+      });
+    } catch (error) {
+      console.error('Error creating YouTube player:', error);
+    }
   };
 
   const onPlayerReady = (event: any) => {
     setIsPlaying(true);
-    // Precarregar próximo trailer
-    setTimeout(preloadNextTrailer, 2000);
+    console.log('YouTube Player ready');
+    // Precarregar próximo trailer após 10 segundos para não interferir
+    setTimeout(() => {
+      if (autoplayEnabled) {
+        preloadNextTrailer();
+      }
+    }, 10000);
   };
 
   const onPlayerStateChange = (event: any) => {
@@ -216,21 +220,6 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
     }
   };
 
-  const updatePlayerVideo = () => {
-    if (playerRef.current && currentTrailer && typeof playerRef.current.loadVideoById === 'function') {
-      try {
-        playerRef.current.loadVideoById(currentTrailer.key);
-      } catch (error) {
-        console.error('Error updating player video:', error);
-        // Se falhar, recriar o player
-        setTimeout(() => {
-          if (playerContainerRef.current) {
-            createYouTubePlayer();
-          }
-        }, 1000);
-      }
-    }
-  };
 
   const loadRandomTrailer = async () => {
     try {

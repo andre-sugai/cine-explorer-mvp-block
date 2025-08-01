@@ -135,25 +135,79 @@ export const useTrailers = () => {
 
   const preloadNextTrailer = async () => {
     try {
-      const trailer = await getRandomTrailer(true);
-      nextTrailerRef.current = trailer;
+      // Só criar uma cópia do trailer sem afetar o estado atual
+      const randomPage = Math.floor(Math.random() * 5) + 1;
+      const response = await getPopularMovies(randomPage);
+      
+      if (response?.results) {
+        const availableMovies = response.results.filter(
+          movie => !recentTrailers.includes(movie.id)
+        );
+        
+        const moviesToCheck = availableMovies.length > 0 ? availableMovies : response.results;
+        const randomMovie = moviesToCheck[Math.floor(Math.random() * moviesToCheck.length)];
+        
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 3000);
+          
+          const videosResponse = await fetch(
+            `https://api.themoviedb.org/3/movie/${randomMovie.id}/videos?api_key=${localStorage.getItem('tmdb_api_key')}&language=pt-BR`,
+            { signal: controller.signal }
+          );
+          
+          clearTimeout(timeoutId);
+          const videosData = await videosResponse.json();
+          
+          if (videosData.results?.length > 0) {
+            const trailers = videosData.results.filter(
+              (video: any) => video.type === 'Trailer' && video.site === 'YouTube'
+            );
+            
+            if (trailers.length > 0) {
+              const trailer = trailers[0];
+              
+              nextTrailerRef.current = {
+                id: trailer.id,
+                key: trailer.key,
+                name: trailer.name,
+                type: trailer.type,
+                site: trailer.site,
+                movieTitle: randomMovie.title || randomMovie.original_title,
+                movieId: randomMovie.id
+              };
+            }
+          }
+        } catch (error) {
+          console.error('Error preloading trailer:', error);
+        }
+      }
     } catch (error) {
       console.error('Error preloading next trailer:', error);
     }
   };
 
   const getNextTrailer = async (): Promise<Trailer | null> => {
+    // Se tem trailer precarregado, usar ele
     if (nextTrailerRef.current) {
       const trailer = nextTrailerRef.current;
       nextTrailerRef.current = null;
+      
+      // Atualizar histórico
+      setRecentTrailers(prev => {
+        const updated = [trailer.movieId, ...prev].slice(0, 10);
+        return updated;
+      });
+      
       setCurrentTrailer(trailer);
       
       // Preload próximo trailer em background
-      setTimeout(preloadNextTrailer, 1000);
+      setTimeout(preloadNextTrailer, 2000);
       
       return trailer;
     }
     
+    // Se não tem preload, buscar novo trailer
     return await getRandomTrailer();
   };
 
