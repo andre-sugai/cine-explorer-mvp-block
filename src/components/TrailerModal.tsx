@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -6,9 +6,17 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Play, Pause, SkipForward, Loader, ExternalLink } from 'lucide-react';
+import { Play, Pause, SkipForward, Loader, ExternalLink, RotateCcw } from 'lucide-react';
 import { useTrailers } from '@/hooks/useTrailers';
 import { toast } from 'sonner';
+
+// Declaração global para YouTube Player API
+declare global {
+  interface Window {
+    YT: any;
+    onYouTubeIframeAPIReady: () => void;
+  }
+}
 
 interface TrailerModalProps {
   open: boolean;
@@ -19,16 +27,163 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
   open,
   onOpenChange,
 }) => {
-  const { getRandomTrailer, currentTrailer, isLoading } = useTrailers();
+  const { 
+    getRandomTrailer, 
+    getNextTrailer, 
+    currentTrailer, 
+    isLoading,
+    populateMoviesCache,
+    preloadNextTrailer,
+    autoplayEnabled,
+    toggleAutoplay,
+    trailerCount,
+    incrementTrailerCount,
+    resetTrailerCount
+  } = useTrailers();
+  
   const [isPlaying, setIsPlaying] = useState(true);
   const [loadingNext, setLoadingNext] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [apiReady, setApiReady] = useState(false);
+  const playerRef = useRef<any>(null);
+  const playerContainerRef = useRef<HTMLDivElement>(null);
 
-  // Carregar primeiro trailer quando modal abre
+  // Carregar YouTube API
   useEffect(() => {
-    if (open && !currentTrailer) {
-      loadRandomTrailer();
+    const loadYouTubeAPI = () => {
+      if (window.YT && window.YT.Player) {
+        setApiReady(true);
+        return;
+      }
+
+      // Criar script para carregar YouTube API
+      const script = document.createElement('script');
+      script.src = 'https://www.youtube.com/iframe_api';
+      script.async = true;
+      document.head.appendChild(script);
+
+      // Callback quando API estiver pronta
+      window.onYouTubeIframeAPIReady = () => {
+        setApiReady(true);
+      };
+    };
+
+    if (open) {
+      loadYouTubeAPI();
     }
   }, [open]);
+
+  // Inicializar modal e cache
+  useEffect(() => {
+    if (open) {
+      resetTrailerCount();
+      populateMoviesCache();
+      if (!currentTrailer) {
+        loadRandomTrailer();
+      }
+    }
+  }, [open]);
+
+  // Criar player YouTube quando API estiver pronta
+  useEffect(() => {
+    if (apiReady && currentTrailer && playerContainerRef.current && !playerRef.current) {
+      createYouTubePlayer();
+    }
+  }, [apiReady, currentTrailer]);
+
+  // Atualizar vídeo quando trailer muda
+  useEffect(() => {
+    if (playerRef.current && currentTrailer && !isTransitioning) {
+      updatePlayerVideo();
+    }
+  }, [currentTrailer, isTransitioning]);
+
+  const createYouTubePlayer = () => {
+    if (!window.YT || !playerContainerRef.current || !currentTrailer) return;
+
+    playerRef.current = new window.YT.Player(playerContainerRef.current, {
+      height: '100%',
+      width: '100%',
+      videoId: currentTrailer.key,
+      playerVars: {
+        autoplay: 1,
+        controls: 1,
+        rel: 0,
+        showinfo: 0,
+        modestbranding: 1,
+        fs: 1,
+        iv_load_policy: 3
+      },
+      events: {
+        onReady: onPlayerReady,
+        onStateChange: onPlayerStateChange,
+        onError: onPlayerError
+      }
+    });
+  };
+
+  const onPlayerReady = (event: any) => {
+    setIsPlaying(true);
+    // Precarregar próximo trailer
+    setTimeout(preloadNextTrailer, 2000);
+  };
+
+  const onPlayerStateChange = (event: any) => {
+    const state = event.data;
+    
+    // YT.PlayerState.ENDED = 0
+    if (state === 0 && autoplayEnabled) {
+      handleAutoNextTrailer();
+    }
+    
+    // YT.PlayerState.PLAYING = 1
+    if (state === 1) {
+      setIsPlaying(true);
+    }
+    
+    // YT.PlayerState.PAUSED = 2
+    if (state === 2) {
+      setIsPlaying(false);
+    }
+  };
+
+  const onPlayerError = (event: any) => {
+    console.error('YouTube Player Error:', event.data);
+    toast.error('Erro no player. Carregando próximo trailer...');
+    handleAutoNextTrailer();
+  };
+
+  const handleAutoNextTrailer = async () => {
+    if (!autoplayEnabled || isTransitioning) return;
+    
+    setIsTransitioning(true);
+    setLoadingNext(true);
+    
+    try {
+      const nextTrailer = await getNextTrailer();
+      if (nextTrailer) {
+        incrementTrailerCount();
+        // Pequeno delay para transição suave
+        setTimeout(() => {
+          setIsTransitioning(false);
+          setLoadingNext(false);
+        }, 1000);
+      } else {
+        throw new Error('No trailer found');
+      }
+    } catch (error) {
+      console.error('Error loading next trailer:', error);
+      setIsTransitioning(false);
+      setLoadingNext(false);
+      toast.error('Erro ao carregar próximo trailer');
+    }
+  };
+
+  const updatePlayerVideo = () => {
+    if (playerRef.current && currentTrailer) {
+      playerRef.current.loadVideoById(currentTrailer.key);
+    }
+  };
 
   const loadRandomTrailer = async () => {
     try {
@@ -44,12 +199,30 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
 
   const handleNextTrailer = async () => {
     setLoadingNext(true);
-    await loadRandomTrailer();
-    setLoadingNext(false);
-    setIsPlaying(true);
+    setIsTransitioning(true);
+    
+    try {
+      const nextTrailer = await getNextTrailer();
+      if (nextTrailer) {
+        incrementTrailerCount();
+      }
+    } catch (error) {
+      console.error('Error loading next trailer:', error);
+      toast.error('Erro ao carregar próximo trailer');
+    } finally {
+      setLoadingNext(false);
+      setTimeout(() => setIsTransitioning(false), 1000);
+    }
   };
 
   const handlePlayPause = () => {
+    if (playerRef.current) {
+      if (isPlaying) {
+        playerRef.current.pauseVideo();
+      } else {
+        playerRef.current.playVideo();
+      }
+    }
     setIsPlaying(!isPlaying);
   };
 
@@ -60,7 +233,13 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
   };
 
   const handleModalClose = () => {
+    if (playerRef.current) {
+      playerRef.current.destroy();
+      playerRef.current = null;
+    }
     setIsPlaying(false);
+    setIsTransitioning(false);
+    setLoadingNext(false);
     onOpenChange(false);
   };
 
@@ -93,13 +272,22 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
                 </div>
               </div>
             ) : currentTrailer ? (
-              <div className="aspect-video">
-                <iframe
-                  src={`https://www.youtube.com/embed/${currentTrailer.key}?autoplay=${isPlaying ? 1 : 0}&rel=0&showinfo=0`}
-                  title={currentTrailer.name}
-                  className="w-full h-full rounded-lg"
-                  allowFullScreen
-                  allow="autoplay; encrypted-media"
+              <div className="aspect-video relative">
+                {/* Loading overlay durante transição */}
+                {isTransitioning && (
+                  <div className="absolute inset-0 bg-background/80 backdrop-blur-sm rounded-lg flex items-center justify-center z-10">
+                    <div className="flex flex-col items-center gap-4">
+                      <Loader className="w-6 h-6 animate-spin text-primary" />
+                      <p className="text-sm text-muted-foreground">Carregando próximo trailer...</p>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Container para YouTube Player */}
+                <div 
+                  ref={playerContainerRef}
+                  className="w-full h-full rounded-lg overflow-hidden"
+                  style={{ opacity: isTransitioning ? 0.3 : 1, transition: 'opacity 0.3s ease' }}
                 />
               </div>
             ) : (
@@ -120,7 +308,7 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
               onClick={handlePlayPause}
               variant="default"
               className="flex items-center gap-2"
-              disabled={!currentTrailer}
+              disabled={!currentTrailer || isTransitioning}
             >
               {isPlaying ? (
                 <Pause className="w-4 h-4" />
@@ -134,7 +322,7 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
               onClick={handleNextTrailer}
               variant="outline"
               className="flex items-center gap-2"
-              disabled={loadingNext}
+              disabled={loadingNext || isTransitioning}
             >
               {loadingNext ? (
                 <Loader className="w-4 h-4 animate-spin" />
@@ -142,6 +330,15 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
                 <SkipForward className="w-4 h-4" />
               )}
               Próximo Trailer
+            </Button>
+
+            <Button
+              onClick={toggleAutoplay}
+              variant={autoplayEnabled ? "secondary" : "outline"}
+              className="flex items-center gap-2"
+            >
+              <RotateCcw className="w-4 h-4" />
+              Auto: {autoplayEnabled ? 'ON' : 'OFF'}
             </Button>
 
             {currentTrailer && (
@@ -155,6 +352,15 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
               </Button>
             )}
           </div>
+
+          {/* Stats */}
+          {trailerCount > 0 && (
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground">
+                Trailers assistidos nesta sessão: <span className="text-primary font-medium">{trailerCount}</span>
+              </p>
+            </div>
+          )}
 
           {/* Info */}
           <div className="text-center text-sm text-muted-foreground">
