@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Search, Dice6 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { LuckyButton } from '@/components/LuckyButton';
+import { TrailerButton } from '@/components/TrailerButton';
 import { getPopularMovies, getPopularTVShows } from '@/utils/tmdb';
 
 export const SearchSection: React.FC = () => {
@@ -122,8 +123,11 @@ export const SearchSection: React.FC = () => {
             </form>
           </Card>
 
-          {/* Lucky Button substituído pelo componente LuckyButton */}
-          <LuckyButton variant="default" className="w-full max-w-xs mx-auto" />
+          {/* Botões de ação lado a lado */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <LuckyButton variant="default" className="w-full sm:w-auto min-w-[180px]" />
+            <TrailerButton variant="default" className="w-full sm:w-auto min-w-[180px]" />
+          </div>
 
           <p className="text-sm text-muted-foreground">
             Use palavras-chave em português ou inglês para encontrar o que
