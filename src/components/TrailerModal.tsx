@@ -4,6 +4,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Play, Pause, SkipForward, Loader, ExternalLink, RotateCcw } from 'lucide-react';
@@ -93,7 +94,7 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
 
   // Atualizar vídeo quando trailer muda
   useEffect(() => {
-    if (playerRef.current && currentTrailer && !isTransitioning) {
+    if (playerRef.current && currentTrailer && !isTransitioning && typeof playerRef.current.loadVideoById === 'function') {
       updatePlayerVideo();
     }
   }, [currentTrailer, isTransitioning]);
@@ -180,8 +181,18 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
   };
 
   const updatePlayerVideo = () => {
-    if (playerRef.current && currentTrailer) {
-      playerRef.current.loadVideoById(currentTrailer.key);
+    if (playerRef.current && currentTrailer && typeof playerRef.current.loadVideoById === 'function') {
+      try {
+        playerRef.current.loadVideoById(currentTrailer.key);
+      } catch (error) {
+        console.error('Error updating player video:', error);
+        // Se falhar, recriar o player
+        setTimeout(() => {
+          if (playerContainerRef.current) {
+            createYouTubePlayer();
+          }
+        }, 1000);
+      }
     }
   };
 
@@ -216,14 +227,14 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
   };
 
   const handlePlayPause = () => {
-    if (playerRef.current) {
+    if (playerRef.current && typeof playerRef.current.pauseVideo === 'function' && typeof playerRef.current.playVideo === 'function') {
       if (isPlaying) {
         playerRef.current.pauseVideo();
       } else {
         playerRef.current.playVideo();
       }
+      setIsPlaying(!isPlaying);
     }
-    setIsPlaying(!isPlaying);
   };
 
   const handleMovieDetails = () => {
@@ -251,6 +262,10 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
             <Play className="w-6 h-6" />
             Trailers Aleatórios
           </DialogTitle>
+          
+          <DialogDescription className="text-muted-foreground">
+            Descubra novos filmes através dos trailers aleatórios. A reprodução é automática e contínua.
+          </DialogDescription>
           
           {currentTrailer && (
             <div className="text-lg text-foreground font-medium">
