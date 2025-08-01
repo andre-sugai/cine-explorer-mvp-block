@@ -74,6 +74,22 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
     }
   }, [open]);
 
+  // Cleanup quando componente desmonta
+  useEffect(() => {
+    return () => {
+      if (playerRef.current) {
+        try {
+          if (typeof playerRef.current.destroy === 'function') {
+            playerRef.current.destroy();
+          }
+        } catch (error) {
+          console.error('Error in cleanup:', error);
+        }
+        playerRef.current = null;
+      }
+    };
+  }, []);
+
   // Inicializar modal e cache
   useEffect(() => {
     if (open) {
@@ -102,7 +118,27 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
   const createYouTubePlayer = () => {
     if (!window.YT || !playerContainerRef.current || !currentTrailer) return;
 
-    playerRef.current = new window.YT.Player(playerContainerRef.current, {
+    // Limpar container antes de criar novo player
+    if (playerRef.current) {
+      try {
+        if (typeof playerRef.current.destroy === 'function') {
+          playerRef.current.destroy();
+        }
+      } catch (error) {
+        console.error('Error destroying existing player:', error);
+      }
+      playerRef.current = null;
+    }
+
+    // Limpar innerHTML para evitar conflitos
+    playerContainerRef.current.innerHTML = '';
+
+    // Criar novo elemento div para o player
+    const playerDiv = document.createElement('div');
+    playerDiv.id = `trailer-player-${Date.now()}`;
+    playerContainerRef.current.appendChild(playerDiv);
+
+    playerRef.current = new window.YT.Player(playerDiv, {
       height: '100%',
       width: '100%',
       videoId: currentTrailer.key,
@@ -244,13 +280,27 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
   };
 
   const handleModalClose = () => {
+    // Destruir player com segurança antes de fechar modal
     if (playerRef.current) {
-      playerRef.current.destroy();
+      try {
+        if (typeof playerRef.current.destroy === 'function') {
+          playerRef.current.destroy();
+        }
+      } catch (error) {
+        console.error('Error destroying player:', error);
+      }
       playerRef.current = null;
     }
+    
+    // Limpar container manualmente
+    if (playerContainerRef.current) {
+      playerContainerRef.current.innerHTML = '';
+    }
+    
     setIsPlaying(false);
     setIsTransitioning(false);
     setLoadingNext(false);
+    setApiReady(false);
     onOpenChange(false);
   };
 
