@@ -67,8 +67,8 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={handleModalClose}>
-      <DialogContent className="max-w-5xl w-full max-h-[90vh] bg-gradient-cinema border-primary/20">
-        <DialogHeader className="space-y-4">
+      <DialogContent className="max-w-5xl w-full max-h-[90vh] bg-gradient-cinema border-primary/20 p-6">
+        <DialogHeader className="space-y-4 mb-6">
           <DialogTitle className="text-2xl font-bold text-primary flex items-center gap-3">
             <Play className="w-6 h-6" />
             {currentTrailer 
@@ -80,9 +80,9 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-6 w-full">
           {/* Video Player */}
-          <div className="relative">
+          <div className="relative w-full">
             {isLoading || loadingNext ? (
               <div className="aspect-video bg-secondary/20 rounded-lg flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
@@ -93,7 +93,7 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
                 </div>
               </div>
             ) : currentTrailer ? (
-              <div className="aspect-video">
+              <div className="aspect-video w-full">
                 <iframe
                   src={`https://www.youtube.com/embed/${currentTrailer.key}?autoplay=${isPlaying ? 1 : 0}&rel=0&showinfo=0`}
                   title={currentTrailer.name}
@@ -114,8 +114,8 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
             )}
           </div>
 
-          {/* Controls */}
-          <div className="flex flex-wrap items-center justify-center gap-4">
+          {/* Controls - DENTRO do modal */}
+          <div className="flex flex-wrap items-center justify-center gap-4 w-full px-4">
             <Button
               onClick={handlePlayPause}
               variant="default"
@@ -156,8 +156,8 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
             )}
           </div>
 
-          {/* Info */}
-          <div className="text-center text-sm text-muted-foreground">
+          {/* Info - DENTRO do modal */}
+          <div className="text-center text-sm text-muted-foreground px-4 pb-2">
             <p>
               Descubra novos filmes através dos trailers! 
               <br className="sm:hidden" />
