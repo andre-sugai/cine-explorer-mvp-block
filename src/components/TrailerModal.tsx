@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Dialog,
@@ -46,8 +47,11 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
   const [loadingNext, setLoadingNext] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [apiReady, setApiReady] = useState(false);
+  const [videoKey, setVideoKey] = useState(0);
+  const [playerLoading, setPlayerLoading] = useState(false);
   const playerRef = useRef<any>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
+  const currentTrailerIdRef = useRef<string>('');
 
   // Carregar YouTube API
   useEffect(() => {
@@ -77,16 +81,7 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
   // Cleanup quando componente desmonta
   useEffect(() => {
     return () => {
-      if (playerRef.current) {
-        try {
-          if (typeof playerRef.current.destroy === 'function') {
-            playerRef.current.destroy();
-          }
-        } catch (error) {
-          console.error('Error in cleanup:', error);
-        }
-        playerRef.current = null;
-      }
+      cleanupPlayer();
     };
   }, []);
 
@@ -95,40 +90,68 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
     if (open) {
       resetTrailerCount();
       populateMoviesCache();
+      setVideoKey(0);
+      setPlayerLoading(false);
       if (!currentTrailer) {
         loadRandomTrailer();
       }
     }
   }, [open]);
 
-  // Criar player YouTube quando API estiver pronta  
+  // Detectar mudanças no trailer atual e forçar recriação do player
   useEffect(() => {
-    if (apiReady && currentTrailer && playerContainerRef.current && !playerRef.current && !isLoading) {
-      createYouTubePlayer();
+    if (currentTrailer && currentTrailerIdRef.current !== currentTrailer.key) {
+      console.log('Trailer changed, recreating player:', currentTrailer.movieTitle);
+      currentTrailerIdRef.current = currentTrailer.key;
+      
+      // Incrementar key para forçar recriação
+      setVideoKey(prev => prev + 1);
+      setPlayerLoading(true);
+      
+      // Cleanup player anterior
+      cleanupPlayer();
+      
+      // Aguardar um momento antes de criar novo player
+      setTimeout(() => {
+        if (apiReady && playerContainerRef.current) {
+          createYouTubePlayer();
+        }
+      }, 100);
     }
-  }, [apiReady, currentTrailer, isLoading]);
+  }, [currentTrailer, apiReady]);
 
-  const createYouTubePlayer = () => {
-    if (!window.YT || !playerContainerRef.current || !currentTrailer) return;
-
-    // Destruir player existente se houver
+  const cleanupPlayer = () => {
     if (playerRef.current) {
       try {
         if (typeof playerRef.current.destroy === 'function') {
           playerRef.current.destroy();
         }
       } catch (error) {
-        console.error('Error destroying existing player:', error);
+        console.error('Error destroying player:', error);
       }
       playerRef.current = null;
     }
-
+    
     // Limpar container
-    playerContainerRef.current.innerHTML = '';
+    if (playerContainerRef.current) {
+      playerContainerRef.current.innerHTML = '';
+    }
+  };
+
+  const createYouTubePlayer = () => {
+    if (!window.YT || !playerContainerRef.current || !currentTrailer) {
+      console.log('Cannot create player:', { YT: !!window.YT, container: !!playerContainerRef.current, trailer: !!currentTrailer });
+      return;
+    }
+
+    console.log('Creating YouTube player for:', currentTrailer.movieTitle);
+
+    // Cleanup player existente
+    cleanupPlayer();
 
     // Criar novo elemento div para o player
     const playerDiv = document.createElement('div');
-    playerDiv.id = `trailer-player-${Date.now()}`;
+    playerDiv.id = `trailer-player-${videoKey}-${Date.now()}`;
     playerDiv.style.width = '100%';
     playerDiv.style.height = '100%';
     playerContainerRef.current.appendChild(playerDiv);
@@ -155,12 +178,17 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
       });
     } catch (error) {
       console.error('Error creating YouTube player:', error);
+      setPlayerLoading(false);
+      toast.error('Erro ao criar player de vídeo');
     }
   };
 
   const onPlayerReady = (event: any) => {
+    console.log('Player ready for:', currentTrailer?.movieTitle);
     setIsPlaying(true);
-    console.log('YouTube Player ready');
+    setPlayerLoading(false);
+    setIsTransitioning(false);
+    
     // Precarregar próximo trailer após 10 segundos para não interferir
     setTimeout(() => {
       if (autoplayEnabled) {
@@ -171,6 +199,7 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
 
   const onPlayerStateChange = (event: any) => {
     const state = event.data;
+    console.log('Player state change:', state, 'for:', currentTrailer?.movieTitle);
     
     // YT.PlayerState.ENDED = 0
     if (state === 0 && autoplayEnabled) {
@@ -189,14 +218,16 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
   };
 
   const onPlayerError = (event: any) => {
-    console.error('YouTube Player Error:', event.data);
+    console.error('YouTube Player Error:', event.data, 'for:', currentTrailer?.movieTitle);
+    setPlayerLoading(false);
     toast.error('Erro no player. Carregando próximo trailer...');
     handleAutoNextTrailer();
   };
 
   const handleAutoNextTrailer = async () => {
-    if (!autoplayEnabled || isTransitioning) return;
+    if (!autoplayEnabled || isTransitioning || loadingNext) return;
     
+    console.log('Auto transitioning to next trailer');
     setIsTransitioning(true);
     setLoadingNext(true);
     
@@ -204,11 +235,7 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
       const nextTrailer = await getNextTrailer();
       if (nextTrailer) {
         incrementTrailerCount();
-        // Pequeno delay para transição suave
-        setTimeout(() => {
-          setIsTransitioning(false);
-          setLoadingNext(false);
-        }, 1000);
+        // O useEffect vai detectar a mudança e recriar o player
       } else {
         throw new Error('No trailer found');
       }
@@ -217,9 +244,10 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
       setIsTransitioning(false);
       setLoadingNext(false);
       toast.error('Erro ao carregar próximo trailer');
+    } finally {
+      setLoadingNext(false);
     }
   };
-
 
   const loadRandomTrailer = async () => {
     try {
@@ -234,6 +262,9 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
   };
 
   const handleNextTrailer = async () => {
+    if (loadingNext || isTransitioning) return;
+    
+    console.log('Manually loading next trailer');
     setLoadingNext(true);
     setIsTransitioning(true);
     
@@ -241,13 +272,13 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
       const nextTrailer = await getNextTrailer();
       if (nextTrailer) {
         incrementTrailerCount();
+        // O useEffect vai detectar a mudança e recriar o player
       }
     } catch (error) {
       console.error('Error loading next trailer:', error);
       toast.error('Erro ao carregar próximo trailer');
     } finally {
       setLoadingNext(false);
-      setTimeout(() => setIsTransitioning(false), 1000);
     }
   };
 
@@ -269,29 +300,21 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
   };
 
   const handleModalClose = () => {
-    // Destruir player com segurança antes de fechar modal
-    if (playerRef.current) {
-      try {
-        if (typeof playerRef.current.destroy === 'function') {
-          playerRef.current.destroy();
-        }
-      } catch (error) {
-        console.error('Error destroying player:', error);
-      }
-      playerRef.current = null;
-    }
-    
-    // Limpar container manualmente
-    if (playerContainerRef.current) {
-      playerContainerRef.current.innerHTML = '';
-    }
+    console.log('Closing modal, cleaning up player');
+    cleanupPlayer();
     
     setIsPlaying(false);
     setIsTransitioning(false);
     setLoadingNext(false);
     setApiReady(false);
+    setVideoKey(0);
+    setPlayerLoading(false);
+    currentTrailerIdRef.current = '';
     onOpenChange(false);
   };
+
+  // Loading state durante carregamento ou transição
+  const showLoading = isLoading || loadingNext || playerLoading || isTransitioning;
 
   return (
     <Dialog open={open} onOpenChange={handleModalClose}>
@@ -316,32 +339,24 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
         <div className="space-y-6">
           {/* Video Player */}
           <div className="relative">
-            {isLoading || loadingNext ? (
+            {showLoading ? (
               <div className="aspect-video bg-secondary/20 rounded-lg flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
                   <Loader className="w-8 h-8 animate-spin text-primary" />
                   <p className="text-muted-foreground">
-                    {isLoading ? 'Carregando trailer...' : 'Buscando próximo trailer...'}
+                    {isLoading ? 'Carregando trailer...' : 
+                     playerLoading ? 'Inicializando player...' :
+                     'Buscando próximo trailer...'}
                   </p>
                 </div>
               </div>
             ) : currentTrailer ? (
               <div className="aspect-video relative">
-                {/* Loading overlay durante transição */}
-                {isTransitioning && (
-                  <div className="absolute inset-0 bg-background/80 backdrop-blur-sm rounded-lg flex items-center justify-center z-10">
-                    <div className="flex flex-col items-center gap-4">
-                      <Loader className="w-6 h-6 animate-spin text-primary" />
-                      <p className="text-sm text-muted-foreground">Carregando próximo trailer...</p>
-                    </div>
-                  </div>
-                )}
-                
-                {/* Container para YouTube Player */}
+                {/* Container para YouTube Player com key única */}
                 <div 
+                  key={`player-container-${videoKey}`}
                   ref={playerContainerRef}
-                  className="w-full h-full rounded-lg overflow-hidden"
-                  style={{ opacity: isTransitioning ? 0.3 : 1, transition: 'opacity 0.3s ease' }}
+                  className="w-full h-full rounded-lg overflow-hidden bg-black"
                 />
               </div>
             ) : (
@@ -362,7 +377,7 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
               onClick={handlePlayPause}
               variant="default"
               className="flex items-center gap-2"
-              disabled={!currentTrailer || isTransitioning}
+              disabled={!currentTrailer || showLoading}
             >
               {isPlaying ? (
                 <Pause className="w-4 h-4" />
@@ -376,7 +391,7 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
               onClick={handleNextTrailer}
               variant="outline"
               className="flex items-center gap-2"
-              disabled={loadingNext || isTransitioning}
+              disabled={showLoading}
             >
               {loadingNext ? (
                 <Loader className="w-4 h-4 animate-spin" />
