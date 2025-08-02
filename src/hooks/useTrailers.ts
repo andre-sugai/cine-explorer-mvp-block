@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { getPopularMovies } from '@/utils/tmdb';
 
 interface Trailer {
@@ -11,96 +11,54 @@ interface Trailer {
   movieId: number;
 }
 
-interface Movie {
-  id: number;
-  title: string;
-  original_title: string;
-}
-
 export const useTrailers = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentTrailer, setCurrentTrailer] = useState<Trailer | null>(null);
   const [recentTrailers, setRecentTrailers] = useState<number[]>([]);
-  const [autoplayEnabled, setAutoplayEnabled] = useState(true);
-  const [trailerCount, setTrailerCount] = useState(0);
-  const moviesCacheRef = useRef<Movie[]>([]);
-  const nextTrailerRef = useRef<Trailer | null>(null);
 
-  const populateMoviesCache = async () => {
-    if (moviesCacheRef.current.length > 0) return;
-    
-    try {
-      const pages = [1, 2, 3, 4, 5];
-      const allMovies: Movie[] = [];
-      
-      for (const page of pages) {
-        const response = await getPopularMovies(page);
-        if (response?.results) {
-          allMovies.push(...response.results);
-        }
-      }
-      
-      moviesCacheRef.current = allMovies;
-    } catch (error) {
-      console.error('Error populating movies cache:', error);
-    }
-  };
-
-  const getRandomTrailer = async (useCache = false): Promise<Trailer | null> => {
+  const getRandomTrailer = async (): Promise<Trailer | null> => {
     setIsLoading(true);
     
     try {
-      let movies: Movie[] = [];
+      // Buscar filmes populares (diferentes páginas para variedade)
+      const randomPage = Math.floor(Math.random() * 5) + 1;
+      const response = await getPopularMovies(randomPage);
       
-      if (useCache && moviesCacheRef.current.length > 0) {
-        movies = moviesCacheRef.current;
-      } else {
-        const randomPage = Math.floor(Math.random() * 5) + 1;
-        const response = await getPopularMovies(randomPage);
-        
-        if (!response || !response.results || response.results.length === 0) {
-          return null;
-        }
-        movies = response.results;
+      if (!response || !response.results || response.results.length === 0) {
+        return null;
       }
 
       // Filtrar filmes que não foram vistos recentemente
-      const availableMovies = movies.filter(
+      const availableMovies = response.results.filter(
         movie => !recentTrailers.includes(movie.id)
       );
       
-      // Se todos foram vistos, limpar histórico e usar todos
-      const moviesToCheck = availableMovies.length > 0 ? availableMovies : movies;
-      if (availableMovies.length === 0) {
-        setRecentTrailers([]);
-      }
+      // Se todos foram vistos, limpar histórico
+      const moviesToCheck = availableMovies.length > 0 ? availableMovies : response.results;
       
       // Tentar até 5 filmes diferentes para encontrar um trailer
       for (let i = 0; i < Math.min(5, moviesToCheck.length); i++) {
         const randomMovie = moviesToCheck[Math.floor(Math.random() * moviesToCheck.length)];
         
         try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 segundos timeout
-          
+          // Buscar vídeos do filme
           const videosResponse = await fetch(
-            `https://api.themoviedb.org/3/movie/${randomMovie.id}/videos?api_key=${localStorage.getItem('tmdb_api_key')}&language=pt-BR`,
-            { signal: controller.signal }
+            `https://api.themoviedb.org/3/movie/${randomMovie.id}/videos?api_key=${localStorage.getItem('tmdb_api_key')}&language=pt-BR`
           );
-          
-          clearTimeout(timeoutId);
           const videosData = await videosResponse.json();
           
           if (videosData.results && videosData.results.length > 0) {
+            // Filtrar apenas trailers do YouTube
             const trailers = videosData.results.filter(
               (video: any) => video.type === 'Trailer' && video.site === 'YouTube'
             );
             
             if (trailers.length > 0) {
-              const trailer = trailers[0];
+              const trailer = trailers[0]; // Pegar o primeiro trailer
               
+              // Atualizar histórico de trailers recentes
               setRecentTrailers(prev => {
-                const updated = [randomMovie.id, ...prev].slice(0, 10);
+                const updated = [randomMovie.id, ...prev].slice(0, 20); // Manter últimos 20
                 return updated;
               });
               
@@ -120,7 +78,7 @@ export const useTrailers = () => {
           }
         } catch (error) {
           console.error(`Error fetching videos for movie ${randomMovie.id}:`, error);
-          continue;
+          continue; // Tentar próximo filme
         }
       }
       
@@ -133,108 +91,10 @@ export const useTrailers = () => {
     }
   };
 
-  const preloadNextTrailer = async () => {
-    try {
-      // Só criar uma cópia do trailer sem afetar o estado atual
-      const randomPage = Math.floor(Math.random() * 5) + 1;
-      const response = await getPopularMovies(randomPage);
-      
-      if (response?.results) {
-        const availableMovies = response.results.filter(
-          movie => !recentTrailers.includes(movie.id)
-        );
-        
-        const moviesToCheck = availableMovies.length > 0 ? availableMovies : response.results;
-        const randomMovie = moviesToCheck[Math.floor(Math.random() * moviesToCheck.length)];
-        
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 3000);
-          
-          const videosResponse = await fetch(
-            `https://api.themoviedb.org/3/movie/${randomMovie.id}/videos?api_key=${localStorage.getItem('tmdb_api_key')}&language=pt-BR`,
-            { signal: controller.signal }
-          );
-          
-          clearTimeout(timeoutId);
-          const videosData = await videosResponse.json();
-          
-          if (videosData.results?.length > 0) {
-            const trailers = videosData.results.filter(
-              (video: any) => video.type === 'Trailer' && video.site === 'YouTube'
-            );
-            
-            if (trailers.length > 0) {
-              const trailer = trailers[0];
-              
-              nextTrailerRef.current = {
-                id: trailer.id,
-                key: trailer.key,
-                name: trailer.name,
-                type: trailer.type,
-                site: trailer.site,
-                movieTitle: randomMovie.title || randomMovie.original_title,
-                movieId: randomMovie.id
-              };
-            }
-          }
-        } catch (error) {
-          console.error('Error preloading trailer:', error);
-        }
-      }
-    } catch (error) {
-      console.error('Error preloading next trailer:', error);
-    }
-  };
-
-  const getNextTrailer = async (): Promise<Trailer | null> => {
-    // Se tem trailer precarregado, usar ele
-    if (nextTrailerRef.current) {
-      const trailer = nextTrailerRef.current;
-      nextTrailerRef.current = null;
-      
-      // Atualizar histórico
-      setRecentTrailers(prev => {
-        const updated = [trailer.movieId, ...prev].slice(0, 10);
-        return updated;
-      });
-      
-      setCurrentTrailer(trailer);
-      
-      // Preload próximo trailer em background
-      setTimeout(preloadNextTrailer, 2000);
-      
-      return trailer;
-    }
-    
-    // Se não tem preload, buscar novo trailer
-    return await getRandomTrailer();
-  };
-
-  const incrementTrailerCount = () => {
-    setTrailerCount(prev => prev + 1);
-  };
-
-  const resetTrailerCount = () => {
-    setTrailerCount(0);
-  };
-
-  const toggleAutoplay = () => {
-    setAutoplayEnabled(prev => !prev);
-  };
-
   return {
     getRandomTrailer,
-    getNextTrailer,
     currentTrailer,
     isLoading,
-    setCurrentTrailer,
-    populateMoviesCache,
-    preloadNextTrailer,
-    autoplayEnabled,
-    toggleAutoplay,
-    trailerCount,
-    incrementTrailerCount,
-    resetTrailerCount
+    setCurrentTrailer
   };
 };
