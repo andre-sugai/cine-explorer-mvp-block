@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { SearchSection } from './home/SearchSection';
 import { CategoryTabs } from './home/CategoryTabs';
-import { ContentGrid } from './home/ContentGrid';
 import { MovieFilters } from './home/MovieFilters';
+import { ContentGrid } from './home/ContentGrid';
+import { useFiltersPersistence } from '@/hooks/useFiltersPersistence';
+import { useNavigationScroll } from '@/hooks/useNavigationScroll';
 import {
   getWatchProviders,
   getLanguages,
@@ -11,14 +14,44 @@ import {
   getPopularPeople,
   searchPeople,
   getAllGenres,
+  TMDBMovie,
+  TMDBTVShow,
+  TMDBPerson,
+  TMDBGenre,
 } from '@/utils/tmdb';
-import { TMDBMovie, TMDBTVShow, TMDBPerson, TMDBGenre } from '@/utils/tmdb';
 
 type ContentCategory = 'movies' | 'tv' | 'actors' | 'directors';
 
 export const HomePage: React.FC = () => {
-  const [activeCategory, setActiveCategory] =
-    useState<ContentCategory>('movies');
+  // Hook para persistência de filtros
+  const {
+    activeCategory,
+    setActiveCategory,
+    sortBy,
+    setSortBy,
+    sortOrder,
+    setSortOrder,
+    yearFilter,
+    setYearFilter,
+    genreFilter,
+    setGenreFilter,
+    providerFilter,
+    setProviderFilter,
+    languageFilter,
+    setLanguageFilter,
+    searchTerm,
+    setSearchTerm,
+    filtersLoaded,
+    saveScrollPosition,
+  } = useFiltersPersistence();
+
+  // Hook para navegação com scroll
+  const { navigateWithScrollSave } = useNavigationScroll(
+    saveScrollPosition,
+    () => {}, // Função vazia já que a restauração é feita diretamente no hook
+    filtersLoaded
+  );
+
   const [content, setContent] = useState<
     (TMDBMovie | TMDBTVShow | TMDBPerson)[]
   >([]);
@@ -26,15 +59,12 @@ export const HomePage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [providerOptions, setProviderOptions] = useState([]);
-  const [selectedProvider, setSelectedProvider] = useState('');
   const [genreOptions, setGenreOptions] = useState<TMDBGenre[]>([]);
-  const [selectedGenre, setSelectedGenre] = useState('');
   const [orderOptions] = useState([
     { value: 'popularity.desc', label: 'Popular' },
     { value: 'release_date.desc', label: 'Novos' },
     { value: 'vote_average.desc', label: 'IMDB' },
   ]);
-  const [selectedOrder, setSelectedOrder] = useState('popularity.desc');
   const [yearOptions] = useState([
     { value: '', label: 'Todas' },
     { value: '2020', label: '2020s' },
@@ -46,9 +76,7 @@ export const HomePage: React.FC = () => {
     { value: '1960', label: '1960s' },
     { value: '1950', label: '1950s' },
   ]);
-  const [selectedYear, setSelectedYear] = useState('');
   const [languageOptions, setLanguageOptions] = useState([]);
-  const [selectedLanguage, setSelectedLanguage] = useState('');
 
   // Lista de diretores com americanos primeiro, depois brasileiros, latino-americanos, europeus, asiáticos, africanos, australianos e mulheres diretoras
   const famousDirectors = [
@@ -356,30 +384,32 @@ export const HomePage: React.FC = () => {
         // Montar parâmetros para discover
         const params: any = {
           page: pageNum,
-          sort_by: selectedOrder,
+          sort_by: sortBy,
         };
-        if (selectedProvider) {
-          params.with_watch_providers = selectedProvider;
+        if (providerFilter) {
+          params.with_watch_providers = providerFilter;
           params.watch_region = 'BR';
         }
-        if (selectedGenre) {
-          params.with_genres = selectedGenre;
+        if (genreFilter) {
+          params.with_genres = genreFilter;
         }
-        if (selectedYear) {
+        if (yearFilter) {
           if (category === 'movies') {
             // Usar primary_release_date é mais confiável para filtragem
-            params['primary_release_date.gte'] = `${selectedYear}-01-01`;
-            params['primary_release_date.lte'] = `${Number(selectedYear) + 9}-12-31`;
+            params['primary_release_date.gte'] = `${yearFilter}-01-01`;
+            params['primary_release_date.lte'] = `${
+              Number(yearFilter) + 9
+            }-12-31`;
             // Backup: também usar release_date para máxima cobertura
-            params['release_date.gte'] = `${selectedYear}-01-01`;
-            params['release_date.lte'] = `${Number(selectedYear) + 9}-12-31`;
+            params['release_date.gte'] = `${yearFilter}-01-01`;
+            params['release_date.lte'] = `${Number(yearFilter) + 9}-12-31`;
           } else if (category === 'tv') {
-            params['first_air_date.gte'] = `${selectedYear}-01-01`;
-            params['first_air_date.lte'] = `${Number(selectedYear) + 9}-12-31`;
+            params['first_air_date.gte'] = `${yearFilter}-01-01`;
+            params['first_air_date.lte'] = `${Number(yearFilter) + 9}-12-31`;
           }
         }
-        if (selectedLanguage) {
-          params.with_original_language = selectedLanguage;
+        if (languageFilter) {
+          params.with_original_language = languageFilter;
         }
         // Corrigido: endpoint correto (movie/tv no singular)
         const url = `/discover/${category === 'movies' ? 'movie' : 'tv'}`;
@@ -412,28 +442,29 @@ export const HomePage: React.FC = () => {
         }
       }
       // Filtrar resultados adicionalmente no frontend para garantir que estão na década correta
-      let filteredResults = response && response.results ? response.results : [];
-      
-      if (selectedYear && category === 'movies') {
-        const startYear = Number(selectedYear);
+      let filteredResults =
+        response && response.results ? response.results : [];
+
+      if (yearFilter && category === 'movies') {
+        const startYear = Number(yearFilter);
         const endYear = startYear + 9;
-        
+
         filteredResults = filteredResults.filter((movie: TMDBMovie) => {
           if (!movie.release_date) return false;
           const movieYear = new Date(movie.release_date).getFullYear();
           return movieYear >= startYear && movieYear <= endYear;
         });
-      } else if (selectedYear && category === 'tv') {
-        const startYear = Number(selectedYear);
+      } else if (yearFilter && category === 'tv') {
+        const startYear = Number(yearFilter);
         const endYear = startYear + 9;
-        
+
         filteredResults = filteredResults.filter((show: TMDBTVShow) => {
           if (!show.first_air_date) return false;
           const showYear = new Date(show.first_air_date).getFullYear();
           return showYear >= startYear && showYear <= endYear;
         });
       }
-      
+
       if (reset) {
         setContent(filteredResults);
       } else {
@@ -455,26 +486,7 @@ export const HomePage: React.FC = () => {
 
   const handleLoadMore = () => {
     if (!isLoading && hasMore) {
-      const nextPage = page + 1;
-      setPage(nextPage);
-      loadContentComFiltros(activeCategory, nextPage, false);
-    }
-  };
-
-  const handleLuckyPick = () => {
-    if (content.length > 0) {
-      const randomItem = content[Math.floor(Math.random() * content.length)];
-
-      if ('title' in randomItem) {
-        // It's a movie
-        window.location.href = `/filme/${randomItem.id}`;
-      } else if ('name' in randomItem && 'first_air_date' in randomItem) {
-        // It's a TV show
-        window.location.href = `/serie/${randomItem.id}`;
-      } else if ('name' in randomItem) {
-        // It's a person
-        window.location.href = `/pessoa/${randomItem.id}`;
-      }
+      loadContentComFiltros(activeCategory, page + 1, false);
     }
   };
 
@@ -503,16 +515,19 @@ export const HomePage: React.FC = () => {
     // eslint-disable-next-line
   }, [
     activeCategory,
-    selectedProvider,
-    selectedGenre,
-    selectedOrder,
-    selectedYear,
-    selectedLanguage,
+    providerFilter,
+    genreFilter,
+    sortBy,
+    yearFilter,
+    languageFilter,
   ]);
 
   useEffect(() => {
-    loadContentComFiltros(activeCategory, 1, true);
-  }, []);
+    // Carregar conteúdo apenas quando os filtros estiverem carregados
+    if (filtersLoaded) {
+      loadContentComFiltros(activeCategory, 1, true);
+    }
+  }, [filtersLoaded, activeCategory]);
 
   return (
     <div className="min-h-screen space-y-12">
@@ -529,20 +544,20 @@ export const HomePage: React.FC = () => {
       {(activeCategory === 'movies' || activeCategory === 'tv') && (
         <MovieFilters
           providers={providerOptions}
-          selectedProvider={selectedProvider}
-          onProviderChange={setSelectedProvider}
+          selectedProvider={providerFilter}
+          onProviderChange={setProviderFilter}
           genres={genreOptions}
-          selectedGenre={selectedGenre}
-          onGenreChange={setSelectedGenre}
+          selectedGenre={genreFilter}
+          onGenreChange={setGenreFilter}
           orderOptions={orderOptions}
-          selectedOrder={selectedOrder}
-          onOrderChange={setSelectedOrder}
+          selectedOrder={sortBy}
+          onOrderChange={setSortBy}
           yearOptions={yearOptions}
-          selectedYear={selectedYear}
-          onYearChange={setSelectedYear}
+          selectedYear={yearFilter}
+          onYearChange={setYearFilter}
           languageOptions={languageOptions}
-          selectedLanguage={selectedLanguage}
-          onLanguageChange={setSelectedLanguage}
+          selectedLanguage={languageFilter}
+          onLanguageChange={setLanguageFilter}
         />
       )}
 
@@ -553,6 +568,7 @@ export const HomePage: React.FC = () => {
         isLoading={isLoading}
         hasMore={hasMore}
         onLoadMore={handleLoadMore}
+        onItemClick={saveScrollPosition}
       />
     </div>
   );
