@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from 'react';
 import {
   Dialog,
@@ -22,6 +23,7 @@ import {
   User,
   Film,
   Users,
+  X,
 } from 'lucide-react';
 import {
   buildImageUrl,
@@ -35,29 +37,6 @@ import { useWantToWatchContext } from '@/context/WantToWatchContext';
 import { useWatchedContext } from '@/context/WatchedContext';
 import { useNavigate } from 'react-router-dom';
 
-/**
- * ModalLuckyPick
- * Modal interativo para exibir um resultado aleatório (filme, série, ator ou diretor) com layout cinematográfico.
- *
- * O que faz:
- * - Exibe um modal estilizado com o resultado de um sorteio aleatório (filme, série ou pessoa).
- * - Mostra imagem (cartaz ou foto), título, ano, nota, sinopse (ou biografia), gêneros, profissão, etc.
- * - Permite favoritar, marcar como visto/quero assistir, ver detalhes e sortear novamente.
- * - Usa componentes visuais do MVPBlocks e segue o visual do site.
- *
- * Argumentos (props):
- * - open: boolean - controla a abertura do modal.
- * - onOpenChange: (open: boolean) => void - callback para mudança de estado do modal.
- *
- * Retorno:
- * - JSX.Element: Modal estilizado com todas as informações e botões de ação.
- *
- * Detalhes:
- * - Para pessoas, mostra biografia e filmes/séries mais conhecidos.
- * - Para filmes/séries, mostra sinopse, gêneros, nota, ano, etc.
- * - Botões: Favoritar, Quero Assistir/Visto, Ver Detalhes, Sortear Novamente.
- * - Feedback visual (toast) para ações.
- */
 export const ModalLuckyPick: React.FC<{
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -68,20 +47,38 @@ export const ModalLuckyPick: React.FC<{
   const [lastId, setLastId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { getRandomItem } = useLuckyPick();
-  const { isFavorite, addToFavorites, removeFromFavorites } =
-    useFavoritesContext();
-  const { isInWantToWatch, addToWantToWatch, removeFromWantToWatch } =
-    useWantToWatchContext();
+  const { isFavorite, addToFavorites, removeFromFavorites } = useFavoritesContext();
+  const { isInWantToWatch, addToWantToWatch, removeFromWantToWatch } = useWantToWatchContext();
   const { isWatched, addToWatched, removeFromWatched } = useWatchedContext();
   const navigate = useNavigate();
   const [actionLoading, setActionLoading] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  /**
-   * Busca um novo item aleatório e seus detalhes completos.
-   * Garante que não repita o último resultado imediatamente.
-   */
+  // Disable body scroll when modal is open
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = 'unset';
+      };
+    }
+  }, [open]);
+
+  // Handle ESC key to close modal
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onOpenChange(false);
+      }
+    };
+
+    if (open) {
+      document.addEventListener('keydown', handleEscape);
+      return () => document.removeEventListener('keydown', handleEscape);
+    }
+  }, [open, onOpenChange]);
+
   const fetchLuckyPick = async () => {
     setLoading(true);
     setError(null);
@@ -124,27 +121,19 @@ export const ModalLuckyPick: React.FC<{
     // eslint-disable-next-line
   }, [open]);
 
-  /**
-   * Exibe um toast temporário para feedback de ações.
-   * @param msg Mensagem do toast
-   */
   const showToast = (msg: string) => {
     setToast(msg);
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => setToast(null), 2000);
   };
 
-  // --- Funções auxiliares para renderização ---
+  // --- Helper functions for rendering ---
   const getTypeLabel = (type: string) => {
     switch (type) {
-      case 'movie':
-        return 'Filme';
-      case 'tv':
-        return 'Série';
-      case 'person':
-        return 'Pessoa';
-      default:
-        return 'Item';
+      case 'movie': return 'Filme';
+      case 'tv': return 'Série';
+      case 'person': return 'Pessoa';
+      default: return 'Item';
     }
   };
 
@@ -185,7 +174,7 @@ export const ModalLuckyPick: React.FC<{
     return [...movies, ...tvs];
   };
 
-  // --- Ações dos botões ---
+  // --- Action handlers ---
   const handleFavorite = () => {
     if (!result) return;
     if (isFavorite(result.item.id, result.type)) {
@@ -266,11 +255,11 @@ export const ModalLuckyPick: React.FC<{
     setActionLoading(false);
   };
 
-  // --- Renderização do conteúdo do modal ---
+  // --- Render content ---
   const renderContent = () => {
     if (loading || actionLoading) {
       return (
-        <div className="flex flex-col items-center justify-center min-h-[400px] animate-pulse">
+        <div className="flex flex-col items-center justify-center py-12 animate-pulse">
           <Loader className="w-10 h-10 text-primary animate-spin mb-4" />
           <div className="h-6 w-40 bg-secondary/40 rounded mb-2" />
           <div className="h-4 w-64 bg-secondary/30 rounded mb-2" />
@@ -281,9 +270,9 @@ export const ModalLuckyPick: React.FC<{
     }
     if (error) {
       return (
-        <div className="flex flex-col items-center justify-center min-h-[300px] text-destructive">
-          <p>{error}</p>
-          <Button variant="outline" onClick={fetchLuckyPick} className="mt-4">
+        <div className="flex flex-col items-center justify-center py-12 text-destructive">
+          <p className="text-center mb-4">{error}</p>
+          <Button variant="outline" onClick={fetchLuckyPick}>
             Tentar Novamente
           </Button>
         </div>
@@ -293,100 +282,99 @@ export const ModalLuckyPick: React.FC<{
     const type = result.type;
     const item = details;
     return (
-      <div className="grid md:grid-cols-5 gap-6">
-        {/* Imagem em destaque */}
-        <div className="md:col-span-3 flex items-center justify-center h-full">
-          <img
-            src={buildImageUrl(
-              type === 'person' ? item.profile_path : item.poster_path,
-              'w780'
-            )}
-            alt={item.title || item.name}
-            className="rounded-lg shadow-cinema w-full h-full object-cover bg-secondary/40"
-            style={{ aspectRatio: '2/3' }}
-            loading="lazy"
-          />
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-6">
+        {/* Image section */}
+        <div className="lg:col-span-2 flex items-center justify-center">
+          <div className="w-full max-w-xs mx-auto">
+            <img
+              src={buildImageUrl(
+                type === 'person' ? item.profile_path : item.poster_path,
+                'w500'
+              )}
+              alt={item.title || item.name}
+              className="rounded-lg shadow-cinema w-full object-cover bg-secondary/40"
+              style={{ aspectRatio: '2/3' }}
+              loading="lazy"
+            />
+          </div>
         </div>
-        {/* Informações e ações */}
-        <div className="md:col-span-2 space-y-4 flex flex-col">
-          {/* Título e tipo */}
+        {/* Info and actions */}
+        <div className="lg:col-span-3 space-y-4 flex flex-col min-h-0">
+          {/* Title and type */}
           <div>
-            <h2 className="text-2xl font-bold text-primary mb-1 flex items-center gap-2">
-              {type === 'movie' && <Film className="w-6 h-6 text-gold" />}
-              {type === 'tv' && <Users className="w-6 h-6 text-gold" />}
-              {type === 'person' && <User className="w-6 h-6 text-gold" />}
-              {item.title || item.name}
+            <h2 className="text-xl lg:text-2xl font-bold text-primary mb-2 flex items-center gap-2 line-clamp-2">
+              {type === 'movie' && <Film className="w-5 h-5 lg:w-6 lg:h-6 text-gold flex-shrink-0" />}
+              {type === 'tv' && <Users className="w-5 h-5 lg:w-6 lg:h-6 text-gold flex-shrink-0" />}
+              {type === 'person' && <User className="w-5 h-5 lg:w-6 lg:h-6 text-gold flex-shrink-0" />}
+              <span className="break-words">{item.title || item.name}</span>
             </h2>
             <div className="flex flex-wrap gap-2 items-center mb-2">
-              <Badge
-                variant="secondary"
-                className="bg-primary/80 text-primary-foreground"
-              >
+              <Badge variant="secondary" className="bg-primary/80 text-primary-foreground">
                 {getTypeLabel(type)}
               </Badge>
               {getYear(item, type) && (
                 <Badge variant="secondary">
-                  <Calendar className="w-4 h-4 mr-1 inline" />
+                  <Calendar className="w-3 h-3 mr-1" />
                   {getYear(item, type)}
                 </Badge>
               )}
               {type === 'person' && item.place_of_birth && (
-                <Badge variant="secondary">{item.place_of_birth}</Badge>
+                <Badge variant="secondary" className="text-xs">
+                  {item.place_of_birth}
+                </Badge>
               )}
               {type === 'person' && item.birthday && (
-                <Badge variant="secondary">
+                <Badge variant="secondary" className="text-xs">
                   {item.birthday} ({getAge(item.birthday)} anos)
                 </Badge>
               )}
               {type !== 'person' &&
-                getGenres(item).map((g: string) => (
-                  <Badge key={g} variant="outline">
+                getGenres(item).slice(0, 3).map((g: string) => (
+                  <Badge key={g} variant="outline" className="text-xs">
                     {g}
                   </Badge>
                 ))}
             </div>
-            {/* Nota TMDB */}
+            {/* Rating */}
             {item.vote_average && (
               <div className="flex items-center gap-1 text-yellow-400 font-semibold mb-2">
-                <Star className="w-5 h-5" />
+                <Star className="w-4 h-4" />
                 {item.vote_average.toFixed(1)}
               </div>
             )}
-            {/* Duração/Temporadas */}
-            {type === 'movie' && item.runtime && (
-              <div className="text-sm text-muted-foreground mb-1">
-                Duração: {item.runtime} min
-              </div>
-            )}
-            {type === 'tv' && item.number_of_seasons && (
-              <div className="text-sm text-muted-foreground mb-1">
-                Temporadas: {item.number_of_seasons}
-              </div>
-            )}
-            {type === 'person' && item.known_for_department && (
-              <div className="text-sm text-muted-foreground mb-1">
-                Profissão: {item.known_for_department}
-              </div>
-            )}
+            {/* Additional info */}
+            <div className="text-sm text-muted-foreground space-y-1">
+              {type === 'movie' && item.runtime && (
+                <div>Duração: {item.runtime} min</div>
+              )}
+              {type === 'tv' && item.number_of_seasons && (
+                <div>Temporadas: {item.number_of_seasons}</div>
+              )}
+              {type === 'person' && item.known_for_department && (
+                <div>Profissão: {item.known_for_department}</div>
+              )}
+            </div>
           </div>
-          {/* Sinopse/Biografia */}
-          <div className="overflow-y-auto max-h-40 text-muted-foreground text-sm rounded bg-secondary/30 p-3">
-            {type === 'person'
-              ? item.biography || 'Sem biografia disponível.'
-              : item.overview || 'Sem sinopse disponível.'}
+          {/* Synopsis/Biography - Scrollable */}
+          <div className="flex-1 min-h-0">
+            <div className="overflow-y-auto max-h-32 lg:max-h-40 text-muted-foreground text-sm rounded bg-secondary/30 p-3">
+              {type === 'person'
+                ? item.biography || 'Sem biografia disponível.'
+                : item.overview || 'Sem sinopse disponível.'}
+            </div>
           </div>
-          {/* Filmes mais conhecidos (para pessoas) */}
+          {/* Known for (for people) */}
           {type === 'person' && (
             <div>
-              <div className="font-semibold text-primary mb-1">
+              <div className="font-semibold text-primary mb-2 text-sm">
                 Mais conhecidos por:
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1">
                 {getKnownFor(item).map((k: any) => (
                   <Badge
                     key={k.id}
                     variant="outline"
-                    className="cursor-pointer"
+                    className="cursor-pointer text-xs hover:bg-secondary"
                     onClick={() =>
                       navigate(k.title ? `/filme/${k.id}` : `/serie/${k.id}`)
                     }
@@ -397,80 +385,99 @@ export const ModalLuckyPick: React.FC<{
               </div>
             </div>
           )}
-          {/* Botões de ação */}
-          <div className="grid grid-cols-2 gap-3 mt-auto">
-            {/* Favoritar */}
+          {/* Action buttons */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+            {/* Favorite */}
             <Button
               variant={isFavorite(result.item.id, type) ? 'cinema' : 'outline'}
               onClick={handleFavorite}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 text-xs lg:text-sm h-9"
+              size="sm"
             >
               <Heart
-                className={`w-5 h-5 ${
+                className={`w-4 h-4 ${
                   isFavorite(result.item.id, type)
                     ? 'fill-red-500 text-red-500'
                     : ''
                 }`}
               />
-              {isFavorite(result.item.id, type)
-                ? 'Remover dos Favoritos'
-                : 'Favoritar'}
+              <span className="hidden sm:inline">
+                {isFavorite(result.item.id, type) ? 'Remover' : 'Favoritar'}
+              </span>
+              <span className="sm:hidden">
+                {isFavorite(result.item.id, type) ? '♥' : '♡'}
+              </span>
             </Button>
-            {/* Quero Assistir / Visto */}
+            {/* Want to watch / Watched */}
             {type !== 'person' ? (
               isWatched(result.item.id, type) ? (
                 <Button
                   variant="cinema"
                   onClick={handleWatched}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 text-xs lg:text-sm h-9"
+                  size="sm"
                 >
-                  <Check className="w-5 h-5 text-green-500" /> Remover de Vistos
+                  <Check className="w-4 h-4 text-green-500" />
+                  <span className="hidden sm:inline">Remover de Vistos</span>
+                  <span className="sm:hidden">Visto</span>
                 </Button>
               ) : isInWantToWatch(result.item.id) ? (
                 <Button
                   variant="cinema"
                   onClick={handleWantToWatch}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 text-xs lg:text-sm h-9"
+                  size="sm"
                 >
-                  <Bookmark className="w-5 h-5 text-blue-500" /> Remover de
-                  Quero Assistir
+                  <Bookmark className="w-4 h-4 text-blue-500" />
+                  <span className="hidden sm:inline">Remover Lista</span>
+                  <span className="sm:hidden">Na Lista</span>
                 </Button>
               ) : (
                 <Button
                   variant="cinema"
                   onClick={handleWantToWatch}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 text-xs lg:text-sm h-9"
+                  size="sm"
                 >
-                  <Bookmark className="w-5 h-5" /> Quero Assistir
+                  <Bookmark className="w-4 h-4" />
+                  <span className="hidden sm:inline">Quero Assistir</span>
+                  <span className="sm:hidden">Lista</span>
                 </Button>
               )
             ) : (
               <Button
                 variant="outline"
                 disabled
-                className="flex items-center gap-2 opacity-60"
+                className="flex items-center gap-2 text-xs lg:text-sm h-9 opacity-60"
+                size="sm"
               >
-                <Bookmark className="w-5 h-5" /> Não disponível
+                <Bookmark className="w-4 h-4" />
+                <span className="hidden sm:inline">Não disponível</span>
+                <span className="sm:hidden">N/A</span>
               </Button>
             )}
-            {/* Ver Detalhes */}
+            {/* View details */}
             <Button
               variant="default"
               onClick={handleDetails}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 text-xs lg:text-sm h-9"
+              size="sm"
             >
-              <Eye className="w-5 h-5" /> Ver Detalhes
+              <Eye className="w-4 h-4" />
+              <span>Ver Detalhes</span>
             </Button>
-            {/* Sortear Novamente */}
+            {/* Try again */}
             <Button
               variant="secondary"
               onClick={handleTryAgain}
-              className={`flex items-center gap-2 ${
-                actionLoading ? 'animate-spin-slow' : ''
+              className={`flex items-center gap-2 text-xs lg:text-sm h-9 ${
+                actionLoading ? 'animate-pulse' : ''
               }`}
               disabled={actionLoading}
+              size="sm"
             >
-              <RefreshCw className="w-5 h-5" /> Sortear Novamente
+              <RefreshCw className="w-4 h-4" />
+              <span>Sortear Novamente</span>
             </Button>
           </div>
         </div>
@@ -480,16 +487,48 @@ export const ModalLuckyPick: React.FC<{
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl bg-gradient-cinema border-primary/20 shadow-cinema animate-fade-in rounded-xl p-0 overflow-hidden">
-        <DialogHeader className="p-6 pb-2 border-b border-primary/10 bg-gradient-cinema">
-          <DialogTitle className="text-2xl text-primary flex items-center gap-2">
-            <Dice6 className="w-6 h-6" /> Descoberta Aleatória
+      <DialogContent 
+        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 
+                   w-[95vw] max-w-none max-h-none h-[85vh] 
+                   sm:w-[90vw] sm:h-[80vh] 
+                   md:w-[85vw] md:h-[80vh] 
+                   lg:w-[80vw] lg:h-[75vh] lg:max-w-4xl
+                   xl:max-w-5xl xl:h-[70vh]
+                   min-w-[280px] min-h-[300px]
+                   bg-gradient-cinema border-primary/20 shadow-cinema 
+                   animate-fade-in rounded-xl overflow-hidden
+                   flex flex-col p-0 gap-0"
+      >
+        {/* Fixed Header */}
+        <DialogHeader className="flex-shrink-0 p-4 sm:p-6 pb-2 border-b border-primary/10 bg-gradient-cinema">
+          <DialogTitle className="text-lg sm:text-xl lg:text-2xl text-primary flex items-center gap-2 pr-8">
+            <Dice6 className="w-5 h-5 lg:w-6 lg:h-6 flex-shrink-0" />
+            <span className="truncate">Descoberta Aleatória</span>
           </DialogTitle>
-          <DialogClose className="absolute right-6 top-6" />
+          {/* Custom close button for better positioning */}
+          <button
+            onClick={() => onOpenChange(false)}
+            className="absolute right-4 top-4 p-2 rounded-sm opacity-70 ring-offset-background 
+                       transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 
+                       focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none 
+                       data-[state=open]:bg-accent data-[state=open]:text-muted-foreground
+                       min-w-[44px] min-h-[44px] flex items-center justify-center bg-secondary/20"
+            aria-label="Fechar"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </DialogHeader>
-        <div className="p-6">{renderContent()}</div>
+        
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-6">
+          {renderContent()}
+        </div>
+
+        {/* Toast notification */}
         {toast && (
-          <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-cinema-dark/90 text-white px-6 py-3 rounded-lg shadow-glow z-50 animate-fade-in">
+          <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-cinema-dark/90 text-white 
+                         px-4 py-2 rounded-lg shadow-glow z-50 animate-fade-in text-sm
+                         max-w-[90vw] text-center">
             {toast}
           </div>
         )}
