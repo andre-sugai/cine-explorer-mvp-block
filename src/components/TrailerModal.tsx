@@ -52,15 +52,48 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
   const playerRef = useRef<any>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const currentTrailerIdRef = useRef<string>('');
+  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const playerReadyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  console.log('TrailerModal render state:', {
+    currentTrailer: currentTrailer?.movieTitle,
+    isLoading,
+    playerLoading,
+    isTransitioning,
+    apiReady
+  });
+
+  // Timeout para forçar fim do loading se ficar mais de 10 segundos
+  useEffect(() => {
+    if (playerLoading) {
+      console.log('Setting loading timeout for 10 seconds');
+      loadingTimeoutRef.current = setTimeout(() => {
+        console.log('Loading timeout reached, forcing end of loading');
+        setPlayerLoading(false);
+        setIsTransitioning(false);
+        toast.error('Timeout ao carregar player. Tentando próximo trailer...');
+        handleAutoNextTrailer();
+      }, 10000);
+      
+      return () => {
+        if (loadingTimeoutRef.current) {
+          clearTimeout(loadingTimeoutRef.current);
+          loadingTimeoutRef.current = null;
+        }
+      };
+    }
+  }, [playerLoading]);
 
   // Carregar YouTube API
   useEffect(() => {
     const loadYouTubeAPI = () => {
       if (window.YT && window.YT.Player) {
+        console.log('YouTube API already loaded');
         setApiReady(true);
         return;
       }
 
+      console.log('Loading YouTube API');
       // Criar script para carregar YouTube API
       const script = document.createElement('script');
       script.src = 'https://www.youtube.com/iframe_api';
@@ -69,6 +102,7 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
 
       // Callback quando API estiver pronta
       window.onYouTubeIframeAPIReady = () => {
+        console.log('YouTube API ready');
         setApiReady(true);
       };
     };
@@ -82,16 +116,24 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
   useEffect(() => {
     return () => {
       cleanupPlayer();
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+      if (playerReadyTimeoutRef.current) {
+        clearTimeout(playerReadyTimeoutRef.current);
+      }
     };
   }, []);
 
   // Inicializar modal e cache
   useEffect(() => {
     if (open) {
+      console.log('Modal opened, initializing...');
       resetTrailerCount();
       populateMoviesCache();
       setVideoKey(0);
       setPlayerLoading(false);
+      setIsTransitioning(false);
       if (!currentTrailer) {
         loadRandomTrailer();
       }
@@ -101,7 +143,12 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
   // Detectar mudanças no trailer atual e forçar recriação do player
   useEffect(() => {
     if (currentTrailer && currentTrailerIdRef.current !== currentTrailer.key) {
-      console.log('Trailer changed, recreating player:', currentTrailer.movieTitle);
+      console.log('Trailer changed, recreating player:', {
+        movieTitle: currentTrailer.movieTitle,
+        key: currentTrailer.key,
+        previousKey: currentTrailerIdRef.current
+      });
+      
       currentTrailerIdRef.current = currentTrailer.key;
       
       // Incrementar key para forçar recriação
@@ -115,12 +162,37 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
       setTimeout(() => {
         if (apiReady && playerContainerRef.current) {
           createYouTubePlayer();
+        } else {
+          console.log('Cannot create player yet:', { apiReady, container: !!playerContainerRef.current });
+          // Fallback: tentar novamente após mais tempo
+          setTimeout(() => {
+            if (apiReady && playerContainerRef.current) {
+              createYouTubePlayer();
+            } else {
+              console.error('Failed to create player after retries');
+              setPlayerLoading(false);
+              toast.error('Erro ao criar player. Tentando próximo trailer...');
+              handleAutoNextTrailer();
+            }
+          }, 2000);
         }
       }, 100);
     }
   }, [currentTrailer, apiReady]);
 
   const cleanupPlayer = () => {
+    console.log('Cleaning up player');
+    
+    // Limpar timeouts
+    if (loadingTimeoutRef.current) {
+      clearTimeout(loadingTimeoutRef.current);
+      loadingTimeoutRef.current = null;
+    }
+    if (playerReadyTimeoutRef.current) {
+      clearTimeout(playerReadyTimeoutRef.current);
+      playerReadyTimeoutRef.current = null;
+    }
+    
     if (playerRef.current) {
       try {
         if (typeof playerRef.current.destroy === 'function') {
@@ -140,7 +212,11 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
 
   const createYouTubePlayer = () => {
     if (!window.YT || !playerContainerRef.current || !currentTrailer) {
-      console.log('Cannot create player:', { YT: !!window.YT, container: !!playerContainerRef.current, trailer: !!currentTrailer });
+      console.log('Cannot create player:', { 
+        YT: !!window.YT, 
+        container: !!playerContainerRef.current, 
+        trailer: !!currentTrailer 
+      });
       return;
     }
 
@@ -157,6 +233,13 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
     playerContainerRef.current.appendChild(playerDiv);
 
     try {
+      // Timeout de segurança caso o player não inicialize
+      playerReadyTimeoutRef.current = setTimeout(() => {
+        console.log('Player ready timeout, forcing end of loading');
+        setPlayerLoading(false);
+        setIsTransitioning(false);
+      }, 8000);
+
       playerRef.current = new window.YT.Player(playerDiv, {
         height: '100%',
         width: '100%',
@@ -179,12 +262,20 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
     } catch (error) {
       console.error('Error creating YouTube player:', error);
       setPlayerLoading(false);
+      setIsTransitioning(false);
       toast.error('Erro ao criar player de vídeo');
     }
   };
 
   const onPlayerReady = (event: any) => {
     console.log('Player ready for:', currentTrailer?.movieTitle);
+    
+    // Limpar timeout de segurança
+    if (playerReadyTimeoutRef.current) {
+      clearTimeout(playerReadyTimeoutRef.current);
+      playerReadyTimeoutRef.current = null;
+    }
+    
     setIsPlaying(true);
     setPlayerLoading(false);
     setIsTransitioning(false);
@@ -200,6 +291,13 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
   const onPlayerStateChange = (event: any) => {
     const state = event.data;
     console.log('Player state change:', state, 'for:', currentTrailer?.movieTitle);
+    
+    // Forçar fim do loading se o player estiver reproduzindo
+    if (state === 1 && playerLoading) { // YT.PlayerState.PLAYING = 1
+      console.log('Player is playing, ending loading state');
+      setPlayerLoading(false);
+      setIsTransitioning(false);
+    }
     
     // YT.PlayerState.ENDED = 0
     if (state === 0 && autoplayEnabled) {
@@ -220,6 +318,7 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
   const onPlayerError = (event: any) => {
     console.error('YouTube Player Error:', event.data, 'for:', currentTrailer?.movieTitle);
     setPlayerLoading(false);
+    setIsTransitioning(false);
     toast.error('Erro no player. Carregando próximo trailer...');
     handleAutoNextTrailer();
   };
@@ -250,6 +349,7 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
   };
 
   const loadRandomTrailer = async () => {
+    console.log('Loading random trailer');
     try {
       const trailer = await getRandomTrailer();
       if (!trailer) {
@@ -348,6 +448,11 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
                      playerLoading ? 'Inicializando player...' :
                      'Buscando próximo trailer...'}
                   </p>
+                  {(playerLoading || isTransitioning) && (
+                    <p className="text-xs text-muted-foreground/70">
+                      Aguarde até 10 segundos...
+                    </p>
+                  )}
                 </div>
               </div>
             ) : currentTrailer ? (
@@ -358,6 +463,13 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
                   ref={playerContainerRef}
                   className="w-full h-full rounded-lg overflow-hidden bg-black"
                 />
+                
+                {/* Overlay de debug em desenvolvimento */}
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="absolute top-2 left-2 bg-black/70 text-white text-xs p-2 rounded">
+                    Key: {videoKey} | ID: {currentTrailer.key}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="aspect-video bg-secondary/20 rounded-lg flex items-center justify-center">
