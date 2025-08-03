@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
@@ -71,13 +70,14 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
         <DialogHeader className="space-y-4">
           <DialogTitle className="text-2xl font-bold text-primary flex items-center gap-3">
             <Play className="w-6 h-6" />
-            {currentTrailer 
-              ? currentTrailer.movieTitle 
-              : (isLoading || loadingNext) 
-                ? 'Carregando próximo trailer...' 
-                : 'Carregando...'
-            }
+            Trailers Aleatórios
           </DialogTitle>
+          
+          {currentTrailer && (
+            <div className="text-lg text-foreground font-medium">
+              {currentTrailer.movieTitle}
+            </div>
+          )}
         </DialogHeader>
 
         <div className="space-y-6">
