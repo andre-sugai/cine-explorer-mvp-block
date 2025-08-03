@@ -15,7 +15,6 @@ interface ContentGridProps {
   isLoading: boolean;
   hasMore: boolean;
   onLoadMore: () => void;
-  onItemClick?: () => void; // Callback para salvar posição do scroll
 }
 
 export const ContentGrid: React.FC<ContentGridProps> = ({
@@ -24,7 +23,6 @@ export const ContentGrid: React.FC<ContentGridProps> = ({
   isLoading,
   hasMore,
   onLoadMore,
-  onItemClick,
 }) => {
   const navigate = useNavigate();
   const observerRef = useRef<IntersectionObserver>();
@@ -63,27 +61,16 @@ export const ContentGrid: React.FC<ContentGridProps> = ({
   );
 
   const handleItemClick = (item: TMDBMovie | TMDBTVShow | TMDBPerson) => {
-    console.log('🎬 Card clicado, salvando posição do scroll...');
-
-    // Salvar posição do scroll antes de navegar
-    if (onItemClick) {
-      onItemClick();
+    if ('title' in item) {
+      // Movie
+      navigate(`/filme/${item.id}`);
+    } else if ('name' in item && 'first_air_date' in item) {
+      // TV Show
+      navigate(`/serie/${item.id}`);
+    } else if ('name' in item) {
+      // Person
+      navigate(`/pessoa/${item.id}`);
     }
-
-    // Pequeno delay para garantir que o scroll foi salvo
-    setTimeout(() => {
-      console.log('🚀 Navegando para página de detalhes...');
-      if ('title' in item) {
-        // Movie
-        navigate(`/filme/${item.id}`);
-      } else if ('name' in item && 'first_air_date' in item) {
-        // TV Show
-        navigate(`/serie/${item.id}`);
-      } else if ('name' in item) {
-        // Person
-        navigate(`/pessoa/${item.id}`);
-      }
-    }, 50);
   };
 
   const renderContentCard = (

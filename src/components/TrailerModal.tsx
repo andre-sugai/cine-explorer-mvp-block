@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
@@ -66,38 +67,35 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={handleModalClose}>
-      <DialogContent className="max-w-5xl w-full max-h-[90vh] bg-gradient-cinema border-primary/20 p-6">
-        <DialogHeader className="space-y-4 mb-3">
+      <DialogContent className="max-w-5xl w-full max-h-[90vh] bg-gradient-cinema border-primary/20">
+        <DialogHeader className="space-y-4">
           <DialogTitle className="text-2xl font-bold text-primary flex items-center gap-3">
             <Play className="w-6 h-6" />
-            {currentTrailer
-              ? currentTrailer.movieTitle
-              : isLoading || loadingNext
-              ? 'Carregando próximo trailer...'
-              : 'Carregando...'}
+            {currentTrailer 
+              ? currentTrailer.movieTitle 
+              : (isLoading || loadingNext) 
+                ? 'Carregando próximo trailer...' 
+                : 'Carregando...'
+            }
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-2 w-full">
+        <div className="space-y-6">
           {/* Video Player */}
-          <div className="relative w-full">
+          <div className="relative">
             {isLoading || loadingNext ? (
               <div className="aspect-video bg-secondary/20 rounded-lg flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
                   <Loader className="w-8 h-8 animate-spin text-primary" />
                   <p className="text-muted-foreground">
-                    {isLoading
-                      ? 'Carregando trailer...'
-                      : 'Buscando próximo trailer...'}
+                    {isLoading ? 'Carregando trailer...' : 'Buscando próximo trailer...'}
                   </p>
                 </div>
               </div>
             ) : currentTrailer ? (
-              <div className="aspect-video w-full">
+              <div className="aspect-video">
                 <iframe
-                  src={`https://www.youtube.com/embed/${
-                    currentTrailer.key
-                  }?autoplay=${isPlaying ? 1 : 0}&rel=0&showinfo=0`}
+                  src={`https://www.youtube.com/embed/${currentTrailer.key}?autoplay=${isPlaying ? 1 : 0}&rel=0&showinfo=0`}
                   title={currentTrailer.name}
                   className="w-full h-full rounded-lg"
                   allowFullScreen
@@ -107,9 +105,7 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
             ) : (
               <div className="aspect-video bg-secondary/20 rounded-lg flex items-center justify-center">
                 <div className="text-center space-y-4">
-                  <p className="text-muted-foreground">
-                    Nenhum trailer disponível
-                  </p>
+                  <p className="text-muted-foreground">Nenhum trailer disponível</p>
                   <Button onClick={loadRandomTrailer} variant="default">
                     Tentar Novamente
                   </Button>
@@ -118,8 +114,8 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
             )}
           </div>
 
-          {/* Controls - DENTRO do modal */}
-          <div className="flex flex-wrap items-center justify-center gap-4 w-full px-4">
+          {/* Controls */}
+          <div className="flex flex-wrap items-center justify-center gap-4">
             <Button
               onClick={handlePlayPause}
               variant="default"
@@ -160,10 +156,10 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
             )}
           </div>
 
-          {/* Info - DENTRO do modal */}
-          <div className="text-center text-sm text-muted-foreground px-4 pb-2">
+          {/* Info */}
+          <div className="text-center text-sm text-muted-foreground">
             <p>
-              Descubra novos filmes através dos trailers!
+              Descubra novos filmes através dos trailers! 
               <br className="sm:hidden" />
               <span className="hidden sm:inline"> • </span>
               Clique em "Próximo Trailer" para ver outro filme.
