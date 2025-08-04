@@ -27,6 +27,7 @@ export const HomePage: React.FC = () => {
     selectedOrder,
     selectedYear,
     selectedLanguage,
+    selectedStreamings,
     searchTerm,
     setActiveCategory,
     setSelectedProvider,
@@ -34,6 +35,7 @@ export const HomePage: React.FC = () => {
     setSelectedOrder,
     setSelectedYear,
     setSelectedLanguage,
+    setSelectedStreamings,
     setSearchTerm,
     saveScrollPosition,
     resetFilters,
@@ -378,6 +380,11 @@ export const HomePage: React.FC = () => {
           params.with_watch_providers = selectedProvider;
           params.watch_region = 'BR';
         }
+        // Novo filtro de múltiplos streamings
+        if (selectedStreamings.length > 0) {
+          params.with_watch_providers = selectedStreamings.join('|');
+          params.watch_region = 'BR';
+        }
         if (selectedGenre) {
           params.with_genres = selectedGenre;
         }
@@ -530,6 +537,7 @@ export const HomePage: React.FC = () => {
     selectedOrder,
     selectedYear,
     selectedLanguage,
+    selectedStreamings,
     isRestored
   ]);
 
@@ -575,6 +583,8 @@ export const HomePage: React.FC = () => {
           languageOptions={languageOptions}
           selectedLanguage={selectedLanguage}
           onLanguageChange={setSelectedLanguage}
+          selectedStreamings={selectedStreamings}
+          onStreamingChange={setSelectedStreamings}
         />
       )}
 
