@@ -13,12 +13,33 @@ import {
   getAllGenres,
 } from '@/utils/tmdb';
 import { TMDBMovie, TMDBTVShow, TMDBPerson, TMDBGenre } from '@/utils/tmdb';
+import { useFilterPersistence } from '@/hooks/useFilterPersistence';
+import { useScrollManager } from '@/hooks/useScrollManager';
 
 type ContentCategory = 'movies' | 'tv' | 'actors' | 'directors';
 
 export const HomePage: React.FC = () => {
-  const [activeCategory, setActiveCategory] =
-    useState<ContentCategory>('movies');
+  // Hook de persistência de filtros
+  const {
+    activeCategory,
+    selectedProvider,
+    selectedGenre,
+    selectedOrder,
+    selectedYear,
+    selectedLanguage,
+    searchTerm,
+    setActiveCategory,
+    setSelectedProvider,
+    setSelectedGenre,
+    setSelectedOrder,
+    setSelectedYear,
+    setSelectedLanguage,
+    setSearchTerm,
+    saveScrollPosition,
+    resetFilters,
+    isRestored
+  } = useFilterPersistence();
+
   const [content, setContent] = useState<
     (TMDBMovie | TMDBTVShow | TMDBPerson)[]
   >([]);
@@ -26,15 +47,12 @@ export const HomePage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [providerOptions, setProviderOptions] = useState([]);
-  const [selectedProvider, setSelectedProvider] = useState('');
   const [genreOptions, setGenreOptions] = useState<TMDBGenre[]>([]);
-  const [selectedGenre, setSelectedGenre] = useState('');
   const [orderOptions] = useState([
     { value: 'popularity.desc', label: 'Popular' },
     { value: 'release_date.desc', label: 'Novos' },
     { value: 'vote_average.desc', label: 'IMDB' },
   ]);
-  const [selectedOrder, setSelectedOrder] = useState('popularity.desc');
   const [yearOptions] = useState([
     { value: '', label: 'Todas' },
     { value: '2020', label: '2020s' },
@@ -46,9 +64,7 @@ export const HomePage: React.FC = () => {
     { value: '1960', label: '1960s' },
     { value: '1950', label: '1950s' },
   ]);
-  const [selectedYear, setSelectedYear] = useState('');
   const [languageOptions, setLanguageOptions] = useState([]);
-  const [selectedLanguage, setSelectedLanguage] = useState('');
 
   // Lista de diretores com americanos primeiro, depois brasileiros, latino-americanos, europeus, asiáticos, africanos, australianos e mulheres diretoras
   const famousDirectors = [
@@ -463,6 +479,9 @@ export const HomePage: React.FC = () => {
 
   const handleLuckyPick = () => {
     if (content.length > 0) {
+      // Salvar posição do scroll antes de navegar
+      saveScrollPosition();
+      
       const randomItem = content[Math.floor(Math.random() * content.length)];
 
       if ('title' in randomItem) {
@@ -495,9 +514,12 @@ export const HomePage: React.FC = () => {
     });
   }, []);
 
-  // Atualizar busca ao mudar filtros
+  // Atualizar busca ao mudar filtros (somente após restaurar filtros)
   useEffect(() => {
+    if (!isRestored) return;
+    
     if (activeCategory === 'movies' || activeCategory === 'tv') {
+      setPage(1);
       loadContentComFiltros(activeCategory, 1, true);
     }
     // eslint-disable-next-line
@@ -508,11 +530,21 @@ export const HomePage: React.FC = () => {
     selectedOrder,
     selectedYear,
     selectedLanguage,
+    isRestored
   ]);
 
+  // Carregar conteúdo inicial após restaurar filtros
   useEffect(() => {
-    loadContentComFiltros(activeCategory, 1, true);
-  }, []);
+    if (isRestored) {
+      loadContentComFiltros(activeCategory, 1, true);
+    }
+  }, [isRestored]);
+
+  // Gerenciar scroll para persistência
+  useScrollManager({
+    saveScrollPosition,
+    isRestored
+  });
 
   return (
     <div className="min-h-screen space-y-12">
@@ -553,6 +585,7 @@ export const HomePage: React.FC = () => {
         isLoading={isLoading}
         hasMore={hasMore}
         onLoadMore={handleLoadMore}
+        onItemClick={saveScrollPosition}
       />
     </div>
   );

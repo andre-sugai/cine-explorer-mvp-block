@@ -15,6 +15,7 @@ interface ContentGridProps {
   isLoading: boolean;
   hasMore: boolean;
   onLoadMore: () => void;
+  onItemClick?: () => void; // Callback para salvar estado antes de navegar
 }
 
 export const ContentGrid: React.FC<ContentGridProps> = ({
@@ -23,6 +24,7 @@ export const ContentGrid: React.FC<ContentGridProps> = ({
   isLoading,
   hasMore,
   onLoadMore,
+  onItemClick,
 }) => {
   const navigate = useNavigate();
   const observerRef = useRef<IntersectionObserver>();
@@ -61,6 +63,11 @@ export const ContentGrid: React.FC<ContentGridProps> = ({
   );
 
   const handleItemClick = (item: TMDBMovie | TMDBTVShow | TMDBPerson) => {
+    // Salvar estado antes de navegar (se callback fornecido)
+    if (onItemClick) {
+      onItemClick();
+    }
+    
     if ('title' in item) {
       // Movie
       navigate(`/filme/${item.id}`);
