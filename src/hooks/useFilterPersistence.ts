@@ -9,7 +9,7 @@ interface FiltersState {
   selectedOrder: string;
   selectedYear: string;
   selectedLanguage: string;
-  
+  selectedStreamings: number[];
   searchTerm: string;
   scrollPosition: number;
 }
@@ -52,7 +52,7 @@ export const useFilterPersistence = () => {
   const [selectedOrder, setSelectedOrder] = useState('popularity.desc');
   const [selectedYear, setSelectedYear] = useState('');
   const [selectedLanguage, setSelectedLanguage] = useState('');
-  
+  const [selectedStreamings, setSelectedStreamings] = useState<number[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isRestored, setIsRestored] = useState(false);
 
@@ -66,7 +66,7 @@ export const useFilterPersistence = () => {
       setSelectedOrder(savedFilters.selectedOrder || 'popularity.desc');
       setSelectedYear(savedFilters.selectedYear || '');
       setSelectedLanguage(savedFilters.selectedLanguage || '');
-      
+      setSelectedStreamings(savedFilters.selectedStreamings || []);
       setSearchTerm(savedFilters.searchTerm || '');
       
       // Restaurar scroll position após um pequeno delay
@@ -93,6 +93,7 @@ export const useFilterPersistence = () => {
       selectedOrder,
       selectedYear,
       selectedLanguage,
+      selectedStreamings,
       searchTerm,
       scrollPosition: window.scrollY || 0
     };
@@ -105,6 +106,7 @@ export const useFilterPersistence = () => {
     selectedOrder,
     selectedYear,
     selectedLanguage,
+    selectedStreamings,
     searchTerm,
     isRestored
   ]);
@@ -120,6 +122,7 @@ export const useFilterPersistence = () => {
       selectedOrder,
       selectedYear,
       selectedLanguage,
+      selectedStreamings,
       searchTerm,
       scrollPosition: window.scrollY || 0
     };
@@ -132,6 +135,7 @@ export const useFilterPersistence = () => {
     selectedOrder,
     selectedYear,
     selectedLanguage,
+    selectedStreamings,
     searchTerm,
     isRestored
   ]);
@@ -144,7 +148,7 @@ export const useFilterPersistence = () => {
     setSelectedOrder('popularity.desc');
     setSelectedYear('');
     setSelectedLanguage('');
-    
+    setSelectedStreamings([]);
     setSearchTerm('');
     clearFiltersFromStorage();
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -158,7 +162,7 @@ export const useFilterPersistence = () => {
     selectedOrder,
     selectedYear,
     selectedLanguage,
-    
+    selectedStreamings,
     searchTerm,
     
     // Setters
@@ -168,7 +172,7 @@ export const useFilterPersistence = () => {
     setSelectedOrder,
     setSelectedYear,
     setSelectedLanguage,
-    
+    setSelectedStreamings,
     setSearchTerm,
     
     // Utilitários

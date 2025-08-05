@@ -4,6 +4,7 @@ import { CategoryTabs } from './home/CategoryTabs';
 import { ContentGrid } from './home/ContentGrid';
 import { MovieFilters } from './home/MovieFilters';
 import {
+  getWatchProviders,
   getLanguages,
   getPopularMovies,
   getPopularTVShows,
@@ -26,7 +27,7 @@ export const HomePage: React.FC = () => {
     selectedOrder,
     selectedYear,
     selectedLanguage,
-    
+    selectedStreamings,
     searchTerm,
     setActiveCategory,
     setSelectedProvider,
@@ -34,7 +35,7 @@ export const HomePage: React.FC = () => {
     setSelectedOrder,
     setSelectedYear,
     setSelectedLanguage,
-    
+    setSelectedStreamings,
     setSearchTerm,
     saveScrollPosition,
     resetFilters,
@@ -379,6 +380,11 @@ export const HomePage: React.FC = () => {
           params.with_watch_providers = selectedProvider;
           params.watch_region = 'BR';
         }
+        // Novo filtro de múltiplos streamings
+        if (selectedStreamings.length > 0) {
+          params.with_watch_providers = selectedStreamings.join('|');
+          params.watch_region = 'BR';
+        }
         if (selectedGenre) {
           params.with_genres = selectedGenre;
         }
@@ -498,68 +504,15 @@ export const HomePage: React.FC = () => {
     }
   };
 
-  // Lista atualizada de streaming providers
-  const streamingProviders = [
-    { provider_id: '', provider_name: 'Todos', logo_path: null },
-    { provider_id: '337', provider_name: 'Disney Plus', logo_path: null },
-    { provider_id: '8', provider_name: 'Netflix', logo_path: null },
-    { provider_id: '119', provider_name: 'Amazon Prime Video', logo_path: null },
-    { provider_id: '167', provider_name: 'Claro video', logo_path: null },
-    { provider_id: '47', provider_name: 'Looke', logo_path: null },
-    { provider_id: '531', provider_name: 'Paramount Plus', logo_path: null },
-    { provider_id: '384', provider_name: 'HBO Max', logo_path: null },
-    { provider_id: '350', provider_name: 'Apple TV+', logo_path: null },
-    { provider_id: '307', provider_name: 'Globoplay', logo_path: null },
-    { provider_id: '283', provider_name: 'Crunchyroll', logo_path: null },
-    { provider_id: '11', provider_name: 'MUBI', logo_path: null },
-    { provider_id: '10', provider_name: 'Amazon Video', logo_path: null },
-    { provider_id: '3', provider_name: 'Google Play Movies', logo_path: null },
-    { provider_id: '103', provider_name: 'NetMovies', logo_path: null },
-    { provider_id: '190', provider_name: 'Curiosity Stream', logo_path: null },
-    { provider_id: '526', provider_name: 'Belas Artes à La Carte', logo_path: null },
-    { provider_id: '546', provider_name: 'Oldflix', logo_path: null },
-    { provider_id: '467', provider_name: 'Revry', logo_path: null },
-    { provider_id: '475', provider_name: 'DOCSVILLE', logo_path: null },
-    { provider_id: '559', provider_name: 'GOSPEL PLAY', logo_path: null },
-    { provider_id: '583', provider_name: 'Claro tv+', logo_path: null },
-    { provider_id: '456', provider_name: 'Libreflix', logo_path: null },
-    { provider_id: '423', provider_name: 'WOW Presents Plus', logo_path: null },
-    { provider_id: '551', provider_name: 'Magellan TV', logo_path: null },
-    { provider_id: '506', provider_name: 'ilmzie', logo_path: null },
-    { provider_id: '457', provider_name: 'MovieSaints', logo_path: null },
-    { provider_id: '424', provider_name: 'Dekkoo', logo_path: null },
-    { provider_id: '460', provider_name: 'True Story', logo_path: null },
-    { provider_id: '532', provider_name: 'DocAlliance Films', logo_path: null },
-    { provider_id: '315', provider_name: 'Hoichoi', logo_path: null },
-    { provider_id: '300', provider_name: 'Pluto TV', logo_path: null },
-    { provider_id: '677', provider_name: 'Eventive', logo_path: null },
-    { provider_id: '692', provider_name: 'Cultpix', logo_path: null },
-    { provider_id: '701', provider_name: 'FilmBox+', logo_path: null },
-    { provider_id: '562', provider_name: 'Takflix', logo_path: null },
-    { provider_id: '309', provider_name: 'Sun Nxt', logo_path: null },
-    { provider_id: '545', provider_name: 'Univer Video', logo_path: null },
-    { provider_id: '567', provider_name: 'Runtime', logo_path: null },
-    { provider_id: '442', provider_name: 'Filmow', logo_path: null },
-    { provider_id: '563', provider_name: 'Reserva Imovision', logo_path: null },
-    { provider_id: '554', provider_name: 'Shahid VIP', logo_path: null },
-    { provider_id: '529', provider_name: 'Filmicca', logo_path: null },
-    { provider_id: '538', provider_name: 'Plex', logo_path: null },
-    { provider_id: '584', provider_name: 'JustWatchTV', logo_path: null },
-    { provider_id: '612', provider_name: 'Jolt Film', logo_path: null },
-    { provider_id: '613', provider_name: 'FOUND TV', logo_path: null },
-    { provider_id: '614', provider_name: 'Kocowa', logo_path: null },
-    { provider_id: '615', provider_name: 'Mercado Play', logo_path: null },
-    { provider_id: '616', provider_name: 'Darkflix', logo_path: null },
-    { provider_id: '269', provider_name: 'Funimation', logo_path: null },
-    { provider_id: '453', provider_name: 'Lionsgate+', logo_path: null },
-    { provider_id: '619', provider_name: 'Spcine Play', logo_path: null },
-    { provider_id: '344', provider_name: 'Viki', logo_path: null },
-    { provider_id: '76', provider_name: 'Argo Starzplay', logo_path: null }
-  ];
-
-  // Buscar gêneros e idiomas ao montar
+  // Buscar provedores, gêneros e idiomas ao montar
   useEffect(() => {
-    setProviderOptions(streamingProviders);
+    getWatchProviders('BR').then((data) => {
+      const all = [
+        { provider_id: '', provider_name: 'Todos', logo_path: null },
+        ...data,
+      ];
+      setProviderOptions(all);
+    });
     getAllGenres().then((data) => {
       setGenreOptions(data);
     });
@@ -584,6 +537,7 @@ export const HomePage: React.FC = () => {
     selectedOrder,
     selectedYear,
     selectedLanguage,
+    selectedStreamings,
     isRestored
   ]);
 
@@ -629,6 +583,8 @@ export const HomePage: React.FC = () => {
           languageOptions={languageOptions}
           selectedLanguage={selectedLanguage}
           onLanguageChange={setSelectedLanguage}
+          selectedStreamings={selectedStreamings}
+          onStreamingChange={setSelectedStreamings}
         />
       )}
 
