@@ -138,14 +138,14 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
 
           <button
             onClick={handleWatched}
-            className={`p-1 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center ${
+            className={`w-8 h-8 rounded-full transition-all duration-200 flex items-center justify-center ${
               watched
-                ? 'text-green-500 hover:text-green-600'
-                : 'text-muted-foreground hover:text-green-500'
+                ? 'bg-green-500 text-white hover:bg-green-600'
+                : 'border border-muted-foreground/30 text-muted-foreground hover:text-green-500 hover:border-green-500'
             }`}
             title={watched ? 'Remover dos assistidos' : 'Marcar como assistido'}
           >
-            <Check className={`w-4 h-4 ${watched ? 'fill-current' : ''}`} />
+            <Check className="w-4 h-4" />
           </button>
         </>
       )}
