@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
@@ -64,13 +65,21 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
     onOpenChange(false);
   };
 
+  // Format title with year
+  const getFormattedTitle = () => {
+    if (!currentTrailer) return 'Carregando...';
+    
+    const { movieTitle, releaseYear } = currentTrailer;
+    return releaseYear ? `${movieTitle} (${releaseYear})` : movieTitle;
+  };
+
   return (
     <Dialog open={open} onOpenChange={handleModalClose}>
       <DialogContent className="max-w-5xl w-full max-h-[90vh] bg-gradient-cinema border-primary/20">
         <DialogHeader className="space-y-4">
           <DialogTitle className="text-2xl font-bold text-primary flex items-center gap-3">
             <Play className="w-6 h-6" />
-            {currentTrailer ? currentTrailer.movieTitle : 'Carregando...'}
+            {getFormattedTitle()}
           </DialogTitle>
         </DialogHeader>
 

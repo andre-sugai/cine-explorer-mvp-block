@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { getPopularMovies, getTopRatedMovies } from '@/utils/tmdb';
 
@@ -9,6 +10,7 @@ interface Trailer {
   site: string;
   movieTitle: string;
   movieId: number;
+  releaseYear?: string;
 }
 
 export const useTrailers = () => {
@@ -68,6 +70,11 @@ export const useTrailers = () => {
                 return updated;
               });
               
+              // Extract year from release date
+              const releaseYear = randomMovie.release_date 
+                ? new Date(randomMovie.release_date).getFullYear().toString()
+                : undefined;
+              
               const trailerData: Trailer = {
                 id: trailer.id,
                 key: trailer.key,
@@ -75,7 +82,8 @@ export const useTrailers = () => {
                 type: trailer.type,
                 site: trailer.site,
                 movieTitle: randomMovie.title || randomMovie.original_title,
-                movieId: randomMovie.id
+                movieId: randomMovie.id,
+                releaseYear
               };
               
               setCurrentTrailer(trailerData);
