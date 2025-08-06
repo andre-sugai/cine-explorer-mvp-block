@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { getPopularMovies } from '@/utils/tmdb';
+import { getPopularMovies, getTopRatedMovies } from '@/utils/tmdb';
 
 interface Trailer {
   id: string;
@@ -20,9 +20,15 @@ export const useTrailers = () => {
     setIsLoading(true);
     
     try {
-      // Buscar filmes populares (diferentes páginas para variedade)
+      // Randomly choose between popular movies (50%) and top-rated movies (50%)
+      const useTopRated = Math.random() < 0.5;
       const randomPage = Math.floor(Math.random() * 5) + 1;
-      const response = await getPopularMovies(randomPage);
+      
+      const response = useTopRated 
+        ? await getTopRatedMovies(randomPage)
+        : await getPopularMovies(randomPage);
+      
+      console.log(`Using ${useTopRated ? 'top-rated' : 'popular'} movies for trailer selection`);
       
       if (!response || !response.results || response.results.length === 0) {
         return null;

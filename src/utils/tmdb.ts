@@ -274,6 +274,25 @@ export const getPopularMovies = async (page: number = 1) => {
   }
 };
 
+// Top rated movies
+export const getTopRatedMovies = async (page: number = 1) => {
+  try {
+    const url = buildApiUrl('/movie/top_rated', {
+      page: page.toString(),
+    });
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`TMDB API error: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error getting top rated movies:', error);
+    throw error;
+  }
+};
+
 // Popular TV shows
 export const getPopularTVShows = async (page: number = 1) => {
   try {
