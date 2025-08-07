@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Dialog,
   DialogContent,
@@ -20,6 +21,7 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
   open,
   onOpenChange,
 }) => {
+  const navigate = useNavigate();
   const { getRandomTrailer, currentTrailer, isLoading } = useTrailers();
   const [isPlaying, setIsPlaying] = useState(true);
   const [loadingNext, setLoadingNext] = useState(false);
@@ -56,7 +58,8 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
 
   const handleMovieDetails = () => {
     if (currentTrailer) {
-      window.open(`/filme/${currentTrailer.movieId}`, '_blank');
+      handleModalClose();
+      navigate(`/filme/${currentTrailer.movieId}`);
     }
   };
 
