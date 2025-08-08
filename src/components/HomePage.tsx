@@ -19,7 +19,7 @@ import { useScrollManager } from '@/hooks/useScrollManager';
 type ContentCategory = 'movies' | 'tv' | 'actors' | 'directors';
 
 export const HomePage: React.FC = () => {
-  // Hook de persistência de filtros
+  // Hook de persistência de filtros (removidas as referencias ao selectedStreamings)
   const {
     activeCategory,
     selectedProvider,
@@ -27,7 +27,6 @@ export const HomePage: React.FC = () => {
     selectedOrder,
     selectedYear,
     selectedLanguage,
-    selectedStreamings,
     searchTerm,
     setActiveCategory,
     setSelectedProvider,
@@ -35,7 +34,6 @@ export const HomePage: React.FC = () => {
     setSelectedOrder,
     setSelectedYear,
     setSelectedLanguage,
-    setSelectedStreamings,
     setSearchTerm,
     saveScrollPosition,
     resetFilters,
@@ -346,7 +344,6 @@ export const HomePage: React.FC = () => {
     'Alice Rohrwacher',
     'Sarah Polley',
     'Jennifer Kent',
-    // ...adicione mais se quiser!
   ];
 
   const fetchDirectors = async () => {
@@ -361,7 +358,7 @@ export const HomePage: React.FC = () => {
     );
   };
 
-  // Função de busca combinada para filmes e séries
+  // Função de busca combinada para filmes e séries (removidas as referencias ao selectedStreamings)
   const loadContentComFiltros = async (
     category: ContentCategory,
     pageNum: number = 1,
@@ -378,11 +375,6 @@ export const HomePage: React.FC = () => {
         };
         if (selectedProvider) {
           params.with_watch_providers = selectedProvider;
-          params.watch_region = 'BR';
-        }
-        // Novo filtro de múltiplos streamings
-        if (selectedStreamings.length > 0) {
-          params.with_watch_providers = selectedStreamings.join('|');
           params.watch_region = 'BR';
         }
         if (selectedGenre) {
@@ -521,7 +513,7 @@ export const HomePage: React.FC = () => {
     });
   }, []);
 
-  // Atualizar busca ao mudar filtros (somente após restaurar filtros)
+  // Atualizar busca ao mudar filtros (removidas as referencias ao selectedStreamings)
   useEffect(() => {
     if (!isRestored) return;
     
@@ -537,7 +529,6 @@ export const HomePage: React.FC = () => {
     selectedOrder,
     selectedYear,
     selectedLanguage,
-    selectedStreamings,
     isRestored
   ]);
 
@@ -565,7 +556,7 @@ export const HomePage: React.FC = () => {
         onCategoryChange={handleCategoryChange}
       />
 
-      {/* Filtros avançados para filmes e séries */}
+      {/* Filtros avançados para filmes e séries (removidas as props do selectedStreamings) */}
       {(activeCategory === 'movies' || activeCategory === 'tv') && (
         <MovieFilters
           providers={providerOptions}
@@ -583,8 +574,6 @@ export const HomePage: React.FC = () => {
           languageOptions={languageOptions}
           selectedLanguage={selectedLanguage}
           onLanguageChange={setSelectedLanguage}
-          selectedStreamings={selectedStreamings}
-          onStreamingChange={setSelectedStreamings}
         />
       )}
 

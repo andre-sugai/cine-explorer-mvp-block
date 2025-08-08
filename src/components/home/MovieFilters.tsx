@@ -1,5 +1,5 @@
+
 import React from 'react';
-import { StreamingFilter } from './StreamingFilter';
 
 interface Provider {
   provider_id: string;
@@ -28,8 +28,6 @@ interface MovieFiltersProps {
   languageOptions: { value: string; label: string }[];
   selectedLanguage: string;
   onLanguageChange: (value: string) => void;
-  selectedStreamings: number[];
-  onStreamingChange: (streamingIds: number[]) => void;
 }
 
 export const MovieFilters: React.FC<MovieFiltersProps> = ({
@@ -48,21 +46,13 @@ export const MovieFilters: React.FC<MovieFiltersProps> = ({
   languageOptions,
   selectedLanguage,
   onLanguageChange,
-  selectedStreamings,
-  onStreamingChange,
 }) => {
   return (
     <div className="flex flex-wrap gap-4 items-center justify-center my-6">
-      {/* Novo Filtro de Streamings */}
-      <StreamingFilter
-        selectedStreamings={selectedStreamings}
-        onStreamingChange={onStreamingChange}
-      />
-      
-      {/* Dropdown de Streaming Antigo (mantido para compatibilidade) */}
+      {/* Dropdown de Streaming */}
       <div className="min-w-[200px]">
         <label className="block text-sm mb-1 font-medium text-primary">
-          Streaming (Antigo)
+          Streaming
         </label>
         <select
           value={selectedProvider}
@@ -79,6 +69,7 @@ export const MovieFilters: React.FC<MovieFiltersProps> = ({
           ))}
         </select>
       </div>
+      
       {/* Dropdown de Gêneros */}
       <div className="min-w-[180px]">
         <label className="block text-sm mb-1 font-medium text-primary">
@@ -97,6 +88,7 @@ export const MovieFilters: React.FC<MovieFiltersProps> = ({
           ))}
         </select>
       </div>
+      
       {/* Dropdown de Ordenação */}
       <div className="min-w-[180px]">
         <label className="block text-sm mb-1 font-medium text-primary">
@@ -114,6 +106,7 @@ export const MovieFilters: React.FC<MovieFiltersProps> = ({
           ))}
         </select>
       </div>
+      
       {/* Dropdown de Ano/Década */}
       <div className="min-w-[140px]">
         <label className="block text-sm mb-1 font-medium text-primary">
@@ -131,6 +124,7 @@ export const MovieFilters: React.FC<MovieFiltersProps> = ({
           ))}
         </select>
       </div>
+      
       {/* Dropdown de Idioma */}
       <div className="min-w-[140px]">
         <label className="block text-sm mb-1 font-medium text-primary">
