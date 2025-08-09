@@ -410,3 +410,142 @@ export const getMovieWatchProviders = async (id: number, region = 'BR') => {
     return { flatrate: [], rent: [], buy: [] };
   }
 };
+
+/**
+ * Busca provedores de streaming disponíveis para filmes no país informado.
+ * @param region Código do país (ex: 'BR')
+ * @returns Array de provedores
+ */
+export const getWatchProviders = async (region = 'BR') => {
+  const url = buildApiUrl('/watch/providers/movie', { watch_region: region });
+  const response = await fetch(url);
+  if (!response.ok) throw new Error('Erro ao buscar provedores');
+  const data = await response.json();
+  return data.results || [];
+};
+
+/**
+ * Busca provedores de streaming disponíveis para uma série específica.
+ * @param id ID da série
+ * @param region Região (padrão 'BR')
+ * @returns Array de provedores disponíveis para a série
+ */
+export const getTVWatchProviders = async (id: number, region = 'BR') => {
+  try {
+    const url = buildApiUrl(`/tv/${id}/watch/providers`);
+    const response = await fetch(url);
+    if (!response.ok) return { flatrate: [], rent: [], buy: [] };
+    const data = await response.json();
+    return data.results?.[region] || { flatrate: [], rent: [], buy: [] };
+  } catch (error) {
+    console.error('Error getting TV watch providers:', error);
+    return { flatrate: [], rent: [], buy: [] };
+  }
+};
+
+/**
+ * Busca idiomas suportados pela API do TMDB.
+ * @returns Array de idiomas
+ */
+export const getLanguages = async () => {
+  const url = buildApiUrl('/configuration/languages', {});
+  const response = await fetch(url);
+  if (!response.ok) throw new Error('Erro ao buscar idiomas');
+  const data = await response.json();
+  // Retorna apenas idiomas mais comuns, pode ser filtrado se necessário
+  return data.map((lang: any) => ({
+    value: lang.iso_639_1,
+    label: lang.english_name,
+  }));
+};
+
+export interface TMDBGenre {
+  id: number;
+  name: string;
+}
+
+export interface TMDBGenreResponse {
+  genres: TMDBGenre[];
+}
+
+// Gêneros padrão como fallback
+const defaultGenres = [
+  { id: 28, name: "Ação" },
+  { id: 12, name: "Aventura" },
+  { id: 16, name: "Animação" },
+  { id: 35, name: "Comédia" },
+  { id: 80, name: "Crime" },
+  { id: 99, name: "Documentário" },
+  { id: 18, name: "Drama" },
+  { id: 10751, name: "Família" },
+  { id: 14, name: "Fantasia" },
+  { id: 36, name: "História" },
+  { id: 27, name: "Terror" },
+  { id: 10402, name: "Música" },
+  { id: 9648, name: "Mistério" },
+  { id: 10749, name: "Romance" },
+  { id: 878, name: "Ficção Científica" },
+  { id: 10770, name: "Cinema TV" },
+  { id: 53, name: "Thriller" },
+  { id: 10752, name: "Guerra" },
+  { id: 37, name: "Faroeste" }
+];
+
+/**
+ * Busca gêneros de filmes da API TMDB.
+ * @returns Array de gêneros de filmes
+ */
+export const getMovieGenres = async (): Promise<TMDBGenre[]> => {
+  try {
+    const url = buildApiUrl('/genre/movie/list');
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Erro ao buscar gêneros de filmes');
+    const data: TMDBGenreResponse = await response.json();
+    return data.genres || defaultGenres;
+  } catch (error) {
+    console.error('Error getting movie genres:', error);
+    return defaultGenres;
+  }
+};
+
+/**
+ * Busca gêneros de séries da API TMDB.
+ * @returns Array de gêneros de séries
+ */
+export const getTVGenres = async (): Promise<TMDBGenre[]> => {
+  try {
+    const url = buildApiUrl('/genre/tv/list');
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Erro ao buscar gêneros de séries');
+    const data: TMDBGenreResponse = await response.json();
+    return data.genres || defaultGenres;
+  } catch (error) {
+    console.error('Error getting TV genres:', error);
+    return defaultGenres;
+  }
+};
+
+/**
+ * Busca e combina gêneros de filmes e séries, removendo duplicatas.
+ * @returns Array de gêneros únicos ordenados alfabeticamente
+ */
+export const getAllGenres = async (): Promise<TMDBGenre[]> => {
+  try {
+    const [movieGenres, tvGenres] = await Promise.all([
+      getMovieGenres(),
+      getTVGenres()
+    ]);
+    
+    // Combinar e remover duplicatas
+    const genresMap = new Map<number, TMDBGenre>();
+    [...movieGenres, ...tvGenres].forEach(genre => {
+      genresMap.set(genre.id, genre);
+    });
+    
+    // Converter para array e ordenar alfabeticamente
+    return Array.from(genresMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+  } catch (error) {
+    console.error('Error getting all genres:', error);
+    return defaultGenres.sort((a, b) => a.name.localeCompare(b.name));
+  }
+};
