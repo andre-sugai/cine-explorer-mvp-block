@@ -13,6 +13,7 @@ import { Layout } from '@/components/Layout';
 import { ChevronLeft, Calendar, Tv, Star, Users, Globe } from 'lucide-react';
 import { useDetailNameContext } from '@/context/DetailNameContext';
 import { ImageGallery } from '@/components/ImageGallery';
+import TVWatchProvidersSection from '@/components/TVWatchProvidersSection';
 
 const TVShowDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -171,6 +172,11 @@ const TVShowDetails: React.FC = () => {
                     title={show.name}
                     poster_path={show.poster_path}
                   />
+
+                  {/* Onde Assistir - seção completa de provedores (abaixo dos botões) */}
+                  <div className="mt-6">
+                    <TVWatchProvidersSection tvId={show.id} />
+                  </div>
                 </div>
               </div>
             </div>
