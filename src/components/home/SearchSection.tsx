@@ -6,12 +6,20 @@ import { Search, Dice6 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { LuckyButton } from '@/components/LuckyButton';
 import { TrailerButton } from '@/components/TrailerButton';
-import { getPopularMovies, getPopularTVShows } from '@/utils/tmdb';
+import {
+  getPopularMovies,
+  getPopularTVShows,
+  TMDBMovie,
+  TMDBTVShow,
+} from '@/utils/tmdb';
 
 export const SearchSection: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [bgImage, setBgImage] = useState<string | null>(null);
+  const [randomItem, setRandomItem] = useState<TMDBMovie | TMDBTVShow | null>(
+    null
+  );
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -29,6 +37,7 @@ export const SearchSection: React.FC = () => {
         if (candidates.length > 0) {
           const random =
             candidates[Math.floor(Math.random() * candidates.length)];
+          setRandomItem(random);
           setBgImage(
             `https://image.tmdb.org/t/p/original${
               random.backdrop_path || random.poster_path
@@ -37,6 +46,7 @@ export const SearchSection: React.FC = () => {
         }
       } catch (e) {
         setBgImage(null);
+        setRandomItem(null);
       }
     };
     fetchRandomBg();
@@ -47,6 +57,31 @@ export const SearchSection: React.FC = () => {
     if (searchTerm.trim()) {
       navigate(`/busca/${encodeURIComponent(searchTerm.trim())}`);
     }
+  };
+
+  const handleRandomItemClick = () => {
+    if (randomItem) {
+      if ('title' in randomItem) {
+        // It's a movie
+        navigate(`/filme/${randomItem.id}`);
+      } else if ('name' in randomItem && 'first_air_date' in randomItem) {
+        // It's a TV show
+        navigate(`/serie/${randomItem.id}`);
+      }
+    }
+  };
+
+  const getRandomItemDisplayName = () => {
+    if (!randomItem) return '';
+
+    const title = 'title' in randomItem ? randomItem.title : randomItem.name;
+    const date =
+      'release_date' in randomItem
+        ? randomItem.release_date
+        : randomItem.first_air_date;
+
+    const year = date ? new Date(date).getFullYear() : '';
+    return year ? `${title} (${year})` : title;
   };
 
   return (
@@ -66,6 +101,24 @@ export const SearchSection: React.FC = () => {
       {bgImage && (
         <div className="absolute inset-0 bg-black/70 pointer-events-none z-0" />
       )}
+
+      {/* Nome do filme/série no canto inferior esquerdo */}
+      {randomItem && (
+        <div className="absolute bottom-4 left-4 z-20">
+          <button
+            onClick={handleRandomItemClick}
+            className="
+              px-3 py-2 rounded-lg bg-black/60 backdrop-blur-sm
+              text-white text-sm font-medium hover:bg-black/80
+              transition-all duration-200 hover:scale-105
+              border border-white/20 hover:border-white/40
+            "
+          >
+            {getRandomItemDisplayName()}
+          </button>
+        </div>
+      )}
+
       <div className="max-w-4xl mx-auto text-center relative z-10">
         {/* Hero Title */}
         <div className="mb-12">
@@ -125,8 +178,14 @@ export const SearchSection: React.FC = () => {
 
           {/* Botões de ação lado a lado */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <LuckyButton variant="default" className="w-full sm:w-auto min-w-[180px]" />
-            <TrailerButton variant="default" className="w-full sm:w-auto min-w-[180px]" />
+            <LuckyButton
+              variant="default"
+              className="w-full sm:w-auto min-w-[180px]"
+            />
+            <TrailerButton
+              variant="default"
+              className="w-full sm:w-auto min-w-[180px]"
+            />
           </div>
 
           <p className="text-sm text-muted-foreground">
