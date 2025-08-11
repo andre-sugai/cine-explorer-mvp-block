@@ -3,6 +3,7 @@ import { SearchSection } from './home/SearchSection';
 import { CategoryTabs } from './home/CategoryTabs';
 import { ContentGrid } from './home/ContentGrid';
 import { MovieFilters } from './home/MovieFilters';
+
 import {
   getWatchProviders,
   getLanguages,
@@ -37,7 +38,7 @@ export const HomePage: React.FC = () => {
     setSearchTerm,
     saveScrollPosition,
     resetFilters,
-    isRestored
+    isRestored,
   } = useFilterPersistence();
 
   const [content, setContent] = useState<
@@ -384,7 +385,9 @@ export const HomePage: React.FC = () => {
           if (category === 'movies') {
             // Usar primary_release_date é mais confiável para filtragem
             params['primary_release_date.gte'] = `${selectedYear}-01-01`;
-            params['primary_release_date.lte'] = `${Number(selectedYear) + 9}-12-31`;
+            params['primary_release_date.lte'] = `${
+              Number(selectedYear) + 9
+            }-12-31`;
             // Backup: também usar release_date para máxima cobertura
             params['release_date.gte'] = `${selectedYear}-01-01`;
             params['release_date.lte'] = `${Number(selectedYear) + 9}-12-31`;
@@ -427,12 +430,13 @@ export const HomePage: React.FC = () => {
         }
       }
       // Filtrar resultados adicionalmente no frontend para garantir que estão na década correta
-      let filteredResults = response && response.results ? response.results : [];
-      
+      let filteredResults =
+        response && response.results ? response.results : [];
+
       if (selectedYear && category === 'movies') {
         const startYear = Number(selectedYear);
         const endYear = startYear + 9;
-        
+
         filteredResults = filteredResults.filter((movie: TMDBMovie) => {
           if (!movie.release_date) return false;
           const movieYear = new Date(movie.release_date).getFullYear();
@@ -441,14 +445,14 @@ export const HomePage: React.FC = () => {
       } else if (selectedYear && category === 'tv') {
         const startYear = Number(selectedYear);
         const endYear = startYear + 9;
-        
+
         filteredResults = filteredResults.filter((show: TMDBTVShow) => {
           if (!show.first_air_date) return false;
           const showYear = new Date(show.first_air_date).getFullYear();
           return showYear >= startYear && showYear <= endYear;
         });
       }
-      
+
       if (reset) {
         setContent(filteredResults);
       } else {
@@ -480,7 +484,7 @@ export const HomePage: React.FC = () => {
     if (content.length > 0) {
       // Salvar posição do scroll antes de navegar
       saveScrollPosition();
-      
+
       const randomItem = content[Math.floor(Math.random() * content.length)];
 
       if ('title' in randomItem) {
@@ -516,7 +520,7 @@ export const HomePage: React.FC = () => {
   // Atualizar busca ao mudar filtros (removidas as referencias ao selectedStreamings)
   useEffect(() => {
     if (!isRestored) return;
-    
+
     if (activeCategory === 'movies' || activeCategory === 'tv') {
       setPage(1);
       loadContentComFiltros(activeCategory, 1, true);
@@ -529,7 +533,7 @@ export const HomePage: React.FC = () => {
     selectedOrder,
     selectedYear,
     selectedLanguage,
-    isRestored
+    isRestored,
   ]);
 
   // Carregar conteúdo inicial após restaurar filtros
@@ -542,7 +546,7 @@ export const HomePage: React.FC = () => {
   // Gerenciar scroll para persistência
   useScrollManager({
     saveScrollPosition,
-    isRestored
+    isRestored,
   });
 
   return (

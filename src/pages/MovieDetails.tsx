@@ -9,7 +9,7 @@ import { getMovieDetails, buildImageUrl, getMovieImages } from '@/utils/tmdb';
 import { translateJob } from '@/utils/translations';
 import ActionButtons from '@/components/ActionButtons';
 import TrailerPlayer from '@/components/TrailerPlayer';
-import RecommendedContent from '@/components/RecommendedContent';
+import { RecommendedContent } from '@/components/RecommendedContent';
 import { Layout } from '@/components/Layout';
 import {
   ChevronLeft,

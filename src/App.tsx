@@ -12,6 +12,7 @@ import FavoritesPage from './pages/FavoritesPage';
 import WantToWatchPage from './pages/WantToWatchPage';
 import WatchedPage from './pages/WatchedPage';
 import SettingsPage from './pages/SettingsPage';
+import RecommendationsPage from './pages/RecommendationsPage';
 import NotFound from './pages/NotFound';
 import { FavoritesProvider } from '@/context/FavoritesContext';
 import { WantToWatchProvider } from '@/context/WantToWatchContext';
@@ -31,21 +32,28 @@ const App = () => (
           <FavoritesProvider>
             <WantToWatchProvider>
               <WatchedProvider>
-              <BrowserRouter>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/busca/:term" element={<SearchResults />} />
-                  <Route path="/filme/:id" element={<MovieDetails />} />
-                  <Route path="/serie/:id" element={<TVShowDetails />} />
-                  <Route path="/pessoa/:id" element={<PersonDetails />} />
-                  <Route path="/favoritos" element={<FavoritesPage />} />
-                  <Route path="/quero-assistir" element={<WantToWatchPage />} />
-                  <Route path="/vistos" element={<WatchedPage />} />
-                  <Route path="/configuracoes" element={<SettingsPage />} />
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </BrowserRouter>
+                <BrowserRouter>
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/busca/:term" element={<SearchResults />} />
+                    <Route path="/filme/:id" element={<MovieDetails />} />
+                    <Route path="/serie/:id" element={<TVShowDetails />} />
+                    <Route path="/pessoa/:id" element={<PersonDetails />} />
+                    <Route path="/favoritos" element={<FavoritesPage />} />
+                    <Route
+                      path="/quero-assistir"
+                      element={<WantToWatchPage />}
+                    />
+                    <Route path="/vistos" element={<WatchedPage />} />
+                    <Route
+                      path="/recomendacoes"
+                      element={<RecommendationsPage />}
+                    />
+                    <Route path="/configuracoes" element={<SettingsPage />} />
+                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </BrowserRouter>
               </WatchedProvider>
             </WantToWatchProvider>
           </FavoritesProvider>

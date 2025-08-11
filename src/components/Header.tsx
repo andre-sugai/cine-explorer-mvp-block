@@ -10,6 +10,7 @@ import {
   User,
   LogIn,
   LogOut,
+  Sparkles,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
@@ -66,6 +67,12 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
     },
     { id: 'watched', label: 'Vistos', icon: CheckCircle, path: '/vistos' },
     {
+      id: 'recommendations',
+      label: 'Recomendações',
+      icon: Sparkles,
+      path: '/recomendacoes',
+    },
+    {
       id: 'settings',
       label: 'Configurações',
       icon: Settings,
@@ -92,16 +99,18 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
 
           {/* Navigation - Desktop */}
           <nav className="hidden md:flex items-center gap-2">
-            {navItems.filter(item => item.id !== 'settings').map((item, idx) => {
-              const Icon = item.icon;
-              const active = isActive(item.path);
+            {navItems
+              .filter((item) => item.id !== 'settings')
+              .map((item, idx) => {
+                const Icon = item.icon;
+                const active = isActive(item.path);
 
-              return (
-                <React.Fragment key={item.id}>
-                  <Link to={item.path}>
-                    <Button
-                      variant={active ? 'default' : 'ghost'}
-                      className={`
+                return (
+                  <React.Fragment key={item.id}>
+                    <Link to={item.path}>
+                      <Button
+                        variant={active ? 'default' : 'ghost'}
+                        className={`
                         flex items-center gap-2 transition-all duration-200
                         ${
                           active
@@ -109,16 +118,16 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
                             : 'text-foreground hover:text-primary hover:bg-secondary/50'
                         }
                       `}
-                    >
-                      <Icon className="w-4 h-4" />
-                      {item.label}
-                    </Button>
-                  </Link>
-                  {/* Insere o campo de busca logo após o botão 'Vistos' */}
-                  {item.id === 'watched' && (
-                    <form
-                      onSubmit={handleSearch}
-                      className={`
+                      >
+                        <Icon className="w-4 h-4" />
+                        {item.label}
+                      </Button>
+                    </Link>
+                    {/* Insere o campo de busca logo após o botão 'Vistos' */}
+                    {item.id === 'watched' && (
+                      <form
+                        onSubmit={handleSearch}
+                        className={`
                         relative ml-4
                         transition-all duration-200
                         ${
@@ -127,29 +136,32 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
                             : ''
                         }
                       `}
-                      style={{ minWidth: 220, maxWidth: 320 }}
-                    >
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        onFocus={() => setIsSearchFocused(true)}
-                        onBlur={() => setIsSearchFocused(false)}
-                        placeholder="Buscar..."
-                        className="pl-10 pr-3 h-10 text-base bg-secondary/50 border-none focus:bg-background focus:ring-2 focus:ring-primary/50 text-foreground placeholder:text-muted-foreground"
-                      />
-                    </form>
-                  )}
-                </React.Fragment>
-              );
-            })}
-            
+                        style={{ minWidth: 220, maxWidth: 320 }}
+                      >
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          onFocus={() => setIsSearchFocused(true)}
+                          onBlur={() => setIsSearchFocused(false)}
+                          placeholder="Buscar..."
+                          className="pl-10 pr-3 h-10 text-base bg-secondary/50 border-none focus:bg-background focus:ring-2 focus:ring-primary/50 text-foreground placeholder:text-muted-foreground"
+                        />
+                      </form>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+
             {/* Auth Section */}
             <div className="flex items-center gap-2 ml-2">
               {isAuthenticated ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Button
+                      variant="ghost"
+                      className="relative h-8 w-8 rounded-full"
+                    >
                       <Avatar className="h-8 w-8">
                         <AvatarFallback>
                           {user?.email?.charAt(0).toUpperCase()}
@@ -158,9 +170,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56" align="end">
-                    <DropdownMenuItem disabled>
-                      {user?.email}
-                    </DropdownMenuItem>
+                    <DropdownMenuItem disabled>{user?.email}</DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={logout}>
                       <LogOut className="mr-2 h-4 w-4" />
@@ -169,12 +179,15 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
-                <Button onClick={() => setShowAuthModal(true)} variant="outline">
+                <Button
+                  onClick={() => setShowAuthModal(true)}
+                  variant="outline"
+                >
                   <LogIn className="mr-2 h-4 w-4" />
                   Entrar
                 </Button>
               )}
-              
+
               {/* Settings Icon */}
               <Link to="/configuracoes">
                 <Button
@@ -223,10 +236,10 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
           </nav>
         </div>
       </div>
-      
-      <AuthModal 
-        isOpen={showAuthModal} 
-        onClose={() => setShowAuthModal(false)} 
+
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
       />
       <DataMigrationModal
         isOpen={showMigrationModal}

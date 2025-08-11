@@ -470,25 +470,25 @@ export interface TMDBGenreResponse {
 
 // Gêneros padrão como fallback
 const defaultGenres = [
-  { id: 28, name: "Ação" },
-  { id: 12, name: "Aventura" },
-  { id: 16, name: "Animação" },
-  { id: 35, name: "Comédia" },
-  { id: 80, name: "Crime" },
-  { id: 99, name: "Documentário" },
-  { id: 18, name: "Drama" },
-  { id: 10751, name: "Família" },
-  { id: 14, name: "Fantasia" },
-  { id: 36, name: "História" },
-  { id: 27, name: "Terror" },
-  { id: 10402, name: "Música" },
-  { id: 9648, name: "Mistério" },
-  { id: 10749, name: "Romance" },
-  { id: 878, name: "Ficção Científica" },
-  { id: 10770, name: "Cinema TV" },
-  { id: 53, name: "Thriller" },
-  { id: 10752, name: "Guerra" },
-  { id: 37, name: "Faroeste" }
+  { id: 28, name: 'Ação' },
+  { id: 12, name: 'Aventura' },
+  { id: 16, name: 'Animação' },
+  { id: 35, name: 'Comédia' },
+  { id: 80, name: 'Crime' },
+  { id: 99, name: 'Documentário' },
+  { id: 18, name: 'Drama' },
+  { id: 10751, name: 'Família' },
+  { id: 14, name: 'Fantasia' },
+  { id: 36, name: 'História' },
+  { id: 27, name: 'Terror' },
+  { id: 10402, name: 'Música' },
+  { id: 9648, name: 'Mistério' },
+  { id: 10749, name: 'Romance' },
+  { id: 878, name: 'Ficção Científica' },
+  { id: 10770, name: 'Cinema TV' },
+  { id: 53, name: 'Thriller' },
+  { id: 10752, name: 'Guerra' },
+  { id: 37, name: 'Faroeste' },
 ];
 
 /**
@@ -533,19 +533,137 @@ export const getAllGenres = async (): Promise<TMDBGenre[]> => {
   try {
     const [movieGenres, tvGenres] = await Promise.all([
       getMovieGenres(),
-      getTVGenres()
+      getTVGenres(),
     ]);
-    
+
     // Combinar e remover duplicatas
     const genresMap = new Map<number, TMDBGenre>();
-    [...movieGenres, ...tvGenres].forEach(genre => {
+    [...movieGenres, ...tvGenres].forEach((genre) => {
       genresMap.set(genre.id, genre);
     });
-    
+
     // Converter para array e ordenar alfabeticamente
-    return Array.from(genresMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+    return Array.from(genresMap.values()).sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
   } catch (error) {
     console.error('Error getting all genres:', error);
     return defaultGenres.sort((a, b) => a.name.localeCompare(b.name));
+  }
+};
+
+/**
+ * Busca filmes por gênero específico usando a API discover.
+ * @param genreId ID do gênero
+ * @param page Número da página
+ * @returns Filmes do gênero especificado
+ */
+export const getMoviesByGenre = async (genreId: number, page: number = 1) => {
+  try {
+    const url = buildApiUrl('/discover/movie', {
+      with_genres: genreId.toString(),
+      page: page.toString(),
+      sort_by: 'popularity.desc',
+      include_adult: 'false',
+    });
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`TMDB API error: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error getting movies by genre:', error);
+    throw error;
+  }
+};
+
+/**
+ * Busca séries por gênero específico usando a API discover.
+ * @param genreId ID do gênero
+ * @param page Número da página
+ * @returns Séries do gênero especificado
+ */
+export const getTVShowsByGenre = async (genreId: number, page: number = 1) => {
+  try {
+    const url = buildApiUrl('/discover/tv', {
+      with_genres: genreId.toString(),
+      page: page.toString(),
+      sort_by: 'popularity.desc',
+      include_adult: 'false',
+    });
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`TMDB API error: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error getting TV shows by genre:', error);
+    throw error;
+  }
+};
+
+/**
+ * Busca filmes por década específica.
+ * @param decade Década (ex: 2020, 2010, 2000)
+ * @param page Número da página
+ * @returns Filmes da década especificada
+ */
+export const getMoviesByDecade = async (decade: number, page: number = 1) => {
+  try {
+    const startYear = decade;
+    const endYear = decade + 9;
+
+    const url = buildApiUrl('/discover/movie', {
+      'primary_release_date.gte': `${startYear}-01-01`,
+      'primary_release_date.lte': `${endYear}-12-31`,
+      page: page.toString(),
+      sort_by: 'popularity.desc',
+      include_adult: 'false',
+    });
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`TMDB API error: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error getting movies by decade:', error);
+    throw error;
+  }
+};
+
+/**
+ * Busca séries por década específica.
+ * @param decade Década (ex: 2020, 2010, 2000)
+ * @param page Número da página
+ * @returns Séries da década especificada
+ */
+export const getTVShowsByDecade = async (decade: number, page: number = 1) => {
+  try {
+    const startYear = decade;
+    const endYear = decade + 9;
+
+    const url = buildApiUrl('/discover/tv', {
+      'first_air_date.gte': `${startYear}-01-01`,
+      'first_air_date.lte': `${endYear}-12-31`,
+      page: page.toString(),
+      sort_by: 'popularity.desc',
+      include_adult: 'false',
+    });
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`TMDB API error: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error getting TV shows by decade:', error);
+    throw error;
   }
 };
