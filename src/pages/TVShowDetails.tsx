@@ -8,7 +8,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { getTVShowDetails, buildImageUrl, getTVShowImages } from '@/utils/tmdb';
 import ActionButtons from '@/components/ActionButtons';
 import TrailerPlayer from '@/components/TrailerPlayer';
-import { RecommendedContent } from '@/components/RecommendedContent';
 import { Layout } from '@/components/Layout';
 import { ChevronLeft, Calendar, Tv, Star, Users, Globe } from 'lucide-react';
 import { useDetailNameContext } from '@/context/DetailNameContext';
@@ -388,12 +387,6 @@ const TVShowDetails: React.FC = () => {
             )}
 
             <TrailerPlayer videos={show.videos} />
-
-            <RecommendedContent
-              recommendations={show.recommendations}
-              type="tv"
-              title="Séries Similares"
-            />
           </div>
         </div>
       </div>

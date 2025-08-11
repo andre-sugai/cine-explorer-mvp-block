@@ -9,7 +9,6 @@ import { getMovieDetails, buildImageUrl, getMovieImages } from '@/utils/tmdb';
 import { translateJob } from '@/utils/translations';
 import ActionButtons from '@/components/ActionButtons';
 import TrailerPlayer from '@/components/TrailerPlayer';
-import { RecommendedContent } from '@/components/RecommendedContent';
 import { Layout } from '@/components/Layout';
 import {
   ChevronLeft,
@@ -403,12 +402,6 @@ const MovieDetails: React.FC = () => {
             )}
 
             <TrailerPlayer videos={movie.videos} />
-
-            <RecommendedContent
-              recommendations={movie.recommendations}
-              type="movie"
-              title="Filmes Similares"
-            />
           </div>
         </div>
       </div>
