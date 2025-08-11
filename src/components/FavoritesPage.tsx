@@ -48,11 +48,11 @@ export const PersonalListFiltersTabs: React.FC<{
   const [selectedStreaming, setSelectedStreaming] = useState('0');
   const [streamingFilteredItems, setStreamingFilteredItems] = useState(items);
 
-  const { 
-    availableStreamings, 
-    loadingProviders, 
-    loadingFilter, 
-    filterItemsByStreaming 
+  const {
+    availableStreamings,
+    loadingProviders,
+    loadingFilter,
+    filterItemsByStreaming,
   } = useWatchProviders();
 
   // Atualizar items quando a lista base mudar
@@ -82,7 +82,7 @@ export const PersonalListFiltersTabs: React.FC<{
 
   const filterItems = (list: any[]) =>
     list.filter((item) =>
-      item.title.toLowerCase().includes(searchTerm.toLowerCase())
+      item.title?.toLowerCase().includes(searchTerm.toLowerCase())
     );
   const sortItems = (list: any[]) => {
     if (orderBy === 'date') {
@@ -106,13 +106,13 @@ export const PersonalListFiltersTabs: React.FC<{
   };
   const renderList = (list: any[]) => {
     // Usar items filtrados por streaming primeiro, depois filtrar por tipo de tab
-    const baseList = streamingFilteredItems.filter(item => 
-      activeTab === 'all' || item.type === activeTab
+    const baseList = streamingFilteredItems.filter(
+      (item) => activeTab === 'all' || item.type === activeTab
     );
-    
+
     const filtered = filterItems(baseList);
     const sorted = sortItems(filtered);
-    
+
     if (loadingFilter) {
       return (
         <div className="text-center py-12">
@@ -121,7 +121,7 @@ export const PersonalListFiltersTabs: React.FC<{
         </div>
       );
     }
-    
+
     if (sorted.length === 0) {
       return (
         <div className="text-center py-12">
@@ -195,7 +195,7 @@ export const PersonalListFiltersTabs: React.FC<{
           </Button>
         )}
       </div>
-      
+
       {/* Filtro de Streaming */}
       {enableStreamingFilter && (
         <div className="flex flex-col md:flex-row gap-4 items-center">
@@ -215,7 +215,10 @@ export const PersonalListFiltersTabs: React.FC<{
               <option>Carregando...</option>
             ) : (
               availableStreamings.map((streaming) => (
-                <option key={streaming.provider_id} value={streaming.provider_id}>
+                <option
+                  key={streaming.provider_id}
+                  value={streaming.provider_id}
+                >
                   {streaming.provider_name}
                 </option>
               ))
@@ -233,7 +236,7 @@ export const PersonalListFiltersTabs: React.FC<{
           )}
         </div>
       )}
-      
+
       {/* Estatísticas */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="bg-gradient-cinema border-primary/20">

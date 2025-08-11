@@ -106,52 +106,49 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
                 const active = isActive(item.path);
 
                 return (
-                  <React.Fragment key={item.id}>
-                    <Link to={item.path}>
-                      <Button
-                        variant={active ? 'default' : 'ghost'}
-                        className={`
-                        flex items-center gap-2 transition-all duration-200
-                        ${
-                          active
-                            ? 'bg-gradient-gold text-cinema-dark shadow-glow'
-                            : 'text-foreground hover:text-primary hover:bg-secondary/50'
-                        }
-                      `}
-                      >
-                        <Icon className="w-4 h-4" />
-                        {item.label}
-                      </Button>
-                    </Link>
-                    {/* Insere o campo de busca logo após o botão 'Vistos' */}
-                    {item.id === 'watched' && (
-                      <form
-                        onSubmit={handleSearch}
-                        className={`
-                        relative ml-4
-                        transition-all duration-200
-                        ${
-                          isSearchFocused
-                            ? 'shadow-glow border-primary/40 scale-[1.02]'
-                            : ''
-                        }
-                      `}
-                        style={{ minWidth: 220, maxWidth: 320 }}
-                      >
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                          onFocus={() => setIsSearchFocused(true)}
-                          onBlur={() => setIsSearchFocused(false)}
-                          placeholder="Buscar..."
-                          className="pl-10 pr-3 h-10 text-base bg-secondary/50 border-none focus:bg-background focus:ring-2 focus:ring-primary/50 text-foreground placeholder:text-muted-foreground"
-                        />
-                      </form>
-                    )}
-                  </React.Fragment>
+                  <Link key={item.id} to={item.path}>
+                    <Button
+                      variant={active ? 'default' : 'ghost'}
+                      className={`
+                      flex items-center gap-2 transition-all duration-200
+                      ${
+                        active
+                          ? 'bg-gradient-gold text-cinema-dark shadow-glow'
+                          : 'text-foreground hover:text-primary hover:bg-secondary/50'
+                      }
+                    `}
+                    >
+                      <Icon className="w-4 h-4" />
+                      {item.label}
+                    </Button>
+                  </Link>
                 );
               })}
+
+            {/* Campo de busca separado da navegação */}
+            <form
+              onSubmit={handleSearch}
+              className={`
+              relative ml-4
+              transition-all duration-200
+              ${
+                isSearchFocused
+                  ? 'shadow-glow border-primary/40 scale-[1.02]'
+                  : ''
+              }
+            `}
+              style={{ minWidth: 220, maxWidth: 320 }}
+            >
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onFocus={() => setIsSearchFocused(true)}
+                onBlur={() => setIsSearchFocused(false)}
+                placeholder="Buscar..."
+                className="pl-10 pr-3 h-10 text-base bg-secondary/50 border-none focus:bg-background focus:ring-2 focus:ring-primary/50 text-foreground placeholder:text-muted-foreground"
+              />
+            </form>
 
             {/* Auth Section */}
             <div className="flex items-center gap-2 ml-2">
