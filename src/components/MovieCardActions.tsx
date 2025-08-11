@@ -107,24 +107,24 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
   };
 
   return (
-    <div className="flex justify-center items-center gap-4 mt-2 pt-2 border-t border-border/20">
+    <div className="flex justify-center items-center gap-2 mt-2 pt-2 border-t border-border/20">
       <button
         onClick={handleFavorite}
-        className={`p-1 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center ${
+        className={`p-1.5 rounded-full transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center ${
           favorite
             ? 'text-red-500 hover:text-red-600'
             : 'text-muted-foreground hover:text-red-500'
         }`}
         title={favorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
       >
-        <Heart className={`w-4 h-4 ${favorite ? 'fill-current' : ''}`} />
+        <Heart className={`w-3.5 h-3.5 ${favorite ? 'fill-current' : ''}`} />
       </button>
 
       {type !== 'person' && (
         <>
           <button
             onClick={handleWantToWatch}
-            className={`p-1 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center ${
+            className={`p-1.5 rounded-full transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center ${
               wantToWatch
                 ? 'text-blue-500 hover:text-blue-600'
                 : 'text-muted-foreground hover:text-blue-500'
@@ -132,20 +132,20 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
             title={wantToWatch ? 'Remover da lista' : 'Quero assistir'}
           >
             <Bookmark
-              className={`w-4 h-4 ${wantToWatch ? 'fill-current' : ''}`}
+              className={`w-3.5 h-3.5 ${wantToWatch ? 'fill-current' : ''}`}
             />
           </button>
 
           <button
             onClick={handleWatched}
-            className={`w-8 h-8 rounded-full transition-all duration-200 flex items-center justify-center ${
+            className={`p-1.5 rounded-full transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center ${
               watched
                 ? 'bg-green-500 text-white hover:bg-green-600'
                 : 'border border-muted-foreground/30 text-muted-foreground hover:text-green-500 hover:border-green-500'
             }`}
             title={watched ? 'Remover dos assistidos' : 'Marcar como assistido'}
           >
-            <Check className="w-4 h-4" />
+            <Check className="w-3.5 h-3.5" />
           </button>
         </>
       )}

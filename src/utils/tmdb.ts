@@ -183,7 +183,7 @@ export const searchPeople = async (
 export const getMovieDetails = async (id: number) => {
   try {
     const url = buildApiUrl(`/movie/${id}`, {
-      append_to_response: 'credits,videos,recommendations',
+      append_to_response: 'credits,videos,recommendations,similar,keywords',
     });
 
     const response = await fetch(url);
@@ -664,6 +664,230 @@ export const getTVShowsByDecade = async (decade: number, page: number = 1) => {
     return await response.json();
   } catch (error) {
     console.error('Error getting TV shows by decade:', error);
+    throw error;
+  }
+};
+
+/**
+ * Buscar filmes relacionados (sequências, prequels, filmes da mesma franquia)
+ * @param id ID do filme
+ * @returns Filmes relacionados organizados por prioridade
+ */
+export const getMovieSequels = async (id: number) => {
+  try {
+    // 1. Primeiro, buscar detalhes do filme para verificar belongs_to_collection
+    const movieDetails = await getMovieDetails(id);
+    const movie = movieDetails;
+
+    let relatedMovies: any[] = [];
+
+    // Função auxiliar para ordenar filmes por ano cronologicamente
+    const sortMoviesByYear = (movies: any[]) => {
+      return movies.sort((a, b) => {
+        const yearA = a.release_date
+          ? new Date(a.release_date).getFullYear()
+          : 0;
+        const yearB = b.release_date
+          ? new Date(b.release_date).getFullYear()
+          : 0;
+        return yearA - yearB; // Ordem crescente (mais antigo para mais recente)
+      });
+    };
+
+    // 1. ESTRATÉGIA 1: belongs_to_collection (mais precisa)
+    if (movie.belongs_to_collection) {
+      try {
+        const collectionUrl = buildApiUrl(
+          `/collection/${movie.belongs_to_collection.id}`
+        );
+        const collectionResponse = await fetch(collectionUrl);
+
+        if (collectionResponse.ok) {
+          const collectionData = await collectionResponse.json();
+
+          // Filtrar filmes da coleção, excluindo o filme atual
+          const collectionMovies = collectionData.parts.filter(
+            (part: any) => part.id !== id
+          );
+
+          if (collectionMovies.length > 0) {
+            // Ordenar por ano e pegar até 18 filmes
+            relatedMovies = sortMoviesByYear(collectionMovies).slice(0, 18);
+            console.log(
+              `Encontrados ${relatedMovies.length} filmes da coleção: ${movie.belongs_to_collection.name}`
+            );
+            return {
+              results: relatedMovies,
+              total_results: relatedMovies.length,
+              strategy: 'collection',
+            };
+          }
+        }
+      } catch (error) {
+        console.warn('Erro ao buscar coleção:', error);
+      }
+    }
+
+    // 2. ESTRATÉGIA 2: Keywords (segunda opção)
+    if (
+      movie.keywords &&
+      movie.keywords.keywords &&
+      movie.keywords.keywords.length > 0
+    ) {
+      try {
+        // Pegar as keywords mais relevantes (primeiras 3)
+        const relevantKeywords = movie.keywords.keywords.slice(0, 3);
+
+        for (const keyword of relevantKeywords) {
+          const keywordUrl = buildApiUrl('/discover/movie', {
+            with_keywords: keyword.id.toString(),
+            sort_by: 'popularity.desc',
+            page: '1',
+          });
+
+          const keywordResponse = await fetch(keywordUrl);
+          if (keywordResponse.ok) {
+            const keywordData = await keywordResponse.json();
+
+            // Filtrar filmes com keywords similares, excluindo o filme atual
+            const keywordMovies = keywordData.results.filter(
+              (result: any) => result.id !== id
+            );
+
+            if (keywordMovies.length > 0) {
+              // Ordenar por ano
+              relatedMovies = sortMoviesByYear(keywordMovies).slice(0, 18);
+              console.log(
+                `Encontrados ${relatedMovies.length} filmes com keyword: ${keyword.name}`
+              );
+              return {
+                results: relatedMovies,
+                total_results: relatedMovies.length,
+                strategy: 'keywords',
+              };
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('Erro ao buscar por keywords:', error);
+      }
+    }
+
+    // 3. ESTRATÉGIA 3: Busca por título (fallback)
+    try {
+      // Extrair palavras-chave do título para busca
+      const titleWords = movie.title
+        .toLowerCase()
+        .split(' ')
+        .filter(
+          (word: string) =>
+            word.length > 2 &&
+            ![
+              'the',
+              'and',
+              'of',
+              'in',
+              'on',
+              'at',
+              'to',
+              'for',
+              'with',
+              'by',
+            ].includes(word)
+        );
+
+      // Tentar buscar por palavras-chave do título
+      for (const word of titleWords.slice(0, 2)) {
+        const searchUrl = buildApiUrl('/search/movie', {
+          query: word,
+          page: '1',
+        });
+
+        const searchResponse = await fetch(searchUrl);
+        if (searchResponse.ok) {
+          const searchData = await searchResponse.json();
+
+          // Filtrar filmes com títulos similares, excluindo o filme atual
+          const titleMovies = searchData.results.filter((result: any) => {
+            const resultTitle = result.title.toLowerCase();
+            const originalTitle = result.original_title.toLowerCase();
+
+            // Verificar se o título contém a palavra-chave ou números (indicando sequência)
+            const hasKeyword =
+              resultTitle.includes(word) || originalTitle.includes(word);
+            const hasNumbers =
+              /\d/.test(resultTitle) || /\d/.test(originalTitle);
+
+            return (hasKeyword || hasNumbers) && result.id !== id;
+          });
+
+          if (titleMovies.length > 0) {
+            // Ordenar por ano
+            relatedMovies = sortMoviesByYear(titleMovies).slice(0, 18);
+            console.log(
+              `Encontrados ${relatedMovies.length} filmes com título similar usando: ${word}`
+            );
+            return {
+              results: relatedMovies,
+              total_results: relatedMovies.length,
+              strategy: 'title_search',
+            };
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Erro ao buscar por título:', error);
+    }
+
+    // 4. FALLBACK: Filmes similares (estratégia original)
+    try {
+      const similarUrl = buildApiUrl(`/movie/${id}/similar`, {
+        page: '1',
+      });
+
+      const similarResponse = await fetch(similarUrl);
+      if (similarResponse.ok) {
+        const similarData = await similarResponse.json();
+
+        // Filtrar filmes que podem ser sequências
+        const similarMovies = similarData.results.filter((movie: any) => {
+          const title = movie.title.toLowerCase();
+          const originalTitle = movie.original_title.toLowerCase();
+
+          // Verificar se o título contém números (indicando sequência)
+          const hasNumbers = /\d/.test(title) || /\d/.test(originalTitle);
+
+          // Verificar se tem gêneros similares
+          const hasSimilarGenres =
+            movie.genre_ids && movie.genre_ids.length > 0;
+
+          return hasNumbers || hasSimilarGenres;
+        });
+
+        // Ordenar por ano
+        relatedMovies = sortMoviesByYear(similarMovies).slice(0, 18);
+        console.log(
+          `Encontrados ${relatedMovies.length} filmes similares (fallback)`
+        );
+        return {
+          results: relatedMovies,
+          total_results: relatedMovies.length,
+          strategy: 'similar',
+        };
+      }
+    } catch (error) {
+      console.warn('Erro ao buscar filmes similares:', error);
+    }
+
+    // Se nenhuma estratégia funcionou, retornar array vazio
+    console.log('Nenhum filme relacionado encontrado');
+    return {
+      results: [],
+      total_results: 0,
+      strategy: 'none',
+    };
+  } catch (error) {
+    console.error('Error getting movie sequels:', error);
     throw error;
   }
 };

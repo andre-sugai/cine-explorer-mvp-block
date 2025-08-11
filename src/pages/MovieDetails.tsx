@@ -5,10 +5,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getMovieDetails, buildImageUrl, getMovieImages } from '@/utils/tmdb';
+import {
+  getMovieDetails,
+  buildImageUrl,
+  getMovieImages,
+  getMovieSequels,
+} from '@/utils/tmdb';
 import { translateJob } from '@/utils/translations';
 import ActionButtons from '@/components/ActionButtons';
 import TrailerPlayer from '@/components/TrailerPlayer';
+import { MovieSequels } from '@/components/MovieSequels';
 import { Layout } from '@/components/Layout';
 import {
   ChevronLeft,
@@ -43,6 +49,13 @@ const MovieDetails: React.FC = () => {
   const { data: images, isLoading: isLoadingImages } = useQuery({
     queryKey: ['movie-images', id],
     queryFn: () => getMovieImages(Number(id)),
+    enabled: !!id,
+  });
+
+  // Busca sequências e filmes relacionados
+  const { data: sequels, isLoading: isLoadingSequels } = useQuery({
+    queryKey: ['movie-sequels', id],
+    queryFn: () => getMovieSequels(Number(id)),
     enabled: !!id,
   });
 
@@ -402,6 +415,14 @@ const MovieDetails: React.FC = () => {
             )}
 
             <TrailerPlayer videos={movie.videos} />
+
+            {/* Seção de Sequências e Filmes Relacionados */}
+            <MovieSequels
+              sequels={sequels?.results || []}
+              isLoading={isLoadingSequels}
+              title="Filmes da Mesma Franquia"
+              strategy={sequels?.strategy}
+            />
           </div>
         </div>
       </div>
