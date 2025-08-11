@@ -849,7 +849,7 @@ export const getMovieSequels = async (id: number) => {
       if (similarResponse.ok) {
         const similarData = await similarResponse.json();
 
-        // Filtrar filmes que podem ser sequências
+        // Filtrar filmes que podem ser sequências (MUITO restritivo)
         const similarMovies = similarData.results.filter((movie: any) => {
           const title = movie.title.toLowerCase();
           const originalTitle = movie.original_title.toLowerCase();
@@ -857,23 +857,36 @@ export const getMovieSequels = async (id: number) => {
           // Verificar se o título contém números (indicando sequência)
           const hasNumbers = /\d/.test(title) || /\d/.test(originalTitle);
 
-          // Verificar se tem gêneros similares
+          // Verificar se tem gêneros similares E se é do mesmo ano ou próximo
           const hasSimilarGenres =
             movie.genre_ids && movie.genre_ids.length > 0;
 
-          return hasNumbers || hasSimilarGenres;
+          const movieYear = movie.release_date
+            ? new Date(movie.release_date).getFullYear()
+            : 0;
+          const originalYear = movie.release_date
+            ? new Date(movie.release_date).getFullYear()
+            : 0;
+          const yearDiff = Math.abs(movieYear - originalYear);
+          const isSameEra = yearDiff <= 5; // Filmes da mesma época
+
+          // Só retornar se tiver números no título (sequência real)
+          return hasNumbers;
         });
 
-        // Ordenar por ano
-        relatedMovies = sortMoviesByYear(similarMovies).slice(0, 18);
-        console.log(
-          `Encontrados ${relatedMovies.length} filmes similares (fallback)`
-        );
-        return {
-          results: relatedMovies,
-          total_results: relatedMovies.length,
-          strategy: 'similar',
-        };
+        // Se encontrou filmes que podem ser sequências
+        if (similarMovies.length > 0) {
+          // Ordenar por ano
+          relatedMovies = sortMoviesByYear(similarMovies).slice(0, 18);
+          console.log(
+            `Encontrados ${relatedMovies.length} filmes similares (fallback)`
+          );
+          return {
+            results: relatedMovies,
+            total_results: relatedMovies.length,
+            strategy: 'similar',
+          };
+        }
       }
     } catch (error) {
       console.warn('Erro ao buscar filmes similares:', error);

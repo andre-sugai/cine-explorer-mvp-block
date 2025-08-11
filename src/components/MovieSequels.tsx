@@ -76,7 +76,30 @@ export const MovieSequels: React.FC<MovieSequelsProps> = ({
   }
 
   if (!sequels || sequels.length === 0) {
-    return null; // Não exibir se não houver sequências
+    return (
+      <Card className="bg-gradient-cinema border-primary/20">
+        <CardHeader>
+          <CardTitle className="text-primary flex items-center gap-2">
+            <Play className="w-5 h-5" />
+            {title}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-8">
+            <div className="text-center">
+              <div className="text-muted-foreground text-lg mb-2">🎬</div>
+              <p className="text-muted-foreground">
+                Este filme não possui continuações ou filmes relacionados
+                conhecidos.
+              </p>
+              <p className="text-muted-foreground text-sm mt-1">
+                Que tal explorar os filmes similares abaixo?
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   const visibleMovies = getVisibleMovies();
