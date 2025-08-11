@@ -891,3 +891,49 @@ export const getMovieSequels = async (id: number) => {
     throw error;
   }
 };
+
+/**
+ * Buscar filmes similares usando a API do TMDB
+ * @param id ID do filme
+ * @returns Lista de filmes similares
+ */
+export const getSimilarMovies = async (id: number) => {
+  try {
+    const similarUrl = buildApiUrl(`/movie/${id}/similar`, {
+      page: '1',
+    });
+
+    const similarResponse = await fetch(similarUrl);
+    if (similarResponse.ok) {
+      const similarData = await similarResponse.json();
+
+      // Retornar até 12 filmes similares
+      const similarMovies = similarData.results.slice(0, 12);
+
+      console.log(`Encontrados ${similarMovies.length} filmes similares`);
+
+      return {
+        results: similarMovies,
+        total_results: similarData.total_results,
+        page: similarData.page,
+        total_pages: similarData.total_pages,
+      };
+    } else {
+      console.error('Erro ao buscar filmes similares:', similarResponse.status);
+      return {
+        results: [],
+        total_results: 0,
+        page: 1,
+        total_pages: 0,
+      };
+    }
+  } catch (error) {
+    console.error('Error getting similar movies:', error);
+    return {
+      results: [],
+      total_results: 0,
+      page: 1,
+      total_pages: 0,
+    };
+  }
+};

@@ -10,11 +10,13 @@ import {
   buildImageUrl,
   getMovieImages,
   getMovieSequels,
+  getSimilarMovies,
 } from '@/utils/tmdb';
 import { translateJob } from '@/utils/translations';
 import ActionButtons from '@/components/ActionButtons';
 import TrailerPlayer from '@/components/TrailerPlayer';
 import { MovieSequels } from '@/components/MovieSequels';
+import { SimilarMovies } from '@/components/SimilarMovies';
 import { Layout } from '@/components/Layout';
 import {
   ChevronLeft,
@@ -52,10 +54,17 @@ const MovieDetails: React.FC = () => {
     enabled: !!id,
   });
 
-  // Busca sequências e filmes relacionados
+  // Query para buscar sequências do filme
   const { data: sequels, isLoading: isLoadingSequels } = useQuery({
     queryKey: ['movie-sequels', id],
     queryFn: () => getMovieSequels(Number(id)),
+    enabled: !!id,
+  });
+
+  // Query para buscar filmes similares
+  const { data: similarMovies, isLoading: isLoadingSimilarMovies } = useQuery({
+    queryKey: ['similar-movies', id],
+    queryFn: () => getSimilarMovies(Number(id)),
     enabled: !!id,
   });
 
@@ -422,6 +431,12 @@ const MovieDetails: React.FC = () => {
               isLoading={isLoadingSequels}
               title="Filmes da Mesma Franquia"
               strategy={sequels?.strategy}
+            />
+
+            {/* Seção de Filmes Similares */}
+            <SimilarMovies
+              similarMovies={similarMovies?.results || []}
+              isLoading={isLoadingSimilarMovies}
             />
           </div>
         </div>
