@@ -37,7 +37,7 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
         <Breadcrumb>
           <BreadcrumbList>
             {breadcrumbItems.map((item, index) => (
-              <div key={index}>
+              <React.Fragment key={index}>
                 <BreadcrumbItem>
                   {item.current || !item.href ? (
                     <BreadcrumbPage className="text-foreground font-medium">
@@ -50,10 +50,10 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
                     <BreadcrumbLink asChild>
                       <Link
                         to={item.href}
-                        className="text-muted-foreground hover:text-primary transition-colors flex items-center"
+                        className="text-muted-foreground hover:text-primary transition-colors"
                       >
                         {item.label === 'Home' && (
-                          <Home className="w-4 h-4 mr-1" />
+                          <Home className="w-4 h-4 mr-1 inline" />
                         )}
                         {item.label}
                       </Link>
@@ -63,10 +63,10 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
 
                 {index < breadcrumbItems.length - 1 && (
                   <BreadcrumbSeparator>
-                    <ChevronRight className="w-4 h-4" />
+                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
                   </BreadcrumbSeparator>
                 )}
-              </div>
+              </React.Fragment>
             ))}
           </BreadcrumbList>
         </Breadcrumb>
