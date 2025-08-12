@@ -347,16 +347,85 @@ export const HomePage: React.FC = () => {
     'Jennifer Kent',
   ];
 
-  const fetchDirectors = async () => {
-    const results = await Promise.all(
-      famousDirectors.map((name) => searchPeople(name))
-    );
-    // Pega até 3 resultados de cada busca que sejam diretores
-    return results.flatMap((res) =>
-      res.results
-        .filter((person) => person.known_for_department === 'Directing')
-        .slice(0, 3)
-    );
+  const fetchDirectors = async (page: number = 1, batchSize: number = 20) => {
+    try {
+      const startIndex = (page - 1) * batchSize;
+      const endIndex = startIndex + batchSize;
+      const directorsToFetch = famousDirectors.slice(startIndex, endIndex);
+
+      console.log(
+        `🔍 Buscando diretores ${startIndex + 1}-${endIndex} de ${
+          famousDirectors.length
+        }...`
+      );
+
+      const results = [];
+
+      // Dividir em sub-batches de 5 para evitar rate limiting
+      const subBatchSize = 5;
+      for (let i = 0; i < directorsToFetch.length; i += subBatchSize) {
+        const subBatch = directorsToFetch.slice(i, i + subBatchSize);
+
+        // Buscar sub-batch em paralelo
+        const subBatchPromises = subBatch.map(async (name) => {
+          try {
+            console.log(`🔍 Buscando: ${name}`);
+            const result = await searchPeople(name);
+            const directors = result.results
+              .filter((person) => person.known_for_department === 'Directing')
+              .slice(0, 1);
+            return directors;
+          } catch (error) {
+            console.warn(`Erro ao buscar ${name}:`, error);
+            return [];
+          }
+        });
+
+        const subBatchResults = await Promise.all(subBatchPromises);
+        results.push(...subBatchResults.flat());
+
+        // Aguardar entre sub-batches para evitar rate limiting
+        if (i + subBatchSize < directorsToFetch.length) {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+      }
+
+      console.log(
+        `✅ Encontrados ${results.length} diretores na página ${page}`
+      );
+
+      // Se não encontrou nenhum diretor, retornar pelo menos alguns resultados da API popular
+      if (results.length === 0) {
+        console.log('🔄 Fallback: buscando pessoas populares...');
+        const popularPeople = await getPopularPeople(page);
+        const fallbackDirectors = popularPeople.results
+          .filter((person) => person.known_for_department === 'Directing')
+          .slice(0, batchSize);
+        console.log(
+          `✅ Fallback: encontrados ${fallbackDirectors.length} diretores`
+        );
+        return fallbackDirectors;
+      }
+
+      return results;
+    } catch (error) {
+      console.error('Erro ao buscar diretores:', error);
+
+      // Fallback final: retornar pessoas populares
+      try {
+        const popularPeople = await getPopularPeople(page);
+        const fallbackDirectors = popularPeople.results
+          .filter((person) => person.known_for_department === 'Directing')
+          .slice(0, batchSize);
+        console.log(
+          `✅ Fallback final: encontrados ${fallbackDirectors.length} diretores`
+        );
+        return fallbackDirectors;
+      } catch (fallbackError) {
+        console.error('Erro no fallback:', fallbackError);
+        return [];
+      }
+    }
   };
 
   // Função de busca combinada para filmes e séries (removidas as referencias ao selectedStreamings)
@@ -422,8 +491,15 @@ export const HomePage: React.FC = () => {
             );
             break;
           case 'directors':
-            const directors = await fetchDirectors();
-            response = { results: directors, total_pages: 1 };
+            const directors = await fetchDirectors(pageNum, 20);
+            console.log(
+              '📊 Diretores retornados pela fetchDirectors:',
+              directors
+            );
+            response = {
+              results: directors,
+              total_pages: Math.ceil(famousDirectors.length / 20),
+            };
             break;
           default:
             return;

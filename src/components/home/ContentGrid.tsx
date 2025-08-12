@@ -34,13 +34,25 @@ export const ContentGrid: React.FC<ContentGridProps> = ({
 
   // Filtra apenas diretores quando a categoria for 'directors'
   const filteredContent = React.useMemo(() => {
+    console.log('🔍 ContentGrid - Categoria:', category);
+    console.log('🔍 ContentGrid - Conteúdo recebido:', content.length, 'itens');
+
     if (category === 'directors') {
-      return content.filter(
+      const filtered = content.filter(
         (item) =>
           'known_for_department' in item &&
           (item.known_for_department === 'Directing' ||
             item.known_for_department === 'Direção')
       );
+      console.log(
+        '🔍 ContentGrid - Diretores filtrados:',
+        filtered.length,
+        'itens'
+      );
+      if (filtered.length > 0) {
+        console.log('🔍 ContentGrid - Primeiro diretor filtrado:', filtered[0]);
+      }
+      return filtered;
     }
     return content;
   }, [content, category]);
@@ -67,7 +79,7 @@ export const ContentGrid: React.FC<ContentGridProps> = ({
     if (onItemClick) {
       onItemClick();
     }
-    
+
     if ('title' in item) {
       // Movie
       navigate(`/filme/${item.id}`);
