@@ -669,16 +669,14 @@ export const getTVShowsByDecade = async (decade: number, page: number = 1) => {
 };
 
 /**
- * Buscar apenas sequências diretas do filme (não filmes relacionados ou similares)
+ * Buscar sequências e filmes relacionados do filme
  * @param id ID do filme
- * @returns Apenas sequências diretas do filme
+ * @returns Sequências diretas ou filmes similares se não houver sequências
  */
 export const getMovieSequels = async (id: number) => {
   try {
-    // 1. Primeiro, buscar detalhes do filme para verificar belongs_to_collection
     const movieDetails = await getMovieDetails(id);
     const movie = movieDetails;
-
     let sequels: any[] = [];
 
     // Função auxiliar para ordenar filmes por ano cronologicamente
@@ -690,7 +688,7 @@ export const getMovieSequels = async (id: number) => {
         const yearB = b.release_date
           ? new Date(b.release_date).getFullYear()
           : 0;
-        return yearA - yearB; // Ordem crescente (mais antigo para mais recente)
+        return yearA - yearB;
       });
     };
 
@@ -705,66 +703,14 @@ export const getMovieSequels = async (id: number) => {
         if (collectionResponse.ok) {
           const collectionData = await collectionResponse.json();
 
-          // Filtrar apenas filmes da coleção que são sequências diretas
-          const collectionMovies = collectionData.parts.filter((part: any) => {
-            // Excluir o filme atual
-            if (part.id === id) return false;
-
-            const partTitle = part.title.toLowerCase();
-            const originalTitle = part.original_title.toLowerCase();
-            const movieTitle = movie.title.toLowerCase();
-
-            // Verificar se é uma sequência real:
-            // 1. Mesmo nome base + números (ex: "Star Wars 1", "Star Wars 2")
-            // 2. Mesmo nome base + palavras como "Part", "Chapter", "Episode"
-            // 3. Mesmo nome base + anos (ex: "Mission Impossible 1996", "Mission Impossible 2000")
-
-            // Extrair nome base do filme original
-            const baseName = movieTitle
-              .replace(/\d+/g, '')
-              .replace(/part|chapter|episode/gi, '')
-              .trim();
-            const partBaseName = partTitle
-              .replace(/\d+/g, '')
-              .replace(/part|chapter|episode/gi, '')
-              .trim();
-
-            // Verificar se tem o mesmo nome base
-            const hasSameBaseName =
-              partBaseName.includes(baseName) ||
-              baseName.includes(partBaseName);
-
-            // Verificar se tem números (indicando sequência)
-            const hasNumbers = /\d/.test(partTitle) || /\d/.test(originalTitle);
-
-            // Verificar se tem palavras indicando sequência
-            const hasSequenceWords =
-              /part|chapter|episode|sequel|prequel/gi.test(partTitle) ||
-              /part|chapter|episode|sequel|prequel/gi.test(originalTitle);
-
-            // Verificar se é do mesmo ano ou próximo (máximo 10 anos de diferença)
-            const movieYear = movie.release_date
-              ? new Date(movie.release_date).getFullYear()
-              : 0;
-            const partYear = part.release_date
-              ? new Date(part.release_date).getFullYear()
-              : 0;
-            const yearDiff = Math.abs(movieYear - partYear);
-            const isReasonableTimeframe = yearDiff <= 10;
-
-            return (
-              hasSameBaseName &&
-              (hasNumbers || hasSequenceWords) &&
-              isReasonableTimeframe
-            );
-          });
+          // Filtrar filmes da coleção (excluindo o filme atual)
+          const collectionMovies = collectionData.parts.filter(
+            (part: any) => part.id !== id && part.release_date
+          );
 
           if (collectionMovies.length > 0) {
-            // Ordenar por ano e pegar até 12 filmes
-            sequels = sortMoviesByYear(collectionMovies).slice(0, 12);
-            console.log(
-              `Encontradas ${sequels.length} sequências da coleção: ${movie.belongs_to_collection.name}`
-            );
+            // Ordenar por ano e pegar até 15 filmes
+            sequels = sortMoviesByYear(collectionMovies).slice(0, 15);
             return {
               results: sequels,
               total_results: sequels.length,
@@ -777,7 +723,7 @@ export const getMovieSequels = async (id: number) => {
       }
     }
 
-    // ESTRATÉGIA 2: Busca por título muito restritiva (apenas sequências diretas)
+    // ESTRATÉGIA 2: Busca por título (menos restritiva)
     try {
       const movieTitle = movie.title.toLowerCase();
       const originalTitle = movie.original_title.toLowerCase();
@@ -785,12 +731,15 @@ export const getMovieSequels = async (id: number) => {
       // Extrair nome base do filme (remover números e palavras de sequência)
       const baseName = movieTitle
         .replace(/\d+/g, '')
-        .replace(/part|chapter|episode|sequel|prequel/gi, '')
+        .replace(/part|chapter|episode|sequel|prequel|volume|book/gi, '')
+        .replace(/[^\w\s]/g, '')
         .trim();
 
       // Se o nome base é muito curto ou genérico, não buscar
-      if (baseName.length < 3 || ['the', 'a', 'an'].includes(baseName)) {
-        console.log('Nome base muito genérico, não buscando sequências');
+      if (
+        baseName.length < 3 ||
+        ['the', 'a', 'an', 'of', 'in', 'on'].includes(baseName)
+      ) {
         return {
           results: [],
           total_results: 0,
@@ -808,56 +757,52 @@ export const getMovieSequels = async (id: number) => {
       if (searchResponse.ok) {
         const searchData = await searchResponse.json();
 
-        // Filtrar apenas sequências diretas
+        // Filtrar filmes com nome similar (mais flexível)
         const titleSequels = searchData.results.filter((result: any) => {
           if (result.id === id) return false; // Excluir o filme atual
 
           const resultTitle = result.title.toLowerCase();
-          const resultOriginalTitle = result.original_title.toLowerCase();
+          const resultOriginal = result.original_title.toLowerCase();
 
-          // Verificar se tem o mesmo nome base
-          const resultBaseName = resultTitle
-            .replace(/\d+/g, '')
-            .replace(/part|chapter|episode|sequel|prequel/gi, '')
-            .trim();
-
-          const hasSameBaseName =
-            resultBaseName.includes(baseName) ||
-            baseName.includes(resultBaseName);
+          // Verificar se tem nome base similar
+          const hasSimilarName =
+            resultTitle.includes(baseName) ||
+            baseName.includes(resultTitle) ||
+            resultOriginal.includes(baseName) ||
+            baseName.includes(resultOriginal);
 
           // Verificar se tem números (indicando sequência)
           const hasNumbers =
-            /\d/.test(resultTitle) || /\d/.test(resultOriginalTitle);
+            /\d/.test(resultTitle) || /\d/.test(resultOriginal);
 
           // Verificar se tem palavras indicando sequência
           const hasSequenceWords =
-            /part|chapter|episode|sequel|prequel/gi.test(resultTitle) ||
-            /part|chapter|episode|sequel|prequel/gi.test(resultOriginalTitle);
+            /part|chapter|episode|sequel|prequel|volume|book/gi.test(
+              resultTitle
+            ) ||
+            /part|chapter|episode|sequel|prequel|volume|book/gi.test(
+              resultOriginal
+            );
 
-          // Verificar se é do mesmo ano ou próximo (máximo 15 anos de diferença)
-          const movieYear = movie.release_date
-            ? new Date(movie.release_date).getFullYear()
-            : 0;
-          const resultYear = result.release_date
-            ? new Date(result.release_date).getFullYear()
-            : 0;
-          const yearDiff = Math.abs(movieYear - resultYear);
-          const isReasonableTimeframe = yearDiff <= 15;
+          // Verificar se tem palavras específicas de franquias conhecidas
+          const hasFranchiseWords =
+            /star wars|starwars|lord of the rings|lordoftherings|harry potter|harrypotter|marvel|dc|batman|superman|spider-man|spiderman/gi.test(
+              resultTitle
+            ) ||
+            /star wars|starwars|lord of the rings|lordoftherings|harry potter|harrypotter|marvel|dc|batman|superman|spider-man|spiderman/gi.test(
+              resultOriginal
+            );
 
-          // Deve ter nome base similar E (números OU palavras de sequência) E timeframe razoável
+          // Retornar true se tem nome similar E (números OU palavras de sequência OU palavras de franquia)
           return (
-            hasSameBaseName &&
-            (hasNumbers || hasSequenceWords) &&
-            isReasonableTimeframe
+            hasSimilarName &&
+            (hasNumbers || hasSequenceWords || hasFranchiseWords)
           );
         });
 
         if (titleSequels.length > 0) {
           // Ordenar por ano
-          sequels = sortMoviesByYear(titleSequels).slice(0, 12);
-          console.log(
-            `Encontradas ${sequels.length} sequências por título usando base: ${baseName}`
-          );
+          sequels = sortMoviesByYear(titleSequels).slice(0, 15);
           return {
             results: sequels,
             total_results: sequels.length,
@@ -869,8 +814,115 @@ export const getMovieSequels = async (id: number) => {
       console.warn('Erro ao buscar por título:', error);
     }
 
+    // ESTRATÉGIA 3: Busca por keywords específicas de sequência
+    if (
+      movie.keywords &&
+      movie.keywords.keywords &&
+      movie.keywords.keywords.length > 0
+    ) {
+      try {
+        // Filtrar keywords relacionadas a sequências
+        const sequelKeywords = movie.keywords.keywords.filter((keyword: any) =>
+          /sequel|prequel|franchise|series|trilogy|saga/gi.test(keyword.name)
+        );
+
+        if (sequelKeywords.length > 0) {
+          const baseName = movie.title
+            .toLowerCase()
+            .replace(/\d+/g, '')
+            .replace(/part|chapter|episode|sequel|prequel|volume|book/gi, '')
+            .replace(/[^\w\s]/g, '')
+            .trim();
+
+          for (const keyword of sequelKeywords.slice(0, 2)) {
+            const keywordUrl = buildApiUrl('/discover/movie', {
+              with_keywords: keyword.id.toString(),
+              sort_by: 'popularity.desc',
+              page: '1',
+            });
+
+            const keywordResponse = await fetch(keywordUrl);
+            if (keywordResponse.ok) {
+              const keywordData = await keywordResponse.json();
+
+              // Filtrar filmes com nome similar
+              const keywordSequels = keywordData.results.filter(
+                (result: any) => {
+                  if (result.id === id) return false;
+
+                  const resultTitle = result.title.toLowerCase();
+                  const resultOriginal = result.original_title.toLowerCase();
+
+                  const hasSimilarName =
+                    resultTitle.includes(baseName) ||
+                    baseName.includes(resultTitle) ||
+                    resultOriginal.includes(baseName) ||
+                    baseName.includes(resultOriginal);
+
+                  const hasNumbers =
+                    /\d/.test(resultTitle) || /\d/.test(resultOriginal);
+
+                  const hasSequenceWords =
+                    /part|chapter|episode|sequel|prequel|volume|book/gi.test(
+                      resultTitle
+                    ) ||
+                    /part|chapter|episode|sequel|prequel|volume|book/gi.test(
+                      resultOriginal
+                    );
+
+                  const hasFranchiseWords =
+                    /star wars|starwars|lord of the rings|lordoftherings|harry potter|harrypotter|marvel|dc|batman|superman|spider-man|spiderman/gi.test(
+                      resultTitle
+                    ) ||
+                    /star wars|starwars|lord of the rings|lordoftherings|harry potter|harrypotter|marvel|dc|batman|superman|spider-man|spiderman/gi.test(
+                      resultOriginal
+                    );
+
+                  return (
+                    hasSimilarName &&
+                    (hasNumbers || hasSequenceWords || hasFranchiseWords)
+                  );
+                }
+              );
+
+              if (keywordSequels.length > 0) {
+                sequels = sortMoviesByYear(keywordSequels).slice(0, 15);
+                return {
+                  results: sequels,
+                  total_results: sequels.length,
+                  strategy: 'keyword_sequels',
+                };
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('Erro ao buscar por keywords:', error);
+      }
+    }
+
+    // ESTRATÉGIA 4: Fallback para filmes similares se não houver sequências
+    try {
+      const similarUrl = buildApiUrl(`/movie/${id}/similar`, {
+        page: '1',
+      });
+
+      const similarResponse = await fetch(similarUrl);
+      if (similarResponse.ok) {
+        const similarData = await similarResponse.json();
+
+        // Retornar array vazio mas com estratégia similar_movies para mostrar mensagem explicativa
+        return {
+          results: [],
+          total_results: 0,
+          strategy: 'similar_movies',
+        };
+      }
+    } catch (error) {
+      console.warn('Erro ao buscar filmes similares:', error);
+    }
+
     // Se nenhuma estratégia funcionou, retornar array vazio
-    console.log('Nenhuma sequência encontrada para este filme');
     return {
       results: [],
       total_results: 0,
