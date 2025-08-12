@@ -425,11 +425,10 @@ const MovieDetails: React.FC = () => {
 
             <TrailerPlayer videos={movie.videos} />
 
-            {/* Seção de Sequências e Filmes Relacionados */}
+            {/* Seção de Sequências */}
             <MovieSequels
               sequels={sequels?.results || []}
               isLoading={isLoadingSequels}
-              title="Filmes da Mesma Franquia"
               strategy={sequels?.strategy}
             />
 

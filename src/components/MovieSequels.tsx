@@ -18,7 +18,7 @@ interface MovieSequelsProps {
 export const MovieSequels: React.FC<MovieSequelsProps> = ({
   sequels,
   isLoading = false,
-  title = 'Filmes da Mesma Franquia',
+  title = 'Sequências do Filme',
   strategy,
 }) => {
   const navigate = useNavigate();
@@ -89,8 +89,7 @@ export const MovieSequels: React.FC<MovieSequelsProps> = ({
             <div className="text-center">
               <div className="text-muted-foreground text-lg mb-2">🎬</div>
               <p className="text-muted-foreground">
-                Este filme não possui continuações ou filmes relacionados
-                conhecidos.
+                Este filme não possui sequências conhecidas.
               </p>
               <p className="text-muted-foreground text-sm mt-1">
                 Que tal explorar os filmes similares abaixo?
