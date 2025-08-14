@@ -11,10 +11,12 @@ import {
   LogIn,
   LogOut,
   Sparkles,
+  Menu,
+  Search,
+  X,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { AuthModal } from '@/components/auth/AuthModal';
@@ -26,7 +28,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+  DrawerClose,
+} from '@/components/ui/drawer';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface HeaderProps {
   activeTab?: string;
@@ -40,8 +51,10 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
   const [isSearchFocused, setIsSearchFocused] = React.useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showMigrationModal, setShowMigrationModal] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const { user, isAuthenticated, logout } = useAuth();
+  const isMobile = useIsMobile();
 
   const handleAuthSuccess = () => {
     setShowAuthModal(false);
@@ -53,7 +66,12 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
     if (searchTerm.trim()) {
       navigate(`/busca/${encodeURIComponent(searchTerm.trim())}`);
       setSearchTerm('');
+      setIsMobileMenuOpen(false);
     }
+  };
+
+  const handleNavigation = (path: string) => {
+    setIsMobileMenuOpen(false);
   };
 
   const navItems = [
@@ -94,8 +112,23 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
             <div className="w-10 h-10 bg-gradient-gold rounded-lg flex items-center justify-center shadow-glow">
               <Film className="w-6 h-6 text-cinema-dark" />
             </div>
-            <h1 className="text-2xl font-bold text-primary">Cine Explorer</h1>
+            <h1 className="hidden md:block text-2xl font-bold text-primary">
+              Cine Explorer
+            </h1>
           </Link>
+
+          {/* Campo de busca centralizado - Mobile */}
+          <div className="md:hidden flex-1 flex justify-center px-4">
+            <form onSubmit={handleSearch} className="relative w-full max-w-xs">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Buscar..."
+                className="pl-10 pr-3 h-9 text-sm bg-secondary/50 border-none focus:bg-background focus:ring-2 focus:ring-primary/50 text-foreground placeholder:text-muted-foreground"
+              />
+            </form>
+          </div>
 
           {/* Navigation - Desktop */}
           <nav className="hidden md:flex items-center gap-2">
@@ -205,32 +238,118 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
             </div>
           </nav>
 
-          {/* Navigation - Mobile */}
-          <nav className="md:hidden flex items-center gap-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const active = isActive(item.path);
+          {/* Mobile Menu Hamburger */}
+          <div className="md:hidden flex items-center">
+            {/* Menu Hamburger */}
+            <Drawer open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+              <DrawerTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="p-2 text-foreground hover:text-primary hover:bg-secondary/50"
+                >
+                  <Menu className="w-6 h-6" />
+                </Button>
+              </DrawerTrigger>
+              <DrawerContent className="h-[80vh]">
+                <DrawerHeader className="border-b border-border/50">
+                  <div className="flex items-center justify-between">
+                    <DrawerTitle className="text-lg font-bold text-primary">
+                      Menu
+                    </DrawerTitle>
+                    <DrawerClose asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="p-2 text-foreground hover:text-primary"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </DrawerClose>
+                  </div>
+                </DrawerHeader>
 
-              return (
-                <Link key={item.id} to={item.path}>
-                  <Button
-                    variant={active ? 'default' : 'ghost'}
-                    size="sm"
-                    className={`
-                      p-2 transition-all duration-200
-                      ${
-                        active
-                          ? 'bg-gradient-gold text-cinema-dark shadow-glow'
-                          : 'text-foreground hover:text-primary hover:bg-secondary/50'
-                      }
-                    `}
-                  >
-                    <Icon className="w-4 h-4" />
-                  </Button>
-                </Link>
-              );
-            })}
-          </nav>
+                <div className="flex-1 overflow-y-auto p-4">
+                  {/* Navigation Items */}
+                  <nav className="space-y-2">
+                    {navItems.map((item) => {
+                      const Icon = item.icon;
+                      const active = isActive(item.path);
+
+                      return (
+                        <Link
+                          key={item.id}
+                          to={item.path}
+                          onClick={() => handleNavigation(item.path)}
+                        >
+                          <Button
+                            variant={active ? 'default' : 'ghost'}
+                            className={`
+                              w-full justify-start gap-3 h-12 text-base transition-all duration-200
+                              ${
+                                active
+                                  ? 'bg-gradient-gold text-cinema-dark shadow-glow'
+                                  : 'text-foreground hover:text-primary hover:bg-secondary/50'
+                              }
+                            `}
+                          >
+                            <Icon className="w-5 h-5" />
+                            {item.label}
+                          </Button>
+                        </Link>
+                      );
+                    })}
+                  </nav>
+
+                  {/* Auth Section Mobile */}
+                  <div className="mt-6 pt-6 border-t border-border/50">
+                    {isAuthenticated ? (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3 p-3 bg-secondary/30 rounded-lg">
+                          <Avatar className="h-10 w-10">
+                            <AvatarFallback className="bg-gradient-gold text-cinema-dark">
+                              {user?.email?.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">
+                              {user?.email}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Usuário logado
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          onClick={() => {
+                            logout();
+                            setIsMobileMenuOpen(false);
+                          }}
+                          variant="outline"
+                          className="w-full justify-start gap-3 h-12"
+                        >
+                          <LogOut className="w-5 h-5" />
+                          Sair
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        onClick={() => {
+                          setShowAuthModal(true);
+                          setIsMobileMenuOpen(false);
+                        }}
+                        variant="outline"
+                        className="w-full justify-start gap-3 h-12"
+                      >
+                        <LogIn className="w-5 h-5" />
+                        Entrar
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </DrawerContent>
+            </Drawer>
+          </div>
         </div>
       </div>
 
