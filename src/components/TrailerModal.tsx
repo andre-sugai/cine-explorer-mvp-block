@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -8,7 +7,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Play, Pause, SkipForward, Loader, ExternalLink } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import {
+  Play,
+  Pause,
+  SkipForward,
+  Loader,
+  ExternalLink,
+  Film,
+  Tv,
+} from 'lucide-react';
 import { useTrailers } from '@/hooks/useTrailers';
 import { toast } from 'sonner';
 
@@ -20,7 +28,6 @@ interface TrailerModalProps {
 declare global {
   interface Window {
     YT: any;
-    onYouTubeIframeAPIReady: () => void;
   }
 }
 
@@ -29,12 +36,13 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
   onOpenChange,
 }) => {
   const navigate = useNavigate();
-  const { getRandomTrailer, currentTrailer, isLoading } = useTrailers();
+  const { getRandomTrailer, currentTrailer, isLoading, currentCategory } =
+    useTrailers();
   const [isPlaying, setIsPlaying] = useState(true);
   const [loadingNext, setLoadingNext] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [useYTPlayer, setUseYTPlayer] = useState(false);
-  
+
   const playerRef = useRef<any>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
 
@@ -63,149 +71,100 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
 
   // Criar/atualizar YouTube Player
   useEffect(() => {
-    if (useYTPlayer && currentTrailer && playerContainerRef.current && open) {
-      // Destruir player existente se houver
+    if (currentTrailer && useYTPlayer && playerContainerRef.current) {
       if (playerRef.current) {
         try {
           playerRef.current.destroy();
         } catch (error) {
-          console.log('Error destroying player:', error);
+          console.log('Error destroying previous player:', error);
         }
       }
 
-      // Criar novo player
-      try {
-        playerRef.current = new window.YT.Player(playerContainerRef.current, {
-          videoId: currentTrailer.key,
-          width: '100%',
-          height: '100%',
-          playerVars: {
-            autoplay: 1,
-            controls: 1,
-            rel: 0,
-            showinfo: 0,
-            modestbranding: 1
+      playerRef.current = new window.YT.Player(playerContainerRef.current, {
+        height: '100%',
+        width: '100%',
+        videoId: currentTrailer.key,
+        playerVars: {
+          autoplay: 1,
+          controls: 1,
+          modestbranding: 1,
+          rel: 0,
+          showinfo: 0,
+        },
+        events: {
+          onReady: (event: any) => {
+            console.log('YouTube player ready');
+            setIsPlaying(true);
           },
-          events: {
-            onReady: onPlayerReady,
-            onStateChange: onPlayerStateChange
-          }
-        });
-      } catch (error) {
-        console.error('Error creating YouTube player:', error);
-        setUseYTPlayer(false); // Fallback para iframe
-      }
+          onStateChange: (event: any) => {
+            if (event.data === window.YT.PlayerState.PLAYING) {
+              setIsPlaying(true);
+            } else if (event.data === window.YT.PlayerState.PAUSED) {
+              setIsPlaying(false);
+            } else if (event.data === window.YT.PlayerState.ENDED) {
+              handleNextTrailer();
+            }
+          },
+        },
+      });
     }
-  }, [currentTrailer, useYTPlayer, open]);
-
-  const onPlayerReady = (event: any) => {
-    console.log('YouTube Player ready');
-    setIsTransitioning(false);
-  };
-
-  const onPlayerStateChange = (event: any) => {
-    const playerState = event.data;
-    
-    // YT.PlayerState.ENDED = 0
-    if (playerState === 0) {
-      console.log('Trailer ended - loading next automatically');
-      loadNextTrailerAutomatic();
-    }
-    
-    // YT.PlayerState.PLAYING = 1
-    if (playerState === 1) {
-      setIsPlaying(true);
-    }
-    
-    // YT.PlayerState.PAUSED = 2
-    if (playerState === 2) {
-      setIsPlaying(false);
-    }
-  };
+  }, [currentTrailer, useYTPlayer]);
 
   const loadRandomTrailer = async () => {
-    try {
-      const trailer = await getRandomTrailer();
-      if (!trailer) {
-        toast.error('Não foi possível encontrar trailers no momento');
-      }
-    } catch (error) {
-      console.error('Error loading trailer:', error);
-      toast.error('Erro ao carregar trailer');
-    }
-  };
-
-  const loadNextTrailerAutomatic = async () => {
-    console.log('Loading next trailer automatically...');
-    setIsTransitioning(true);
-    
-    try {
-      const newTrailer = await getRandomTrailer();
-      
-      if (newTrailer && playerRef.current && playerRef.current.loadVideoById) {
-        // Usar loadVideoById para trocar vídeo sem recriar player
-        playerRef.current.loadVideoById({
-          videoId: newTrailer.key,
-          startSeconds: 0
-        });
-        setIsPlaying(true);
-      } else if (!newTrailer) {
-        // Se não conseguir novo trailer, tentar novamente
-        console.log('No trailer found, retrying...');
-        setTimeout(loadNextTrailerAutomatic, 2000);
-      }
-    } catch (error) {
-      console.error('Error loading next trailer automatically:', error);
-      setIsTransitioning(false);
+    const trailer = await getRandomTrailer();
+    if (!trailer) {
+      toast.error('Nenhum trailer encontrado. Tente novamente.');
     }
   };
 
   const handleNextTrailer = async () => {
     setLoadingNext(true);
-    
-    try {
-      const newTrailer = await getRandomTrailer();
-      
-      if (newTrailer && useYTPlayer && playerRef.current && playerRef.current.loadVideoById) {
-        // Usar YouTube Player API
-        playerRef.current.loadVideoById({
-          videoId: newTrailer.key,
-          startSeconds: 0
-        });
-        setIsPlaying(true);
-      } else {
-        // Fallback para recarregar componente
-        await loadRandomTrailer();
+    setIsTransitioning(true);
+
+    // Destruir player atual
+    if (playerRef.current) {
+      try {
+        playerRef.current.destroy();
+        playerRef.current = null;
+      } catch (error) {
+        console.log('Error destroying player:', error);
       }
-    } catch (error) {
-      console.error('Error loading next trailer:', error);
-      toast.error('Erro ao carregar próximo trailer');
-    } finally {
-      setLoadingNext(false);
     }
+
+    // Aguardar um pouco antes de carregar o próximo
+    setTimeout(async () => {
+      const trailer = await getRandomTrailer();
+      if (!trailer) {
+        toast.error('Nenhum trailer encontrado. Tente novamente.');
+      }
+      setLoadingNext(false);
+      setIsTransitioning(false);
+    }, 500);
   };
 
   const handlePlayPause = () => {
-    if (playerRef.current && useYTPlayer) {
+    if (playerRef.current) {
       if (isPlaying) {
         playerRef.current.pauseVideo();
       } else {
         playerRef.current.playVideo();
       }
     }
-    setIsPlaying(!isPlaying);
   };
 
   const handleMovieDetails = () => {
     if (currentTrailer) {
-      handleModalClose();
-      navigate(`/filme/${currentTrailer.movieId}`);
+      const route =
+        currentTrailer.contentType === 'tv'
+          ? `/serie/${currentTrailer.movieId}`
+          : `/filme/${currentTrailer.movieId}`;
+      navigate(route);
     }
   };
 
   const handleModalClose = () => {
     setIsPlaying(false);
-    
+
     // Destruir player ao fechar modal
     if (playerRef.current) {
       try {
@@ -215,14 +174,14 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
         console.log('Error destroying player on close:', error);
       }
     }
-    
+
     onOpenChange(false);
   };
 
   // Format title with year
   const getFormattedTitle = () => {
     if (!currentTrailer) return 'Carregando...';
-    
+
     const { movieTitle, releaseYear } = currentTrailer;
     return releaseYear ? `${movieTitle} (${releaseYear})` : movieTitle;
   };
@@ -233,107 +192,101 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
     <Dialog open={open} onOpenChange={handleModalClose}>
       <DialogContent className="max-w-5xl w-full max-h-[90vh] bg-gradient-cinema border-primary/20">
         <DialogHeader className="space-y-4">
-          <DialogTitle className="text-2xl font-bold text-primary flex items-center gap-3">
-            <Play className="w-6 h-6" />
-            {getFormattedTitle()}
-          </DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-2xl font-bold text-primary flex items-center gap-3">
+              <Play className="w-6 h-6" />
+              {getFormattedTitle()}
+            </DialogTitle>
+            <div className="flex items-center gap-2">
+              {currentTrailer?.contentType === 'tv' ? (
+                <Tv className="w-5 h-5 text-blue-400" />
+              ) : (
+                <Film className="w-5 h-5 text-orange-400" />
+              )}
+              {currentCategory && (
+                <Badge variant="secondary" className="text-xs">
+                  {currentCategory}
+                </Badge>
+              )}
+            </div>
+          </div>
         </DialogHeader>
 
         <div className="space-y-6">
           {/* Video Player */}
-          <div className="relative">
+          <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
             {showLoadingState ? (
-              <div className="aspect-video bg-secondary/20 rounded-lg flex items-center justify-center">
-                <div className="flex flex-col items-center gap-4">
-                  <Loader className="w-8 h-8 animate-spin text-primary" />
-                  <p className="text-muted-foreground">
-                    {isLoading ? 'Carregando trailer...' : 
-                     loadingNext ? 'Buscando próximo trailer...' :
-                     'Carregando próximo trailer...'}
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                <div className="text-center">
+                  <Loader className="w-8 h-8 animate-spin mx-auto mb-2 text-primary" />
+                  <p className="text-sm text-muted-foreground">
+                    {loadingNext
+                      ? 'Carregando próximo trailer...'
+                      : 'Carregando trailer...'}
                   </p>
                 </div>
               </div>
-            ) : currentTrailer ? (
-              <div className="aspect-video">
-                {useYTPlayer ? (
-                  <div 
-                    ref={playerContainerRef}
-                    className="w-full h-full rounded-lg"
-                  />
-                ) : (
-                  // Fallback para iframe tradicional
-                  <iframe
-                    src={`https://www.youtube.com/embed/${currentTrailer.key}?autoplay=${isPlaying ? 1 : 0}&rel=0&showinfo=0`}
-                    title={currentTrailer.name}
-                    className="w-full h-full rounded-lg"
-                    allowFullScreen
-                    allow="autoplay; encrypted-media"
-                  />
-                )}
-              </div>
             ) : (
-              <div className="aspect-video bg-secondary/20 rounded-lg flex items-center justify-center">
-                <div className="text-center space-y-4">
-                  <p className="text-muted-foreground">Nenhum trailer disponível</p>
-                  <Button onClick={loadRandomTrailer} variant="default">
-                    Tentar Novamente
-                  </Button>
-                </div>
-              </div>
+              <div ref={playerContainerRef} className="w-full h-full" />
             )}
           </div>
 
           {/* Controls */}
-          <div className="flex flex-wrap items-center justify-center gap-4">
-            <Button
-              onClick={handlePlayPause}
-              variant="default"
-              className="flex items-center gap-2"
-              disabled={!currentTrailer || showLoadingState}
-            >
-              {isPlaying ? (
-                <Pause className="w-4 h-4" />
-              ) : (
-                <Play className="w-4 h-4" />
-              )}
-              {isPlaying ? 'Pausar' : 'Reproduzir'}
-            </Button>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={handlePlayPause}
+                variant="outline"
+                size="sm"
+                disabled={showLoadingState}
+              >
+                {isPlaying ? (
+                  <Pause className="w-4 h-4" />
+                ) : (
+                  <Play className="w-4 h-4" />
+                )}
+                {isPlaying ? 'Pausar' : 'Reproduzir'}
+              </Button>
 
-            <Button
-              onClick={handleNextTrailer}
-              variant="outline"
-              className="flex items-center gap-2"
-              disabled={loadingNext}
-            >
-              {loadingNext ? (
-                <Loader className="w-4 h-4 animate-spin" />
-              ) : (
-                <SkipForward className="w-4 h-4" />
-              )}
-              Próximo Trailer
-            </Button>
+              <Button
+                onClick={handleNextTrailer}
+                variant="outline"
+                size="sm"
+                disabled={showLoadingState}
+              >
+                <SkipForward className="w-4 h-4 mr-1" />
+                Próximo
+              </Button>
+            </div>
 
-            {currentTrailer && (
+            <div className="flex items-center gap-2">
               <Button
                 onClick={handleMovieDetails}
-                variant="secondary"
-                className="flex items-center gap-2"
+                variant="outline"
+                size="sm"
+                disabled={!currentTrailer}
               >
-                <ExternalLink className="w-4 h-4" />
-                Ver Filme
+                <ExternalLink className="w-4 h-4 mr-1" />
+                Ver Detalhes
               </Button>
-            )}
+            </div>
           </div>
 
           {/* Info */}
-          <div className="text-center text-sm text-muted-foreground">
-            <p>
-              Descubra novos filmes através dos trailers! 
-              <br className="sm:hidden" />
-              <span className="hidden sm:inline"> • </span>
-              O próximo trailer será reproduzido automaticamente ao final.
-            </p>
-          </div>
+          {currentTrailer && (
+            <div className="text-sm text-muted-foreground space-y-1">
+              <p>
+                <strong>Tipo:</strong>{' '}
+                {currentTrailer.contentType === 'tv' ? 'Série de TV' : 'Filme'}
+              </p>
+              <p>
+                <strong>Categoria:</strong> {currentCategory}
+              </p>
+              <p>
+                <strong>Trailer:</strong> {currentTrailer.name}
+              </p>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
