@@ -1,8 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
@@ -26,17 +25,6 @@ import {
   User,
   BarChart3,
   Cog,
-  Camera,
-  Edit,
-  Lock,
-  Instagram,
-  Twitter,
-  Facebook,
-  Linkedin,
-  Youtube,
-  Globe,
-  Save,
-  X,
 } from 'lucide-react';
 import { useDataManager } from '@/hooks/useDataManager';
 import { useFavoritesContext } from '@/context/FavoritesContext';
@@ -44,68 +32,17 @@ import { useWatchedContext } from '@/context/WatchedContext';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/hooks/use-toast';
 
-/**
- * Interface para os dados do perfil do usuário
- */
-interface UserProfile {
-  nickname: string;
-  bio: string;
-  profileImage: string;
-  socialMedia: {
-    instagram?: string;
-    twitter?: string;
-    facebook?: string;
-    linkedin?: string;
-    youtube?: string;
-    website?: string;
-  };
-}
-
-/**
- * Interface para o formulário de troca de senha
- */
-interface PasswordChangeForm {
-  currentPassword: string;
-  newPassword: string;
-  confirmPassword: string;
-}
-
 export const SettingsPage: React.FC = () => {
-  // Estados existentes
   const [showApiKeyDialog, setShowApiKeyDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [showClearDialog, setShowClearDialog] = useState(false);
-  const [clearType, setClearType] = useState<'favorites' | 'watched' | 'all'>('all');
+  const [clearType, setClearType] = useState<'favorites' | 'watched' | 'all'>(
+    'all'
+  );
   const [importMode, setImportMode] = useState<'merge' | 'replace'>('merge');
   const [newApiKey, setNewApiKey] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Novos estados para funcionalidades do perfil
-  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
-  const [showProfileImageDialog, setShowProfileImageDialog] = useState(false);
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
-  
-  // Estados do perfil
-  const [profile, setProfile] = useState<UserProfile>({
-    nickname: '',
-    bio: '',
-    profileImage: '',
-    socialMedia: {}
-  });
-
-  // Estados do formulário de senha
-  const [passwordForm, setPasswordForm] = useState<PasswordChangeForm>({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  });
-
-  // Refs
-  const profileImageInputRef = useRef<HTMLInputElement>(null);
-
-  // Hooks existentes
   const {
     exportData,
     importData,
@@ -129,196 +66,6 @@ export const SettingsPage: React.FC = () => {
   const watchedStats = getWatchedStats();
   const currentApiKey = localStorage.getItem('tmdb_api_key');
 
-  /**
-   * Carrega os dados do perfil do localStorage
-   */
-  useEffect(() => {
-    const savedProfile = localStorage.getItem('user_profile');
-    if (savedProfile) {
-      try {
-        const parsedProfile = JSON.parse(savedProfile);
-        setProfile(parsedProfile);
-      } catch (error) {
-        console.error('Erro ao carregar perfil:', error);
-      }
-    }
-  }, []);
-
-  /**
-   * Salva os dados do perfil no localStorage
-   */
-  const saveProfile = async () => {
-    setIsSavingProfile(true);
-    try {
-      localStorage.setItem('user_profile', JSON.stringify(profile));
-      toast({
-        title: 'Perfil atualizado!',
-        description: 'Suas informações foram salvas com sucesso.',
-      });
-    } catch (error) {
-      toast({
-        title: 'Erro ao salvar perfil',
-        description: 'Não foi possível salvar suas informações.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSavingProfile(false);
-    }
-  };
-
-  /**
-   * Processa o upload da imagem de perfil
-   */
-  const handleProfileImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    // Validações
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
-      toast({
-        title: 'Formato inválido',
-        description: 'Use apenas imagens JPG, PNG ou WebP.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) { // 5MB
-      toast({
-        title: 'Arquivo muito grande',
-        description: 'A imagem deve ter no máximo 5MB.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setIsUploadingImage(true);
-    try {
-      // Converte a imagem para base64
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        setProfile(prev => ({
-          ...prev,
-          profileImage: result
-        }));
-        toast({
-          title: 'Imagem carregada!',
-          description: 'Sua foto de perfil foi atualizada.',
-        });
-        setShowProfileImageDialog(false);
-      };
-      reader.readAsDataURL(file);
-    } catch (error) {
-      toast({
-        title: 'Erro ao processar imagem',
-        description: 'Não foi possível processar a imagem.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsUploadingImage(false);
-    }
-  };
-
-  /**
-   * Remove a imagem de perfil
-   */
-  const removeProfileImage = () => {
-    setProfile(prev => ({
-      ...prev,
-      profileImage: ''
-    }));
-    toast({
-      title: 'Imagem removida',
-      description: 'Sua foto de perfil foi removida.',
-    });
-  };
-
-  /**
-   * Altera a senha do usuário
-   */
-  const handlePasswordChange = async () => {
-    // Validações
-    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
-      toast({
-        title: 'Campos obrigatórios',
-        description: 'Preencha todos os campos.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      toast({
-        title: 'Senhas diferentes',
-        description: 'A nova senha e confirmação não coincidem.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (passwordForm.newPassword.length < 6) {
-      toast({
-        title: 'Senha muito curta',
-        description: 'A nova senha deve ter pelo menos 6 caracteres.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setIsChangingPassword(true);
-    try {
-      // Aqui você implementaria a lógica real de troca de senha
-      // Por enquanto, apenas simula o processo
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast({
-        title: 'Senha alterada!',
-        description: 'Sua senha foi atualizada com sucesso.',
-      });
-      
-      setPasswordForm({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
-      });
-      setShowPasswordDialog(false);
-    } catch (error) {
-      toast({
-        title: 'Erro ao alterar senha',
-        description: 'Não foi possível alterar sua senha.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsChangingPassword(false);
-    }
-  };
-
-  /**
-   * Atualiza um campo específico do perfil
-   */
-  const updateProfileField = (field: keyof UserProfile, value: any) => {
-    setProfile(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  /**
-   * Atualiza um campo específico das redes sociais
-   */
-  const updateSocialMedia = (platform: string, value: string) => {
-    setProfile(prev => ({
-      ...prev,
-      socialMedia: {
-        ...prev.socialMedia,
-        [platform]: value
-      }
-    }));
-  };
-
-  // Funções existentes
   const handleExport = async () => {
     try {
       await exportData();
@@ -335,7 +82,9 @@ export const SettingsPage: React.FC = () => {
     }
   };
 
-  const handleImportFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportFile = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -344,7 +93,8 @@ export const SettingsPage: React.FC = () => {
       if (!isValid) {
         toast({
           title: 'Arquivo inválido',
-          description: 'O arquivo selecionado não é um backup válido do Cine Explorer.',
+          description:
+            'O arquivo selecionado não é um backup válido do Cine Explorer.',
           variant: 'destructive',
         });
         return;
@@ -404,7 +154,6 @@ export const SettingsPage: React.FC = () => {
         clearAllFavorites();
         clearAllWatched();
         localStorage.removeItem('tmdb_api_key');
-        localStorage.removeItem('user_profile');
         toast({
           title: 'Todos os dados limpos',
           description: 'Todos os seus dados foram removidos.',
@@ -682,57 +431,10 @@ export const SettingsPage: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Foto de Perfil */}
+              {/* Informações do Usuário */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-primary">
-                  Foto de Perfil
-                </h3>
-                <div className="flex items-center gap-4">
-                  <div className="relative">
-                    <div className="w-20 h-20 rounded-full overflow-hidden bg-secondary/30 border-2 border-primary/20">
-                      {profile.profileImage ? (
-                        <img
-                          src={profile.profileImage}
-                          alt="Foto de perfil"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <User className="w-8 h-8 text-muted-foreground" />
-                        </div>
-                      )}
-                    </div>
-                    {profile.profileImage && (
-                      <Button
-                        onClick={removeProfileImage}
-                        size="sm"
-                        variant="outline"
-                        className="absolute -top-2 -right-2 w-6 h-6 p-0 rounded-full bg-red-500 hover:bg-red-600 text-white border-0"
-                      >
-                        <X className="w-3 h-3" />
-                      </Button>
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Button
-                      onClick={() => setShowProfileImageDialog(true)}
-                      variant="outline"
-                      className="flex items-center gap-2"
-                    >
-                      <Camera className="w-4 h-4" />
-                      {profile.profileImage ? 'Alterar Foto' : 'Adicionar Foto'}
-                    </Button>
-                    <p className="text-sm text-muted-foreground">
-                      JPG, PNG ou WebP (máx. 5MB)
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Informações Básicas */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-primary">
-                  Informações Básicas
+                  Informações da Conta
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -745,116 +447,12 @@ export const SettingsPage: React.FC = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="nickname">Nome/Nickname</Label>
+                    <Label htmlFor="status">Status da Conta</Label>
                     <Input
-                      id="nickname"
-                      placeholder="Seu nome ou nickname"
-                      value={profile.nickname}
-                      onChange={(e) => updateProfileField('nickname', e.target.value)}
-                      maxLength={30}
-                      className="bg-secondary/30 border-primary/20"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="bio">Bio</Label>
-                  <Textarea
-                    id="bio"
-                    placeholder="Conte um pouco sobre você e seus gostos cinematográficos..."
-                    value={profile.bio}
-                    onChange={(e) => updateProfileField('bio', e.target.value)}
-                    maxLength={500}
-                    rows={4}
-                    className="bg-secondary/30 border-primary/20"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {profile.bio.length}/500 caracteres
-                  </p>
-                </div>
-              </div>
-
-              {/* Redes Sociais */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-primary">
-                  Redes Sociais
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="instagram" className="flex items-center gap-2">
-                      <Instagram className="w-4 h-4" />
-                      Instagram
-                    </Label>
-                    <Input
-                      id="instagram"
-                      placeholder="@seu_usuario"
-                      value={profile.socialMedia.instagram || ''}
-                      onChange={(e) => updateSocialMedia('instagram', e.target.value)}
-                      className="bg-secondary/30 border-primary/20"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="twitter" className="flex items-center gap-2">
-                      <Twitter className="w-4 h-4" />
-                      Twitter/X
-                    </Label>
-                    <Input
-                      id="twitter"
-                      placeholder="@seu_usuario"
-                      value={profile.socialMedia.twitter || ''}
-                      onChange={(e) => updateSocialMedia('twitter', e.target.value)}
-                      className="bg-secondary/30 border-primary/20"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="facebook" className="flex items-center gap-2">
-                      <Facebook className="w-4 h-4" />
-                      Facebook
-                    </Label>
-                    <Input
-                      id="facebook"
-                      placeholder="facebook.com/seu_perfil"
-                      value={profile.socialMedia.facebook || ''}
-                      onChange={(e) => updateSocialMedia('facebook', e.target.value)}
-                      className="bg-secondary/30 border-primary/20"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="linkedin" className="flex items-center gap-2">
-                      <Linkedin className="w-4 h-4" />
-                      LinkedIn
-                    </Label>
-                    <Input
-                      id="linkedin"
-                      placeholder="linkedin.com/in/seu_perfil"
-                      value={profile.socialMedia.linkedin || ''}
-                      onChange={(e) => updateSocialMedia('linkedin', e.target.value)}
-                      className="bg-secondary/30 border-primary/20"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="youtube" className="flex items-center gap-2">
-                      <Youtube className="w-4 h-4" />
-                      YouTube
-                    </Label>
-                    <Input
-                      id="youtube"
-                      placeholder="youtube.com/@seu_canal"
-                      value={profile.socialMedia.youtube || ''}
-                      onChange={(e) => updateSocialMedia('youtube', e.target.value)}
-                      className="bg-secondary/30 border-primary/20"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="website" className="flex items-center gap-2">
-                      <Globe className="w-4 h-4" />
-                      Website
-                    </Label>
-                    <Input
-                      id="website"
-                      placeholder="https://seu-site.com"
-                      value={profile.socialMedia.website || ''}
-                      onChange={(e) => updateSocialMedia('website', e.target.value)}
-                      className="bg-secondary/30 border-primary/20"
+                      id="status"
+                      value={user ? 'Ativo' : 'Não autenticado'}
+                      disabled
+                      className="bg-secondary/30"
                     />
                   </div>
                 </div>
@@ -906,27 +504,7 @@ export const SettingsPage: React.FC = () => {
                 <h3 className="text-lg font-semibold text-primary">
                   Ações da Conta
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Button
-                    onClick={saveProfile}
-                    disabled={isSavingProfile}
-                    className="flex items-center gap-2"
-                  >
-                    {isSavingProfile ? (
-                      <Loader className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Save className="w-4 h-4" />
-                    )}
-                    {isSavingProfile ? 'Salvando...' : 'Salvar Perfil'}
-                  </Button>
-                  <Button
-                    onClick={() => setShowPasswordDialog(true)}
-                    variant="outline"
-                    className="flex items-center gap-2"
-                  >
-                    <Lock className="w-4 h-4" />
-                    Trocar Senha
-                  </Button>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Button
                     onClick={logout}
                     variant="outline"
@@ -935,8 +513,6 @@ export const SettingsPage: React.FC = () => {
                     <Settings className="w-4 h-4" />
                     Sair da Conta
                   </Button>
-                </div>
-                <div className="flex justify-center">
                   <Button
                     variant="outline"
                     className="flex items-center gap-2 text-red-500 hover:text-red-600"
@@ -951,7 +527,7 @@ export const SettingsPage: React.FC = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Diálogos existentes */}
+      {/* Diálogos */}
       <Dialog open={showApiKeyDialog} onOpenChange={setShowApiKeyDialog}>
         <DialogContent className="bg-gradient-cinema border-primary/20">
           <DialogHeader>
@@ -1062,136 +638,6 @@ export const SettingsPage: React.FC = () => {
             >
               Confirmar
             </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Novos diálogos */}
-      <Dialog open={showProfileImageDialog} onOpenChange={setShowProfileImageDialog}>
-        <DialogContent className="bg-gradient-cinema border-primary/20">
-          <DialogHeader>
-            <DialogTitle className="text-primary flex items-center gap-2">
-              <Camera className="w-5 h-5" />
-              Foto de Perfil
-            </DialogTitle>
-            <DialogDescription>
-              Escolha uma imagem para sua foto de perfil
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <input
-              ref={profileImageInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={handleProfileImageUpload}
-              className="hidden"
-            />
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setShowProfileImageDialog(false)}
-              >
-                Cancelar
-              </Button>
-              <Button
-                onClick={() => profileImageInputRef.current?.click()}
-                disabled={isUploadingImage}
-              >
-                {isUploadingImage ? (
-                  <>
-                    <Loader className="w-4 h-4 animate-spin mr-2" />
-                    Processando...
-                  </>
-                ) : (
-                  <>
-                    <Camera className="w-4 h-4 mr-2" />
-                    Selecionar Imagem
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
-        <DialogContent className="bg-gradient-cinema border-primary/20">
-          <DialogHeader>
-            <DialogTitle className="text-primary flex items-center gap-2">
-              <Lock className="w-5 h-5" />
-              Trocar Senha
-            </DialogTitle>
-            <DialogDescription>
-              Digite sua senha atual e a nova senha
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="currentPassword">Senha Atual</Label>
-              <Input
-                id="currentPassword"
-                type="password"
-                placeholder="Sua senha atual"
-                value={passwordForm.currentPassword}
-                onChange={(e) => setPasswordForm(prev => ({
-                  ...prev,
-                  currentPassword: e.target.value
-                }))}
-                className="bg-secondary/30 border-primary/20"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="newPassword">Nova Senha</Label>
-              <Input
-                id="newPassword"
-                type="password"
-                placeholder="Nova senha (mín. 6 caracteres)"
-                value={passwordForm.newPassword}
-                onChange={(e) => setPasswordForm(prev => ({
-                  ...prev,
-                  newPassword: e.target.value
-                }))}
-                className="bg-secondary/30 border-primary/20"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="Confirme a nova senha"
-                value={passwordForm.confirmPassword}
-                onChange={(e) => setPasswordForm(prev => ({
-                  ...prev,
-                  confirmPassword: e.target.value
-                }))}
-                className="bg-secondary/30 border-primary/20"
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setShowPasswordDialog(false)}
-              >
-                Cancelar
-              </Button>
-              <Button
-                onClick={handlePasswordChange}
-                disabled={isChangingPassword}
-              >
-                {isChangingPassword ? (
-                  <>
-                    <Loader className="w-4 h-4 animate-spin mr-2" />
-                    Alterando...
-                  </>
-                ) : (
-                  <>
-                    <Lock className="w-4 h-4 mr-2" />
-                    Alterar Senha
-                  </>
-                )}
-              </Button>
-            </div>
           </div>
         </DialogContent>
       </Dialog>
