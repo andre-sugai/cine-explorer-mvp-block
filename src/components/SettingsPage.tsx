@@ -26,8 +26,6 @@ import {
   User,
   BarChart3,
   Cog,
-  Camera,
-  Edit,
   Lock,
   Instagram,
   Twitter,
@@ -36,12 +34,13 @@ import {
   Youtube,
   Globe,
   Save,
-  X,
 } from 'lucide-react';
 import { useDataManager } from '@/hooks/useDataManager';
 import { useFavoritesContext } from '@/context/FavoritesContext';
 import { useWatchedContext } from '@/context/WatchedContext';
 import { useAuth } from '@/context/AuthContext';
+import { useProfileImage } from '@/hooks/useProfileImage';
+import { ProfileImageUpload } from '@/components/profile/ProfileImageUpload';
 import { toast } from '@/hooks/use-toast';
 
 /**
@@ -82,8 +81,6 @@ export const SettingsPage: React.FC = () => {
 
   // Novos estados para funcionalidades do perfil
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
-  const [showProfileImageDialog, setShowProfileImageDialog] = useState(false);
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   
@@ -101,9 +98,6 @@ export const SettingsPage: React.FC = () => {
     newPassword: '',
     confirmPassword: ''
   });
-
-  // Refs
-  const profileImageInputRef = useRef<HTMLInputElement>(null);
 
   // Hooks existentes
   const {
@@ -124,6 +118,7 @@ export const SettingsPage: React.FC = () => {
     getStats: getWatchedStats,
   } = useWatchedContext();
   const { user, logout } = useAuth();
+  const { deleteProfileImage, extractFileNameFromUrl } = useProfileImage();
 
   const favoritesStats = getFavoritesStats();
   const watchedStats = getWatchedStats();
@@ -167,72 +162,45 @@ export const SettingsPage: React.FC = () => {
   };
 
   /**
-   * Processa o upload da imagem de perfil
+   * Remove a imagem de perfil
    */
-  const handleProfileImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    // Validações
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
-      toast({
-        title: 'Formato inválido',
-        description: 'Use apenas imagens JPG, PNG ou WebP.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) { // 5MB
-      toast({
-        title: 'Arquivo muito grande',
-        description: 'A imagem deve ter no máximo 5MB.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setIsUploadingImage(true);
+  const removeProfileImage = async () => {
     try {
-      // Converte a imagem para base64
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        setProfile(prev => ({
-          ...prev,
-          profileImage: result
-        }));
-        toast({
-          title: 'Imagem carregada!',
-          description: 'Sua foto de perfil foi atualizada.',
-        });
-        setShowProfileImageDialog(false);
-      };
-      reader.readAsDataURL(file);
+      // Se há uma imagem atual, remove do Supabase Storage
+      if (profile.profileImage && profile.profileImage.includes('supabase')) {
+        const fileName = extractFileNameFromUrl(profile.profileImage);
+        if (fileName) {
+          await deleteProfileImage(fileName);
+        }
+      }
+
+      // Atualiza o estado local
+      setProfile(prev => ({
+        ...prev,
+        profileImage: ''
+      }));
+
+      toast({
+        title: 'Imagem removida',
+        description: 'Sua foto de perfil foi removida.',
+      });
     } catch (error) {
       toast({
-        title: 'Erro ao processar imagem',
-        description: 'Não foi possível processar a imagem.',
+        title: 'Erro ao remover imagem',
+        description: 'Não foi possível remover a imagem do servidor.',
         variant: 'destructive',
       });
-    } finally {
-      setIsUploadingImage(false);
     }
   };
 
   /**
-   * Remove a imagem de perfil
+   * Atualiza a imagem de perfil
    */
-  const removeProfileImage = () => {
+  const updateProfileImage = (imageUrl: string) => {
     setProfile(prev => ({
       ...prev,
-      profileImage: ''
+      profileImage: imageUrl
     }));
-    toast({
-      title: 'Imagem removida',
-      description: 'Sua foto de perfil foi removida.',
-    });
   };
 
   /**
@@ -687,46 +655,11 @@ export const SettingsPage: React.FC = () => {
                 <h3 className="text-lg font-semibold text-primary">
                   Foto de Perfil
                 </h3>
-                <div className="flex items-center gap-4">
-                  <div className="relative">
-                    <div className="w-20 h-20 rounded-full overflow-hidden bg-secondary/30 border-2 border-primary/20">
-                      {profile.profileImage ? (
-                        <img
-                          src={profile.profileImage}
-                          alt="Foto de perfil"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <User className="w-8 h-8 text-muted-foreground" />
-                        </div>
-                      )}
-                    </div>
-                    {profile.profileImage && (
-                      <Button
-                        onClick={removeProfileImage}
-                        size="sm"
-                        variant="outline"
-                        className="absolute -top-2 -right-2 w-6 h-6 p-0 rounded-full bg-red-500 hover:bg-red-600 text-white border-0"
-                      >
-                        <X className="w-3 h-3" />
-                      </Button>
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Button
-                      onClick={() => setShowProfileImageDialog(true)}
-                      variant="outline"
-                      className="flex items-center gap-2"
-                    >
-                      <Camera className="w-4 h-4" />
-                      {profile.profileImage ? 'Alterar Foto' : 'Adicionar Foto'}
-                    </Button>
-                    <p className="text-sm text-muted-foreground">
-                      JPG, PNG ou WebP (máx. 5MB)
-                    </p>
-                  </div>
-                </div>
+                <ProfileImageUpload
+                  currentImage={profile.profileImage}
+                  onImageUpdate={updateProfileImage}
+                  onImageRemove={removeProfileImage}
+                />
               </div>
 
               {/* Informações Básicas */}
@@ -1066,54 +999,7 @@ export const SettingsPage: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Novos diálogos */}
-      <Dialog open={showProfileImageDialog} onOpenChange={setShowProfileImageDialog}>
-        <DialogContent className="bg-gradient-cinema border-primary/20">
-          <DialogHeader>
-            <DialogTitle className="text-primary flex items-center gap-2">
-              <Camera className="w-5 h-5" />
-              Foto de Perfil
-            </DialogTitle>
-            <DialogDescription>
-              Escolha uma imagem para sua foto de perfil
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <input
-              ref={profileImageInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={handleProfileImageUpload}
-              className="hidden"
-            />
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setShowProfileImageDialog(false)}
-              >
-                Cancelar
-              </Button>
-              <Button
-                onClick={() => profileImageInputRef.current?.click()}
-                disabled={isUploadingImage}
-              >
-                {isUploadingImage ? (
-                  <>
-                    <Loader className="w-4 h-4 animate-spin mr-2" />
-                    Processando...
-                  </>
-                ) : (
-                  <>
-                    <Camera className="w-4 h-4 mr-2" />
-                    Selecionar Imagem
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
+      {/* Diálogo de troca de senha */}
       <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
         <DialogContent className="bg-gradient-cinema border-primary/20">
           <DialogHeader>
