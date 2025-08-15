@@ -90,12 +90,6 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
       icon: Sparkles,
       path: '/recomendacoes',
     },
-    {
-      id: 'settings',
-      label: 'Configurações',
-      icon: Settings,
-      path: '/configuracoes',
-    },
   ];
 
   const isActive = (path: string) => currentPath === path;
@@ -132,31 +126,29 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
 
           {/* Navigation - Desktop */}
           <nav className="hidden md:flex items-center gap-2">
-            {navItems
-              .filter((item) => item.id !== 'settings')
-              .map((item, idx) => {
-                const Icon = item.icon;
-                const active = isActive(item.path);
+            {navItems.map((item, idx) => {
+              const Icon = item.icon;
+              const active = isActive(item.path);
 
-                return (
-                  <Link key={item.id} to={item.path}>
-                    <Button
-                      variant={active ? 'default' : 'ghost'}
-                      className={`
-                      flex items-center gap-2 transition-all duration-200
-                      ${
-                        active
-                          ? 'bg-gradient-gold text-cinema-dark shadow-glow'
-                          : 'text-foreground hover:text-primary hover:bg-secondary/50'
-                      }
-                    `}
-                    >
-                      <Icon className="w-4 h-4" />
-                      {item.label}
-                    </Button>
-                  </Link>
-                );
-              })}
+              return (
+                <Link key={item.id} to={item.path}>
+                  <Button
+                    variant={active ? 'default' : 'ghost'}
+                    className={`
+                    flex items-center gap-2 transition-all duration-200
+                    ${
+                      active
+                        ? 'bg-gradient-gold text-cinema-dark shadow-glow'
+                        : 'text-foreground hover:text-primary hover:bg-secondary/50'
+                    }
+                  `}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {item.label}
+                  </Button>
+                </Link>
+              );
+            })}
 
             {/* Campo de busca separado da navegação */}
             <form
@@ -202,6 +194,13 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
                   <DropdownMenuContent className="w-56" align="end">
                     <DropdownMenuItem disabled>{user?.email}</DropdownMenuItem>
                     <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link to="/configuracoes">
+                        <Settings className="mr-2 h-4 w-4" />
+                        Configurações
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={logout}>
                       <LogOut className="mr-2 h-4 w-4" />
                       Sair
@@ -217,24 +216,6 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
                   Entrar
                 </Button>
               )}
-
-              {/* Settings Icon */}
-              <Link to="/configuracoes">
-                <Button
-                  variant={isActive('/configuracoes') ? 'default' : 'ghost'}
-                  size="sm"
-                  className={`
-                    p-2 transition-all duration-200
-                    ${
-                      isActive('/configuracoes')
-                        ? 'bg-gradient-gold text-cinema-dark shadow-glow'
-                        : 'text-foreground hover:text-primary hover:bg-secondary/50'
-                    }
-                  `}
-                >
-                  <Settings className="w-4 h-4" />
-                </Button>
-              </Link>
             </div>
           </nav>
 
@@ -331,6 +312,18 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
                           <LogOut className="w-5 h-5" />
                           Sair
                         </Button>
+                        <Link
+                          to="/configuracoes"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                          <Button
+                            variant="outline"
+                            className="w-full justify-start gap-3 h-12"
+                          >
+                            <Settings className="w-5 h-5" />
+                            Configurações
+                          </Button>
+                        </Link>
                       </div>
                     ) : (
                       <Button
