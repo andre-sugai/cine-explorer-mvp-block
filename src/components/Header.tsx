@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Film,
@@ -36,7 +36,7 @@ import {
   DrawerTrigger,
   DrawerClose,
 } from '@/components/ui/drawer';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface HeaderProps {
@@ -52,9 +52,52 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showMigrationModal, setShowMigrationModal] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [userProfile, setUserProfile] = useState<{
+    profileImage?: string;
+    nickname?: string;
+  }>({});
   const navigate = useNavigate();
   const { user, isAuthenticated, logout } = useAuth();
   const isMobile = useIsMobile();
+
+  /**
+   * Carrega o perfil do usuário do localStorage
+   */
+  useEffect(() => {
+    if (isAuthenticated) {
+      const savedProfile = localStorage.getItem('user_profile');
+      if (savedProfile) {
+        try {
+          const parsedProfile = JSON.parse(savedProfile);
+          setUserProfile(parsedProfile);
+        } catch (error) {
+          console.error('Erro ao carregar perfil:', error);
+        }
+      }
+    }
+  }, [isAuthenticated]);
+
+  /**
+   * Escuta mudanças no localStorage para atualizar o perfil em tempo real
+   */
+  useEffect(() => {
+    const handleStorageChange = () => {
+      if (isAuthenticated) {
+        const savedProfile = localStorage.getItem('user_profile');
+        if (savedProfile) {
+          try {
+            const parsedProfile = JSON.parse(savedProfile);
+            setUserProfile(parsedProfile);
+          } catch (error) {
+            console.error('Erro ao carregar perfil:', error);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [isAuthenticated]);
 
   const handleAuthSuccess = () => {
     setShowAuthModal(false);
@@ -185,8 +228,17 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
                       className="relative h-8 w-8 rounded-full"
                     >
                       <Avatar className="h-8 w-8">
-                        <AvatarFallback>
-                          {user?.email?.charAt(0).toUpperCase()}
+                        {userProfile.profileImage ? (
+                          <AvatarImage
+                            src={userProfile.profileImage}
+                            alt="Foto de perfil"
+                            className="object-cover"
+                          />
+                        ) : null}
+                        <AvatarFallback className="bg-gradient-gold text-cinema-dark font-medium">
+                          {userProfile.nickname
+                            ? userProfile.nickname.charAt(0).toUpperCase()
+                            : user?.email?.charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                     </Button>
@@ -288,16 +340,27 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
                       <div className="space-y-3">
                         <div className="flex items-center gap-3 p-3 bg-secondary/30 rounded-lg">
                           <Avatar className="h-10 w-10">
-                            <AvatarFallback className="bg-gradient-gold text-cinema-dark">
-                              {user?.email?.charAt(0).toUpperCase()}
+                            {userProfile.profileImage ? (
+                              <AvatarImage
+                                src={userProfile.profileImage}
+                                alt="Foto de perfil"
+                                className="object-cover"
+                              />
+                            ) : null}
+                            <AvatarFallback className="bg-gradient-gold text-cinema-dark font-medium">
+                              {userProfile.nickname
+                                ? userProfile.nickname.charAt(0).toUpperCase()
+                                : user?.email?.charAt(0).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-foreground truncate">
-                              {user?.email}
+                              {userProfile.nickname || user?.email}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              Usuário logado
+                              {userProfile.nickname
+                                ? 'Usuário logado'
+                                : user?.email}
                             </p>
                           </div>
                         </div>
