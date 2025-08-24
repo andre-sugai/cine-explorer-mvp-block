@@ -14,6 +14,8 @@ import {
   Menu,
   Search,
   X,
+  Mic,
+  MicOff,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
@@ -21,6 +23,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { DataMigrationModal } from '@/components/auth/DataMigrationModal';
+import { useVoiceSearch } from '@/hooks/useVoiceSearch';
+import { toast } from '@/hooks/use-toast';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -59,6 +63,15 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
   const navigate = useNavigate();
   const { user, isAuthenticated, logout } = useAuth();
   const isMobile = useIsMobile();
+
+  // Hook para busca por voz
+  const {
+    isSupported: isVoiceSupported,
+    isListening,
+    startListening,
+    stopListening,
+    error: voiceError,
+  } = useVoiceSearch();
 
   /**
    * Carrega o perfil do usuário do localStorage
@@ -99,9 +112,49 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, [isAuthenticated]);
 
+  // Efeito para mostrar erros de voz
+  useEffect(() => {
+    if (voiceError) {
+      toast({
+        title: 'Erro na busca por voz',
+        description: voiceError,
+        variant: 'destructive',
+      });
+    }
+  }, [voiceError]);
+
   const handleAuthSuccess = () => {
     setShowAuthModal(false);
     setShowMigrationModal(true);
+  };
+
+  /**
+   * Função para lidar com a busca por voz
+   * Inicia o reconhecimento de fala e atualiza o campo de busca com o resultado
+   */
+  const handleVoiceSearch = () => {
+    if (!isVoiceSupported) {
+      toast({
+        title: 'Navegador não suportado',
+        description:
+          'Seu navegador não suporta busca por voz. Tente usar Chrome, Edge ou Safari.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (isListening) {
+      stopListening();
+      return;
+    }
+
+    startListening((transcript) => {
+      setSearchTerm(transcript);
+      toast({
+        title: 'Busca por voz',
+        description: `"${transcript}" - Pressione Enter para buscar`,
+      });
+    });
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -162,8 +215,33 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Buscar..."
-                className="pl-10 pr-3 h-9 text-sm bg-secondary/50 border-none focus:bg-background focus:ring-2 focus:ring-primary/50 text-foreground placeholder:text-muted-foreground"
+                className="pl-10 pr-16 h-9 text-sm bg-secondary/50 border-none focus:bg-background focus:ring-2 focus:ring-primary/50 text-foreground placeholder:text-muted-foreground"
               />
+
+              {/* Botão de busca por voz - Mobile */}
+              {isVoiceSupported && (
+                <Button
+                  type="button"
+                  onClick={handleVoiceSearch}
+                  disabled={isListening}
+                  className={`
+                    absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0
+                    rounded-full transition-all duration-200
+                    ${
+                      isListening
+                        ? 'bg-red-500 hover:bg-red-600 animate-pulse'
+                        : 'bg-primary/20 hover:bg-primary/40 text-primary hover:text-primary'
+                    }
+                  `}
+                  title={isListening ? 'Parar gravação' : 'Buscar por voz'}
+                >
+                  {isListening ? (
+                    <MicOff className="w-3 h-3" />
+                  ) : (
+                    <Mic className="w-3 h-3" />
+                  )}
+                </Button>
+              )}
             </form>
           </div>
 
@@ -214,8 +292,33 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
                 onFocus={() => setIsSearchFocused(true)}
                 onBlur={() => setIsSearchFocused(false)}
                 placeholder="Buscar..."
-                className="pl-10 pr-3 h-10 text-base bg-secondary/50 border-none focus:bg-background focus:ring-2 focus:ring-primary/50 text-foreground placeholder:text-muted-foreground"
+                className="pl-10 pr-16 h-10 text-base bg-secondary/50 border-none focus:bg-background focus:ring-2 focus:ring-primary/50 text-foreground placeholder:text-muted-foreground"
               />
+
+              {/* Botão de busca por voz - Desktop */}
+              {isVoiceSupported && (
+                <Button
+                  type="button"
+                  onClick={handleVoiceSearch}
+                  disabled={isListening}
+                  className={`
+                    absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0
+                    rounded-full transition-all duration-200
+                    ${
+                      isListening
+                        ? 'bg-red-500 hover:bg-red-600 animate-pulse'
+                        : 'bg-primary/20 hover:bg-primary/40 text-primary hover:text-primary'
+                    }
+                  `}
+                  title={isListening ? 'Parar gravação' : 'Buscar por voz'}
+                >
+                  {isListening ? (
+                    <MicOff className="w-4 h-4" />
+                  ) : (
+                    <Mic className="w-4 h-4" />
+                  )}
+                </Button>
+              )}
             </form>
 
             {/* Auth Section */}
@@ -302,8 +405,8 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
                   </div>
                 </DrawerHeader>
 
+                {/* Mobile Navigation */}
                 <div className="flex-1 overflow-y-auto p-4">
-                  {/* Navigation Items */}
                   <nav className="space-y-2">
                     {navItems.map((item) => {
                       const Icon = item.icon;
@@ -318,15 +421,15 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
                           <Button
                             variant={active ? 'default' : 'ghost'}
                             className={`
-                              w-full justify-start gap-3 h-12 text-base transition-all duration-200
-                              ${
-                                active
-                                  ? 'bg-gradient-gold text-cinema-dark shadow-glow'
-                                  : 'text-foreground hover:text-primary hover:bg-secondary/50'
-                              }
-                            `}
+                            w-full justify-start transition-all duration-200
+                            ${
+                              active
+                                ? 'bg-gradient-gold text-cinema-dark shadow-glow'
+                                : 'text-foreground hover:text-primary hover:bg-secondary/50'
+                            }
+                          `}
                           >
-                            <Icon className="w-5 h-5" />
+                            <Icon className="w-5 h-5 mr-3" />
                             {item.label}
                           </Button>
                         </Link>
@@ -334,10 +437,10 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
                     })}
                   </nav>
 
-                  {/* Auth Section Mobile */}
+                  {/* Auth Section - Mobile */}
                   <div className="mt-6 pt-6 border-t border-border/50">
                     {isAuthenticated ? (
-                      <div className="space-y-3">
+                      <div className="space-y-2">
                         <div className="flex items-center gap-3 p-3 bg-secondary/30 rounded-lg">
                           <Avatar className="h-10 w-10">
                             {userProfile.profileImage ? (
@@ -357,36 +460,32 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
                             <p className="text-sm font-medium text-foreground truncate">
                               {userProfile.nickname || user?.email}
                             </p>
-                            <p className="text-xs text-muted-foreground">
-                              {userProfile.nickname
-                                ? 'Usuário logado'
-                                : user?.email}
+                            <p className="text-xs text-muted-foreground truncate">
+                              {user?.email}
                             </p>
                           </div>
                         </div>
                         <Button
-                          onClick={() => {
-                            logout();
-                            setIsMobileMenuOpen(false);
-                          }}
-                          variant="outline"
-                          className="w-full justify-start gap-3 h-12"
+                          variant="ghost"
+                          className="w-full justify-start"
+                          asChild
                         >
-                          <LogOut className="w-5 h-5" />
+                          <Link
+                            to="/configuracoes"
+                            onClick={() => handleNavigation('/configuracoes')}
+                          >
+                            <Settings className="w-5 h-5 mr-3" />
+                            Configurações
+                          </Link>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-start text-destructive hover:text-destructive"
+                          onClick={logout}
+                        >
+                          <LogOut className="w-5 h-5 mr-3" />
                           Sair
                         </Button>
-                        <Link
-                          to="/configuracoes"
-                          onClick={() => setIsMobileMenuOpen(false)}
-                        >
-                          <Button
-                            variant="outline"
-                            className="w-full justify-start gap-3 h-12"
-                          >
-                            <Settings className="w-5 h-5" />
-                            Configurações
-                          </Button>
-                        </Link>
                       </div>
                     ) : (
                       <Button
@@ -395,9 +494,9 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
                           setIsMobileMenuOpen(false);
                         }}
                         variant="outline"
-                        className="w-full justify-start gap-3 h-12"
+                        className="w-full"
                       >
-                        <LogIn className="w-5 h-5" />
+                        <LogIn className="mr-2 h-4 w-4" />
                         Entrar
                       </Button>
                     )}
@@ -409,14 +508,15 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
         </div>
       </div>
 
+      {/* Modals */}
       <AuthModal
-        isOpen={showAuthModal}
+        open={showAuthModal}
         onClose={() => setShowAuthModal(false)}
+        onSuccess={handleAuthSuccess}
       />
       <DataMigrationModal
-        isOpen={showMigrationModal}
+        open={showMigrationModal}
         onClose={() => setShowMigrationModal(false)}
-        onMigrationComplete={() => setShowMigrationModal(false)}
       />
     </header>
   );

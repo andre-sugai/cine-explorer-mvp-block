@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Dice6 } from 'lucide-react';
+import { Search, Dice6, Mic, MicOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { LuckyButton } from '@/components/LuckyButton';
 import { TrailerButton } from '@/components/TrailerButton';
+import { useVoiceSearch } from '@/hooks/useVoiceSearch';
+import { toast } from '@/hooks/use-toast';
 import {
   getPopularMovies,
   getPopularTVShows,
@@ -21,6 +23,26 @@ export const SearchSection: React.FC = () => {
     null
   );
   const navigate = useNavigate();
+
+  // Hook para busca por voz
+  const {
+    isSupported: isVoiceSupported,
+    isListening,
+    startListening,
+    stopListening,
+    error: voiceError,
+  } = useVoiceSearch();
+
+  // Efeito para mostrar erros de voz
+  useEffect(() => {
+    if (voiceError) {
+      toast({
+        title: 'Erro na busca por voz',
+        description: voiceError,
+        variant: 'destructive',
+      });
+    }
+  }, [voiceError]);
 
   useEffect(() => {
     // Busca filmes e séries populares e escolhe uma imagem aleatória
@@ -57,6 +79,35 @@ export const SearchSection: React.FC = () => {
     if (searchTerm.trim()) {
       navigate(`/busca/${encodeURIComponent(searchTerm.trim())}`);
     }
+  };
+
+  /**
+   * Função para lidar com a busca por voz
+   * Inicia o reconhecimento de fala e atualiza o campo de busca com o resultado
+   */
+  const handleVoiceSearch = () => {
+    if (!isVoiceSupported) {
+      toast({
+        title: 'Navegador não suportado',
+        description:
+          'Seu navegador não suporta busca por voz. Tente usar Chrome, Edge ou Safari.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (isListening) {
+      stopListening();
+      return;
+    }
+
+    startListening((transcript) => {
+      setSearchTerm(transcript);
+      toast({
+        title: 'Busca por voz',
+        description: `"${transcript}" - Clique em Pesquisar para buscar`,
+      });
+    });
   };
 
   const handleRandomItemClick = () => {
@@ -156,12 +207,43 @@ export const SearchSection: React.FC = () => {
                   onBlur={() => setIsSearchFocused(false)}
                   placeholder="Busque por filmes, séries, atores ou diretores..."
                   className="
-                    pl-16 pr-40 h-16 text-lg bg-secondary/50 border-none 
+                    pl-16 pr-48 h-16 text-lg bg-secondary/50 border-none 
                     focus:bg-background focus:ring-2 focus:ring-primary/50
                     text-foreground placeholder:text-muted-foreground
                     transition-all duration-200
                   "
                 />
+
+                {/* Botão de busca por voz */}
+                {isVoiceSupported && (
+                  <Button
+                    type="button"
+                    onClick={handleVoiceSearch}
+                    disabled={isListening}
+                    className={`
+                      absolute right-36 top-1/2 transform -translate-y-1/2 h-12 w-12 p-0
+                      rounded-full transition-all duration-200
+                      ${
+                        isListening
+                          ? 'bg-red-500 hover:bg-red-600 animate-pulse'
+                          : 'bg-primary/20 hover:bg-primary/40 text-primary hover:text-primary'
+                      }
+                      ${
+                        isListening
+                          ? 'shadow-lg shadow-red-500/50'
+                          : 'hover:scale-105'
+                      }
+                    `}
+                    title={isListening ? 'Parar gravação' : 'Buscar por voz'}
+                  >
+                    {isListening ? (
+                      <MicOff className="w-5 h-5" />
+                    ) : (
+                      <Mic className="w-5 h-5" />
+                    )}
+                  </Button>
+                )}
+
                 <Button
                   type="submit"
                   className="
@@ -191,6 +273,11 @@ export const SearchSection: React.FC = () => {
           <p className="text-sm text-muted-foreground">
             Use palavras-chave em português ou inglês para encontrar o que
             procura
+            {isVoiceSupported && (
+              <span className="block mt-1">
+                🎤 Ou clique no ícone de microfone para buscar por voz
+              </span>
+            )}
           </p>
         </div>
       </div>
