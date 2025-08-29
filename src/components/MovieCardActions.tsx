@@ -37,23 +37,29 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
   const watched =
     type !== 'person' ? isWatched(id, type as 'movie' | 'tv') : false;
 
-  const handleFavorite = (e: React.MouseEvent) => {
+  const handleFavorite = async (e: React.MouseEvent) => {
     e.stopPropagation();
 
-    if (favorite) {
-      removeFromFavorites(id, type);
-      toast.success('Removido dos favoritos');
-    } else {
-      addToFavorites({
-        id,
-        type: type as 'movie' | 'tv' | 'person',
-        title,
-        poster_path,
-        release_date,
-        vote_average,
-        genre_ids,
-      });
-      toast.success('Adicionado aos favoritos');
+    try {
+      if (favorite) {
+        await removeFromFavorites(id, type);
+        toast.success('Removido dos favoritos');
+      } else {
+        await addToFavorites({
+          id,
+          type: type as 'movie' | 'tv' | 'person',
+          title,
+          poster_path,
+          release_date,
+          vote_average,
+          genre_ids,
+        });
+        toast.success('Adicionado aos favoritos');
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Erro ao atualizar favoritos'
+      );
     }
   };
 

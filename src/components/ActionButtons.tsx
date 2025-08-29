@@ -34,19 +34,25 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
   const watched = isWatched(id, type);
   const wantToWatch = isInWantToWatch(id);
 
-  const handleFavorite = () => {
-    if (favorite) {
-      removeFromFavorites(id, type);
-      toast.success('Removido dos favoritos');
-    } else {
-      addToFavorites({
-        id,
-        type,
-        title,
-        poster_path,
-        profile_path,
-      });
-      toast.success('Adicionado aos favoritos');
+  const handleFavorite = async () => {
+    try {
+      if (favorite) {
+        await removeFromFavorites(id, type);
+        toast.success('Removido dos favoritos');
+      } else {
+        await addToFavorites({
+          id,
+          type,
+          title,
+          poster_path,
+          profile_path,
+        });
+        toast.success('Adicionado aos favoritos');
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Erro ao atualizar favoritos'
+      );
     }
   };
 

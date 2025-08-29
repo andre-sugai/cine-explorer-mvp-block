@@ -295,19 +295,35 @@ export const FavoritesPage: React.FC = () => {
 
   const stats = getStats();
 
-  const handleRemoveFavorite = (id: number, type: string, title: string) => {
-    removeFromFavorites(id, type);
-    toast.success(`${title} foi removido da sua lista de favoritos.`);
+  const handleRemoveFavorite = async (
+    id: number,
+    type: string,
+    title: string
+  ) => {
+    try {
+      await removeFromFavorites(id, type);
+      toast.success(`${title} foi removido da sua lista de favoritos.`);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Erro ao remover favorito'
+      );
+    }
   };
 
-  const handleClearAll = () => {
+  const handleClearAll = async () => {
     if (
       window.confirm(
         'Tem certeza que deseja remover todos os favoritos? Esta ação não pode ser desfeita.'
       )
     ) {
-      clearAllFavorites();
-      toast.success('Todos os favoritos foram removidos.');
+      try {
+        await clearAllFavorites();
+        toast.success('Todos os favoritos foram removidos.');
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : 'Erro ao limpar favoritos'
+        );
+      }
     }
   };
 

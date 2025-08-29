@@ -24,9 +24,9 @@ interface FavoriteItem {
 
 interface FavoritesContextData {
   favorites: FavoriteItem[];
-  addToFavorites: (item: Omit<FavoriteItem, 'addedAt'>) => void;
-  removeFromFavorites: (id: number, type: string) => void;
-  clearAllFavorites: () => void;
+  addToFavorites: (item: Omit<FavoriteItem, 'addedAt'>) => Promise<void>;
+  removeFromFavorites: (id: number, type: string) => Promise<void>;
+  clearAllFavorites: () => Promise<void>;
   getFavoritesByType: (type: 'movie' | 'tv' | 'person') => FavoriteItem[];
   getStats: () => {
     total: number;
@@ -75,17 +75,28 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) {
         console.error('Error loading favorites:', error);
+        // Fallback para localStorage em caso de erro
+        loadFavoritesFromLocalStorage();
         return;
       }
 
-      const formattedFavorites = data?.map((item) => ({
-        ...(item.item_data as any),
-        addedAt: item.created_at,
-      })) || [];
+      const formattedFavorites =
+        data?.map((item) => ({
+          ...(item.item_data as any),
+          addedAt: item.created_at,
+        })) || [];
 
       setFavorites(formattedFavorites);
+
+      // Sincronizar com localStorage como backup
+      localStorage.setItem(
+        'cine-explorer-favorites',
+        JSON.stringify(formattedFavorites)
+      );
     } catch (error) {
       console.error('Error loading favorites:', error);
+      // Fallback para localStorage em caso de erro
+      loadFavoritesFromLocalStorage();
     } finally {
       setIsLoading(false);
     }
@@ -97,85 +108,147 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
       addedAt: new Date().toISOString(),
     };
 
+    // Atualizar estado local otimisticamente
+    setFavorites((prev) => [...prev, favoriteItem]);
+
     if (isAuthenticated && user) {
-      // Add to Supabase
+      // Tentar adicionar ao Supabase
       try {
-        await supabase.from('user_favorites').insert({
+        const { error } = await supabase.from('user_favorites').insert({
           user_id: user.id,
           item_id: item.id,
           item_type: item.type,
           item_data: favoriteItem as any,
         });
+
+        if (error) {
+          // Se falhar, reverter estado local
+          setFavorites((prev) =>
+            prev.filter(
+              (fav) => !(fav.id === item.id && fav.type === item.type)
+            )
+          );
+          console.error('Error adding to favorites in Supabase:', error);
+          throw new Error('Falha ao salvar favorito. Tente novamente.');
+        }
+
+        // Se sucesso, atualizar localStorage como backup
+        setFavorites((current) => {
+          localStorage.setItem(
+            'cine-explorer-favorites',
+            JSON.stringify(current)
+          );
+          return current;
+        });
       } catch (error) {
-        console.error('Error adding to favorites in Supabase:', error);
+        // Reverter estado local em caso de erro
+        setFavorites((prev) =>
+          prev.filter((fav) => !(fav.id === item.id && fav.type === item.type))
+        );
+        throw error; // Propagar erro para componente tratar
       }
     } else {
-      // Add to localStorage for non-authenticated users
-      setFavorites((prev) => {
-        const newFavorites = [...prev, favoriteItem];
+      // Usuário não logado - usar localStorage
+      setFavorites((current) => {
         localStorage.setItem(
           'cine-explorer-favorites',
-          JSON.stringify(newFavorites)
+          JSON.stringify(current)
         );
-        return newFavorites;
+        return current;
       });
     }
-
-    // Update local state
-    setFavorites((prev) => [...prev, favoriteItem]);
   };
 
   const removeFromFavorites = async (id: number, type: string) => {
+    // Backup do item antes de remover
+    const itemToRemove = favorites.find(
+      (fav) => fav.id === id && fav.type === type
+    );
+
+    // Remover do estado local otimisticamente
+    setFavorites((prev) =>
+      prev.filter((fav) => !(fav.id === id && fav.type === type))
+    );
+
     if (isAuthenticated && user) {
-      // Remove from Supabase
+      // Tentar remover do Supabase
       try {
-        await supabase
+        const { error } = await supabase
           .from('user_favorites')
           .delete()
           .eq('user_id', user.id)
           .eq('item_id', id)
           .eq('item_type', type);
+
+        if (error) {
+          // Se falhar, restaurar item no estado local
+          if (itemToRemove) {
+            setFavorites((prev) => [...prev, itemToRemove]);
+          }
+          console.error('Error removing from favorites in Supabase:', error);
+          throw new Error('Falha ao remover favorito. Tente novamente.');
+        }
+
+        // Se sucesso, atualizar localStorage
+        setFavorites((current) => {
+          localStorage.setItem(
+            'cine-explorer-favorites',
+            JSON.stringify(current)
+          );
+          return current;
+        });
       } catch (error) {
-        console.error('Error removing from favorites in Supabase:', error);
+        // Restaurar item em caso de erro
+        if (itemToRemove) {
+          setFavorites((prev) => [...prev, itemToRemove]);
+        }
+        throw error;
       }
     } else {
-      // Remove from localStorage for non-authenticated users
-      setFavorites((prev) => {
-        const newFavorites = prev.filter(
-          (fav) => !(fav.id === id && fav.type === type)
-        );
+      // Usuário não logado - atualizar localStorage
+      setFavorites((current) => {
         localStorage.setItem(
           'cine-explorer-favorites',
-          JSON.stringify(newFavorites)
+          JSON.stringify(current)
         );
-        return newFavorites;
+        return current;
       });
     }
-
-    // Update local state
-    setFavorites((prev) => 
-      prev.filter((fav) => !(fav.id === id && fav.type === type))
-    );
   };
 
   const clearAllFavorites = async () => {
+    // Backup dos favoritos antes de limpar
+    const favoritesBackup = [...favorites];
+
+    // Limpar estado local otimisticamente
+    setFavorites([]);
+
     if (isAuthenticated && user) {
-      // Clear from Supabase
+      // Tentar limpar do Supabase
       try {
-        await supabase
+        const { error } = await supabase
           .from('user_favorites')
           .delete()
           .eq('user_id', user.id);
+
+        if (error) {
+          // Se falhar, restaurar favoritos
+          setFavorites(favoritesBackup);
+          console.error('Error clearing favorites in Supabase:', error);
+          throw new Error('Falha ao limpar favoritos. Tente novamente.');
+        }
+
+        // Se sucesso, limpar localStorage
+        localStorage.removeItem('cine-explorer-favorites');
       } catch (error) {
-        console.error('Error clearing favorites in Supabase:', error);
+        // Restaurar favoritos em caso de erro
+        setFavorites(favoritesBackup);
+        throw error;
       }
     } else {
-      // Clear from localStorage
+      // Usuário não logado - limpar localStorage
       localStorage.removeItem('cine-explorer-favorites');
     }
-
-    // Update local state
-    setFavorites([]);
   };
 
   const getFavoritesByType = (type: 'movie' | 'tv' | 'person') => {
