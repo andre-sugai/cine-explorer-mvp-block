@@ -174,121 +174,137 @@ export const useTrailers = () => {
   const getRandomTrailer = async (): Promise<Trailer | null> => {
     setIsLoading(true);
 
-    try {
-      // Selecionar categoria aleatória
-      const selectedCategory = selectRandomCategory();
-      setCurrentCategory(selectedCategory.name);
+    // Tentar até 3 categorias diferentes se necessário
+    const maxCategoryAttempts = 3;
 
-      console.log(
-        `🎬 Selecionando trailer da categoria: ${selectedCategory.name}`
-      );
+    for (
+      let categoryAttempt = 0;
+      categoryAttempt < maxCategoryAttempts;
+      categoryAttempt++
+    ) {
+      try {
+        // Selecionar categoria aleatória
+        const selectedCategory = selectRandomCategory();
+        setCurrentCategory(selectedCategory.name);
 
-      const response = await selectedCategory.function();
-
-      if (!response || !response.results || response.results.length === 0) {
         console.log(
-          `❌ Nenhum resultado encontrado para categoria: ${selectedCategory.name}`
+          `🎬 Tentativa ${
+            categoryAttempt + 1
+          }: Selecionando trailer da categoria: ${selectedCategory.name}`
         );
-        return null;
-      }
 
-      // Filtrar filmes/séries que não foram vistos recentemente
-      const availableItems = response.results.filter(
-        (item) => !recentTrailers.includes(item.id)
-      );
+        const response = await selectedCategory.function();
 
-      // Se todos foram vistos, limpar histórico
-      const itemsToCheck =
-        availableItems.length > 0 ? availableItems : response.results;
-
-      // Tentar até 5 itens diferentes para encontrar um trailer
-      for (let i = 0; i < Math.min(5, itemsToCheck.length); i++) {
-        const randomItem =
-          itemsToCheck[Math.floor(Math.random() * itemsToCheck.length)];
-
-        try {
-          // Determinar o endpoint baseado no tipo de conteúdo
-          const endpoint = selectedCategory.type === 'tv' ? 'tv' : 'movie';
-
-          // Buscar vídeos do item
-          const videosResponse = await fetch(
-            `https://api.themoviedb.org/3/${endpoint}/${
-              randomItem.id
-            }/videos?api_key=${localStorage.getItem(
-              'tmdb_api_key'
-            )}&language=pt-BR`
+        if (!response || !response.results || response.results.length === 0) {
+          console.log(
+            `❌ Nenhum resultado encontrado para categoria: ${selectedCategory.name}`
           );
-          const videosData = await videosResponse.json();
-
-          if (videosData.results && videosData.results.length > 0) {
-            // Filtrar apenas trailers do YouTube
-            const trailers = videosData.results.filter(
-              (video: any) =>
-                video.type === 'Trailer' && video.site === 'YouTube'
-            );
-
-            if (trailers.length > 0) {
-              const trailer = trailers[0]; // Pegar o primeiro trailer
-
-              // Atualizar histórico de trailers recentes
-              setRecentTrailers((prev) => {
-                const updated = [randomItem.id, ...prev].slice(0, 50); // Manter últimos 50
-                return updated;
-              });
-
-              // Extract year from release date
-              const releaseDate =
-                selectedCategory.type === 'tv'
-                  ? randomItem.first_air_date
-                  : randomItem.release_date;
-
-              const releaseYear = releaseDate
-                ? new Date(releaseDate).getFullYear().toString()
-                : undefined;
-
-              const title =
-                selectedCategory.type === 'tv'
-                  ? randomItem.name || randomItem.original_name
-                  : randomItem.title || randomItem.original_title;
-
-              const trailerData: Trailer = {
-                id: trailer.id,
-                key: trailer.key,
-                name: trailer.name,
-                type: trailer.type,
-                site: trailer.site,
-                movieTitle: title,
-                movieId: randomItem.id,
-                releaseYear,
-                contentType: selectedCategory.type as 'movie' | 'tv',
-              };
-
-              setCurrentTrailer(trailerData);
-              console.log(
-                `✅ Trailer encontrado: ${title} (${selectedCategory.name})`
-              );
-              return trailerData;
-            }
-          }
-        } catch (error) {
-          console.error(
-            `❌ Erro ao buscar vídeos para ${selectedCategory.type} ${randomItem.id}:`,
-            error
-          );
-          continue; // Tentar próximo item
+          continue; // Tentar próxima categoria
         }
-      }
 
-      console.log(
-        `❌ Nenhum trailer encontrado após 5 tentativas na categoria: ${selectedCategory.name}`
-      );
-      return null;
-    } catch (error) {
-      console.error('❌ Erro ao obter trailer aleatório:', error);
-      return null;
-    } finally {
-      setIsLoading(false);
+        // Filtrar filmes/séries que não foram vistos recentemente
+        const availableItems = response.results.filter(
+          (item) => !recentTrailers.includes(item.id)
+        );
+
+        // Se todos foram vistos, limpar histórico
+        const itemsToCheck =
+          availableItems.length > 0 ? availableItems : response.results;
+
+        // Tentar até 5 itens diferentes para encontrar um trailer
+        for (let i = 0; i < Math.min(5, itemsToCheck.length); i++) {
+          const randomItem =
+            itemsToCheck[Math.floor(Math.random() * itemsToCheck.length)];
+
+          try {
+            // Determinar o endpoint baseado no tipo de conteúdo
+            const endpoint = selectedCategory.type === 'tv' ? 'tv' : 'movie';
+
+            // Buscar vídeos do item
+            const videosResponse = await fetch(
+              `https://api.themoviedb.org/3/${endpoint}/${
+                randomItem.id
+              }/videos?api_key=${localStorage.getItem(
+                'tmdb_api_key'
+              )}&language=pt-BR`
+            );
+            const videosData = await videosResponse.json();
+
+            if (videosData.results && videosData.results.length > 0) {
+              // Filtrar apenas trailers do YouTube
+              const trailers = videosData.results.filter(
+                (video: any) =>
+                  video.type === 'Trailer' && video.site === 'YouTube'
+              );
+
+              if (trailers.length > 0) {
+                const trailer = trailers[0]; // Pegar o primeiro trailer
+
+                // Atualizar histórico de trailers recentes
+                setRecentTrailers((prev) => {
+                  const updated = [randomItem.id, ...prev].slice(0, 50); // Manter últimos 50
+                  return updated;
+                });
+
+                // Extract year from release date
+                const releaseDate =
+                  selectedCategory.type === 'tv'
+                    ? randomItem.first_air_date
+                    : randomItem.release_date;
+
+                const releaseYear = releaseDate
+                  ? new Date(releaseDate).getFullYear().toString()
+                  : undefined;
+
+                const title =
+                  selectedCategory.type === 'tv'
+                    ? randomItem.name || randomItem.original_name
+                    : randomItem.title || randomItem.original_title;
+
+                const trailerData: Trailer = {
+                  id: trailer.id,
+                  key: trailer.key,
+                  name: trailer.name,
+                  type: trailer.type,
+                  site: trailer.site,
+                  movieTitle: title,
+                  movieId: randomItem.id,
+                  releaseYear,
+                  contentType: selectedCategory.type as 'movie' | 'tv',
+                };
+
+                setCurrentTrailer(trailerData);
+                console.log(
+                  `✅ Trailer encontrado: ${title} (${selectedCategory.name})`
+                );
+                setIsLoading(false);
+                return trailerData;
+              }
+            }
+          } catch (error) {
+            console.error(
+              `❌ Erro ao buscar vídeos para ${selectedCategory.type} ${randomItem.id}:`,
+              error
+            );
+            continue; // Tentar próximo item
+          }
+        }
+
+        console.log(
+          `❌ Nenhum trailer encontrado após 5 tentativas na categoria: ${selectedCategory.name}`
+        );
+      } catch (error) {
+        console.error(`❌ Erro na categoria ${selectedCategory?.name}:`, error);
+        continue; // Tentar próxima categoria
+      }
     }
+
+    // Se chegou aqui, não encontrou trailer em nenhuma categoria
+    console.log(
+      '❌ Nenhum trailer encontrado após todas as tentativas de categoria'
+    );
+    setIsLoading(false);
+    return null;
   };
 
   return {
