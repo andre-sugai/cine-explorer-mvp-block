@@ -76,10 +76,11 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      const formattedWatchlist = data?.map((item) => ({
-        ...(item.item_data as any),
-        added_date: item.created_at,
-      })) || [];
+      const formattedWatchlist =
+        data?.map((item) => ({
+          ...(item.item_data as any),
+          added_date: item.created_at,
+        })) || [];
 
       setWantToWatchList(formattedWatchlist);
     } catch (error) {
@@ -87,7 +88,18 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const addToWantToWatch = async (item: Omit<WantToWatchItem, 'added_date'>) => {
+  const addToWantToWatch = async (
+    item: Omit<WantToWatchItem, 'added_date'>
+  ) => {
+    // Verificar se o item já existe para evitar duplicatas
+    const existingItem = wantToWatchList.find(
+      (w) => w.id === item.id && w.type === item.type
+    );
+    if (existingItem) {
+      console.log('Item já existe na lista de quero assistir:', item.title);
+      return;
+    }
+
     const newItem: WantToWatchItem = {
       ...item,
       added_date: new Date().toISOString(),
@@ -102,6 +114,9 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
           item_type: item.type,
           item_data: newItem as any,
         });
+
+        // Update local state only after successful Supabase insert
+        setWantToWatchList((prev) => [...prev, newItem]);
       } catch (error) {
         console.error('Error adding to watchlist in Supabase:', error);
       }
@@ -113,9 +128,6 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
         return updatedList;
       });
     }
-
-    // Update local state
-    setWantToWatchList((prev) => [...prev, newItem]);
   };
 
   const removeFromWantToWatch = async (id: number) => {

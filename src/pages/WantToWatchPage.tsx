@@ -70,7 +70,7 @@ const WantToWatchPage: React.FC = () => {
           enableStreamingFilter={true}
           renderCard={(item) => (
             <PersonalListCard
-              key={item.id}
+              key={`${item.type}-${item.id}`}
               item={item}
               onDetailsClick={() =>
                 navigate(

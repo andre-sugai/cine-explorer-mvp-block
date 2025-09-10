@@ -159,7 +159,7 @@ export const WantToWatchFiltersTabs: React.FC<WantToWatchFiltersTabsProps> = ({
           if (React.isValidElement(originalCard)) {
             return React.cloneElement(originalCard, {
               ...originalCard.props,
-              key: item.id,
+              key: `${item.type}-${item.id}`,
               onDetailsClick: () => {
                 saveScrollPosition();
                 originalCard.props.onDetailsClick();

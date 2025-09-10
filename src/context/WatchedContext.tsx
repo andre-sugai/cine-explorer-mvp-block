@@ -63,7 +63,34 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
   const loadWatchedFromLocalStorage = () => {
     const stored = localStorage.getItem('cine-explorer-watched');
     if (stored) {
-      setWatched(JSON.parse(stored));
+      try {
+        const parsedWatched = JSON.parse(stored);
+
+        // Remover duplicatas baseado em id e type
+        const uniqueWatched = parsedWatched.filter(
+          (item: WatchedItem, index: number, self: WatchedItem[]) =>
+            index ===
+            self.findIndex((w) => w.id === item.id && w.type === item.type)
+        );
+
+        setWatched(uniqueWatched);
+
+        // Atualizar localStorage com dados limpos se houve duplicatas
+        if (uniqueWatched.length !== parsedWatched.length) {
+          localStorage.setItem(
+            'cine-explorer-watched',
+            JSON.stringify(uniqueWatched)
+          );
+          console.log(
+            `Removidas ${
+              parsedWatched.length - uniqueWatched.length
+            } duplicatas da lista de assistidos`
+          );
+        }
+      } catch (error) {
+        console.error('Error parsing watched list from localStorage:', error);
+        setWatched([]);
+      }
     }
   };
 
@@ -82,18 +109,45 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      const formattedWatched = data?.map((item) => ({
-        ...(item.item_data as any),
-        watchedAt: item.watched_date,
-      })) || [];
+      const formattedWatched =
+        data?.map((item) => ({
+          ...(item.item_data as any),
+          watchedAt: item.watched_date,
+        })) || [];
 
-      setWatched(formattedWatched);
+      // Remover duplicatas baseado em id e type
+      const uniqueWatched = formattedWatched.filter(
+        (item, index, self) =>
+          index ===
+          self.findIndex((w) => w.id === item.id && w.type === item.type)
+      );
+
+      setWatched(uniqueWatched);
+
+      // Sincronizar com localStorage como backup
+      localStorage.setItem(
+        'cine-explorer-watched',
+        JSON.stringify(uniqueWatched)
+      );
     } catch (error) {
       console.error('Error loading watched list:', error);
+      // Fallback para localStorage em caso de erro
+      loadWatchedFromLocalStorage();
     }
   };
 
-  const addToWatched = async (item: Omit<WatchedItem, 'watchedAt' | 'year'>) => {
+  const addToWatched = async (
+    item: Omit<WatchedItem, 'watchedAt' | 'year'>
+  ) => {
+    // Verificar se o item já existe para evitar duplicatas
+    const existingItem = watched.find(
+      (w) => w.id === item.id && w.type === item.type
+    );
+    if (existingItem) {
+      console.log('Item já existe na lista de assistidos:', item.title);
+      return;
+    }
+
     const releaseYear = item.release_date
       ? new Date(item.release_date).getFullYear()
       : item.first_air_date
@@ -115,6 +169,9 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
           item_data: watchedItem as any,
           watched_date: watchedItem.watchedAt,
         });
+
+        // Update local state only after successful Supabase insert
+        setWatched((prev) => [...prev, watchedItem]);
       } catch (error) {
         console.error('Error adding to watched list in Supabase:', error);
       }
@@ -122,13 +179,13 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
       // Add to localStorage for non-authenticated users
       setWatched((prev) => {
         const newWatched = [...prev, watchedItem];
-        localStorage.setItem('cine-explorer-watched', JSON.stringify(newWatched));
+        localStorage.setItem(
+          'cine-explorer-watched',
+          JSON.stringify(newWatched)
+        );
         return newWatched;
       });
     }
-
-    // Update local state
-    setWatched((prev) => [...prev, watchedItem]);
   };
 
   const removeFromWatched = async (id: number, type: string) => {
@@ -150,13 +207,16 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
         const newWatched = prev.filter(
           (item) => !(item.id === id && item.type === type)
         );
-        localStorage.setItem('cine-explorer-watched', JSON.stringify(newWatched));
+        localStorage.setItem(
+          'cine-explorer-watched',
+          JSON.stringify(newWatched)
+        );
         return newWatched;
       });
     }
 
     // Update local state
-    setWatched((prev) => 
+    setWatched((prev) =>
       prev.filter((item) => !(item.id === id && item.type === type))
     );
   };
@@ -165,10 +225,7 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
     if (isAuthenticated && user) {
       // Clear from Supabase
       try {
-        await supabase
-          .from('user_watched')
-          .delete()
-          .eq('user_id', user.id);
+        await supabase.from('user_watched').delete().eq('user_id', user.id);
       } catch (error) {
         console.error('Error clearing watched list in Supabase:', error);
       }
