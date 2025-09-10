@@ -1,12 +1,21 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { searchMulti, searchMovies, searchTVShows, searchPeople } from '@/utils/tmdb';
+import {
+  searchMulti,
+  searchMovies,
+  searchTVShows,
+  searchPeople,
+} from '@/utils/tmdb';
 import { TMDBMovie, TMDBTVShow, TMDBPerson } from '@/utils/tmdb';
+import { filterAdultContent } from '@/utils/adultContentFilter';
 import { Layout } from '@/components/Layout';
 import { SearchHeader } from '@/components/search/SearchHeader';
-import { SearchFilters, FilterType, SortOption } from '@/components/search/SearchFilters';
+import {
+  SearchFilters,
+  FilterType,
+  SortOption,
+} from '@/components/search/SearchFilters';
 import { SearchGrid } from '@/components/search/SearchGrid';
 import { SearchPagination } from '@/components/search/SearchPagination';
 import { SearchSkeleton } from '@/components/search/SearchSkeleton';
@@ -15,7 +24,7 @@ import { NoResults } from '@/components/search/NoResults';
 const SearchResults: React.FC = () => {
   const { term } = useParams<{ term: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
-  
+
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [sortBy, setSortBy] = useState<SortOption>('relevance');
   const [currentPage, setCurrentPage] = useState(1);
@@ -24,8 +33,8 @@ const SearchResults: React.FC = () => {
 
   // Sync URL params with state
   useEffect(() => {
-    const filter = searchParams.get('filter') as FilterType || 'all';
-    const sort = searchParams.get('sort') as SortOption || 'relevance';
+    const filter = (searchParams.get('filter') as FilterType) || 'all';
+    const sort = (searchParams.get('sort') as SortOption) || 'relevance';
     const page = parseInt(searchParams.get('page') || '1');
 
     setActiveFilter(filter);
@@ -33,31 +42,46 @@ const SearchResults: React.FC = () => {
     setCurrentPage(page);
   }, [searchParams]);
 
-  const updateUrlParams = (updates: Partial<{ filter: FilterType; sort: SortOption; page: number }>) => {
+  const updateUrlParams = (
+    updates: Partial<{ filter: FilterType; sort: SortOption; page: number }>
+  ) => {
     const newParams = new URLSearchParams(searchParams);
-    
+
     if (updates.filter) newParams.set('filter', updates.filter);
     if (updates.sort) newParams.set('sort', updates.sort);
     if (updates.page) newParams.set('page', updates.page.toString());
-    
+
     setSearchParams(newParams);
   };
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['search', decodedTerm, activeFilter, currentPage],
     queryFn: async () => {
-      if (!decodedTerm) return { results: [], total_pages: 0, total_results: 0 };
-      
+      if (!decodedTerm)
+        return { results: [], total_pages: 0, total_results: 0 };
+
+      let response;
       switch (activeFilter) {
         case 'movie':
-          return await searchMovies(decodedTerm, currentPage);
+          response = await searchMovies(decodedTerm, currentPage);
+          break;
         case 'tv':
-          return await searchTVShows(decodedTerm, currentPage);
+          response = await searchTVShows(decodedTerm, currentPage);
+          break;
         case 'person':
-          return await searchPeople(decodedTerm, currentPage);
+          response = await searchPeople(decodedTerm, currentPage);
+          break;
         default:
-          return await searchMulti(decodedTerm, currentPage);
+          response = await searchMulti(decodedTerm, currentPage);
+          break;
       }
+
+      // Aplicar filtro de conteúdo adulto (exceto para pessoas)
+      if (activeFilter !== 'person' && response?.results) {
+        response.results = filterAdultContent(response.results);
+      }
+
+      return response;
     },
     enabled: !!decodedTerm,
   });
@@ -78,14 +102,24 @@ const SearchResults: React.FC = () => {
   // Sort results
   const sortedResults = React.useMemo(() => {
     if (!data?.results) return [];
-    
+
     const results = [...data.results];
-    
+
     switch (sortBy) {
       case 'date':
         return results.sort((a, b) => {
-          const dateA = ('release_date' in a ? a.release_date : 'first_air_date' in a ? a.first_air_date : '') || '';
-          const dateB = ('release_date' in b ? b.release_date : 'first_air_date' in b ? b.first_air_date : '') || '';
+          const dateA =
+            ('release_date' in a
+              ? a.release_date
+              : 'first_air_date' in a
+              ? a.first_air_date
+              : '') || '';
+          const dateB =
+            ('release_date' in b
+              ? b.release_date
+              : 'first_air_date' in b
+              ? b.first_air_date
+              : '') || '';
           return new Date(dateB).getTime() - new Date(dateA).getTime();
         });
       case 'rating':
@@ -106,9 +140,11 @@ const SearchResults: React.FC = () => {
     const results = data?.results || [];
     return {
       all: results.length,
-      movie: results.filter(item => 'title' in item && 'release_date' in item).length,
-      tv: results.filter(item => 'name' in item && 'first_air_date' in item).length,
-      person: results.filter(item => 'known_for' in item).length,
+      movie: results.filter((item) => 'title' in item && 'release_date' in item)
+        .length,
+      tv: results.filter((item) => 'name' in item && 'first_air_date' in item)
+        .length,
+      person: results.filter((item) => 'known_for' in item).length,
     };
   }, [data?.results]);
 
@@ -124,10 +160,7 @@ const SearchResults: React.FC = () => {
     return (
       <Layout>
         <div className="space-y-6">
-          <SearchHeader 
-            searchTerm={decodedTerm}
-            totalResults={0}
-          />
+          <SearchHeader searchTerm={decodedTerm} totalResults={0} />
           <SearchSkeleton />
         </div>
       </Layout>
@@ -147,7 +180,7 @@ const SearchResults: React.FC = () => {
   return (
     <Layout>
       <div className="space-y-6">
-        <SearchHeader 
+        <SearchHeader
           searchTerm={decodedTerm}
           totalResults={data?.total_results || 0}
         />
@@ -162,7 +195,7 @@ const SearchResults: React.FC = () => {
               resultsCount={resultsCount}
             />
 
-            <SearchGrid 
+            <SearchGrid
               results={sortedResults}
               isLoading={false}
               error={null}
@@ -179,9 +212,7 @@ const SearchResults: React.FC = () => {
           </>
         )}
 
-        {!hasResults && (
-          <NoResults />
-        )}
+        {!hasResults && <NoResults />}
       </div>
     </Layout>
   );

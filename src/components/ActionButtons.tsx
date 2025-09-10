@@ -1,11 +1,13 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Heart, Check, Share, Bookmark } from 'lucide-react';
+import { Heart, Check, Share, Bookmark, Shield } from 'lucide-react';
 import { useFavoritesContext } from '@/context/FavoritesContext';
 import { useWantToWatchContext } from '@/context/WantToWatchContext';
 import { useWatchedContext } from '@/context/WatchedContext';
+import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/components/ui/sonner';
+import { isAdminUser, addToBlacklist } from '@/utils/adultContentFilter';
 
 interface ActionButtonsProps {
   id: number;
@@ -29,10 +31,12 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
   const { addToWatched, removeFromWatched, isWatched } = useWatchedContext();
   const { addToWantToWatch, removeFromWantToWatch, isInWantToWatch } =
     useWantToWatchContext();
+  const { user } = useAuth();
 
   const favorite = isFavorite(id, type);
   const watched = isWatched(id, type);
   const wantToWatch = isInWantToWatch(id);
+  const isAdmin = isAdminUser(user?.email);
 
   const handleFavorite = async () => {
     try {
@@ -110,6 +114,24 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
     toast.success('URL copiada para a área de transferência');
   };
 
+  const handleAddToBlacklist = () => {
+    if (!isAdmin) {
+      toast.error(
+        'Acesso negado: apenas administradores podem modificar a blacklist'
+      );
+      return;
+    }
+
+    try {
+      addToBlacklist(title, user?.email);
+      toast.success(`"${title}" foi adicionado à blacklist de conteúdo adulto`);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Erro ao adicionar à blacklist'
+      );
+    }
+  };
+
   return (
     <div className="flex flex-wrap gap-3">
       <Button
@@ -158,6 +180,18 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
         <Share className="w-4 h-4 mr-2" />
         Compartilhar
       </Button>
+
+      {/* Botão Blacklist - apenas para administrador André Sugai */}
+      {isAdmin && type !== 'person' && (
+        <Button
+          variant="destructive"
+          onClick={handleAddToBlacklist}
+          className="bg-red-600 hover:bg-red-700 text-white"
+        >
+          <Shield className="w-4 h-4 mr-2" />
+          Adicionar à Blacklist
+        </Button>
+      )}
     </div>
   );
 };

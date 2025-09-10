@@ -74,7 +74,9 @@ export const SettingsPage: React.FC = () => {
   const [showApiKeyDialog, setShowApiKeyDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [showClearDialog, setShowClearDialog] = useState(false);
-  const [clearType, setClearType] = useState<'favorites' | 'watched' | 'all'>('all');
+  const [clearType, setClearType] = useState<'favorites' | 'watched' | 'all'>(
+    'all'
+  );
   const [importMode, setImportMode] = useState<'merge' | 'replace'>('merge');
   const [newApiKey, setNewApiKey] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -83,20 +85,20 @@ export const SettingsPage: React.FC = () => {
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
-  
+
   // Estados do perfil
   const [profile, setProfile] = useState<UserProfile>({
     nickname: '',
     bio: '',
     profileImage: '',
-    socialMedia: {}
+    socialMedia: {},
   });
 
   // Estados do formulário de senha
   const [passwordForm, setPasswordForm] = useState<PasswordChangeForm>({
     currentPassword: '',
     newPassword: '',
-    confirmPassword: ''
+    confirmPassword: '',
   });
 
   // Hooks existentes
@@ -175,9 +177,9 @@ export const SettingsPage: React.FC = () => {
       }
 
       // Atualiza o estado local
-      setProfile(prev => ({
+      setProfile((prev) => ({
         ...prev,
-        profileImage: ''
+        profileImage: '',
       }));
 
       toast({
@@ -197,9 +199,9 @@ export const SettingsPage: React.FC = () => {
    * Atualiza a imagem de perfil
    */
   const updateProfileImage = (imageUrl: string) => {
-    setProfile(prev => ({
+    setProfile((prev) => ({
       ...prev,
-      profileImage: imageUrl
+      profileImage: imageUrl,
     }));
   };
 
@@ -208,7 +210,11 @@ export const SettingsPage: React.FC = () => {
    */
   const handlePasswordChange = async () => {
     // Validações
-    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+    if (
+      !passwordForm.currentPassword ||
+      !passwordForm.newPassword ||
+      !passwordForm.confirmPassword
+    ) {
       toast({
         title: 'Campos obrigatórios',
         description: 'Preencha todos os campos.',
@@ -239,17 +245,17 @@ export const SettingsPage: React.FC = () => {
     try {
       // Aqui você implementaria a lógica real de troca de senha
       // Por enquanto, apenas simula o processo
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       toast({
         title: 'Senha alterada!',
         description: 'Sua senha foi atualizada com sucesso.',
       });
-      
+
       setPasswordForm({
         currentPassword: '',
         newPassword: '',
-        confirmPassword: ''
+        confirmPassword: '',
       });
       setShowPasswordDialog(false);
     } catch (error) {
@@ -267,9 +273,9 @@ export const SettingsPage: React.FC = () => {
    * Atualiza um campo específico do perfil
    */
   const updateProfileField = (field: keyof UserProfile, value: any) => {
-    setProfile(prev => ({
+    setProfile((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
@@ -277,12 +283,12 @@ export const SettingsPage: React.FC = () => {
    * Atualiza um campo específico das redes sociais
    */
   const updateSocialMedia = (platform: string, value: string) => {
-    setProfile(prev => ({
+    setProfile((prev) => ({
       ...prev,
       socialMedia: {
         ...prev.socialMedia,
-        [platform]: value
-      }
+        [platform]: value,
+      },
     }));
   };
 
@@ -303,7 +309,9 @@ export const SettingsPage: React.FC = () => {
     }
   };
 
-  const handleImportFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportFile = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -312,7 +320,8 @@ export const SettingsPage: React.FC = () => {
       if (!isValid) {
         toast({
           title: 'Arquivo inválido',
-          description: 'O arquivo selecionado não é um backup válido do Cine Explorer.',
+          description:
+            'O arquivo selecionado não é um backup válido do Cine Explorer.',
           variant: 'destructive',
         });
         return;
@@ -593,6 +602,63 @@ export const SettingsPage: React.FC = () => {
                 </div>
               </div>
 
+              {/* Controle Parental */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-primary">
+                  Controle Parental
+                </h3>
+                <div className="p-4 bg-secondary/30 rounded-lg border border-primary/20">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Lock className="w-4 h-4 text-primary" />
+                        <span className="font-medium text-primary">
+                          Filtrar Conteúdo Adulto (+18)
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Oculta filmes e séries com conteúdo adulto, erótico ou
+                        impróprio para menores
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="adult-content-filter"
+                        className="rounded border-primary/20"
+                        defaultChecked={
+                          localStorage.getItem('adult_content_filter') ===
+                          'true'
+                        }
+                        onChange={(e) => {
+                          localStorage.setItem(
+                            'adult_content_filter',
+                            e.target.checked.toString()
+                          );
+                          toast({
+                            title: e.target.checked
+                              ? 'Filtro ativado'
+                              : 'Filtro desativado',
+                            description: e.target.checked
+                              ? 'Conteúdo adulto será ocultado da navegação'
+                              : 'Todo o conteúdo será exibido',
+                          });
+                        }}
+                      />
+                      <Label htmlFor="adult-content-filter" className="text-sm">
+                        Ativar filtro
+                      </Label>
+                    </div>
+                  </div>
+                  <div className="mt-3 text-xs text-muted-foreground">
+                    <strong>Critérios de filtragem:</strong> Filmes com
+                    classificação NC-17, gêneros adultos, palavras-chave
+                    relacionadas a conteúdo erótico, e títulos com indicadores
+                    de conteúdo adulto.
+                  </div>
+                </div>
+              </div>
+
               {/* Limpeza de Dados */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-primary">
@@ -683,7 +749,9 @@ export const SettingsPage: React.FC = () => {
                       id="nickname"
                       placeholder="Seu nome ou nickname"
                       value={profile.nickname}
-                      onChange={(e) => updateProfileField('nickname', e.target.value)}
+                      onChange={(e) =>
+                        updateProfileField('nickname', e.target.value)
+                      }
                       maxLength={30}
                       className="bg-secondary/30 border-primary/20"
                     />
@@ -713,7 +781,10 @@ export const SettingsPage: React.FC = () => {
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="instagram" className="flex items-center gap-2">
+                    <Label
+                      htmlFor="instagram"
+                      className="flex items-center gap-2"
+                    >
                       <Instagram className="w-4 h-4" />
                       Instagram
                     </Label>
@@ -721,12 +792,17 @@ export const SettingsPage: React.FC = () => {
                       id="instagram"
                       placeholder="@seu_usuario"
                       value={profile.socialMedia.instagram || ''}
-                      onChange={(e) => updateSocialMedia('instagram', e.target.value)}
+                      onChange={(e) =>
+                        updateSocialMedia('instagram', e.target.value)
+                      }
                       className="bg-secondary/30 border-primary/20"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="twitter" className="flex items-center gap-2">
+                    <Label
+                      htmlFor="twitter"
+                      className="flex items-center gap-2"
+                    >
                       <Twitter className="w-4 h-4" />
                       Twitter/X
                     </Label>
@@ -734,12 +810,17 @@ export const SettingsPage: React.FC = () => {
                       id="twitter"
                       placeholder="@seu_usuario"
                       value={profile.socialMedia.twitter || ''}
-                      onChange={(e) => updateSocialMedia('twitter', e.target.value)}
+                      onChange={(e) =>
+                        updateSocialMedia('twitter', e.target.value)
+                      }
                       className="bg-secondary/30 border-primary/20"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="facebook" className="flex items-center gap-2">
+                    <Label
+                      htmlFor="facebook"
+                      className="flex items-center gap-2"
+                    >
                       <Facebook className="w-4 h-4" />
                       Facebook
                     </Label>
@@ -747,12 +828,17 @@ export const SettingsPage: React.FC = () => {
                       id="facebook"
                       placeholder="facebook.com/seu_perfil"
                       value={profile.socialMedia.facebook || ''}
-                      onChange={(e) => updateSocialMedia('facebook', e.target.value)}
+                      onChange={(e) =>
+                        updateSocialMedia('facebook', e.target.value)
+                      }
                       className="bg-secondary/30 border-primary/20"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="linkedin" className="flex items-center gap-2">
+                    <Label
+                      htmlFor="linkedin"
+                      className="flex items-center gap-2"
+                    >
                       <Linkedin className="w-4 h-4" />
                       LinkedIn
                     </Label>
@@ -760,12 +846,17 @@ export const SettingsPage: React.FC = () => {
                       id="linkedin"
                       placeholder="linkedin.com/in/seu_perfil"
                       value={profile.socialMedia.linkedin || ''}
-                      onChange={(e) => updateSocialMedia('linkedin', e.target.value)}
+                      onChange={(e) =>
+                        updateSocialMedia('linkedin', e.target.value)
+                      }
                       className="bg-secondary/30 border-primary/20"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="youtube" className="flex items-center gap-2">
+                    <Label
+                      htmlFor="youtube"
+                      className="flex items-center gap-2"
+                    >
                       <Youtube className="w-4 h-4" />
                       YouTube
                     </Label>
@@ -773,12 +864,17 @@ export const SettingsPage: React.FC = () => {
                       id="youtube"
                       placeholder="youtube.com/@seu_canal"
                       value={profile.socialMedia.youtube || ''}
-                      onChange={(e) => updateSocialMedia('youtube', e.target.value)}
+                      onChange={(e) =>
+                        updateSocialMedia('youtube', e.target.value)
+                      }
                       className="bg-secondary/30 border-primary/20"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="website" className="flex items-center gap-2">
+                    <Label
+                      htmlFor="website"
+                      className="flex items-center gap-2"
+                    >
                       <Globe className="w-4 h-4" />
                       Website
                     </Label>
@@ -786,7 +882,9 @@ export const SettingsPage: React.FC = () => {
                       id="website"
                       placeholder="https://seu-site.com"
                       value={profile.socialMedia.website || ''}
-                      onChange={(e) => updateSocialMedia('website', e.target.value)}
+                      onChange={(e) =>
+                        updateSocialMedia('website', e.target.value)
+                      }
                       className="bg-secondary/30 border-primary/20"
                     />
                   </div>
@@ -1019,10 +1117,12 @@ export const SettingsPage: React.FC = () => {
                 type="password"
                 placeholder="Sua senha atual"
                 value={passwordForm.currentPassword}
-                onChange={(e) => setPasswordForm(prev => ({
-                  ...prev,
-                  currentPassword: e.target.value
-                }))}
+                onChange={(e) =>
+                  setPasswordForm((prev) => ({
+                    ...prev,
+                    currentPassword: e.target.value,
+                  }))
+                }
                 className="bg-secondary/30 border-primary/20"
               />
             </div>
@@ -1033,10 +1133,12 @@ export const SettingsPage: React.FC = () => {
                 type="password"
                 placeholder="Nova senha (mín. 6 caracteres)"
                 value={passwordForm.newPassword}
-                onChange={(e) => setPasswordForm(prev => ({
-                  ...prev,
-                  newPassword: e.target.value
-                }))}
+                onChange={(e) =>
+                  setPasswordForm((prev) => ({
+                    ...prev,
+                    newPassword: e.target.value,
+                  }))
+                }
                 className="bg-secondary/30 border-primary/20"
               />
             </div>
@@ -1047,10 +1149,12 @@ export const SettingsPage: React.FC = () => {
                 type="password"
                 placeholder="Confirme a nova senha"
                 value={passwordForm.confirmPassword}
-                onChange={(e) => setPasswordForm(prev => ({
-                  ...prev,
-                  confirmPassword: e.target.value
-                }))}
+                onChange={(e) =>
+                  setPasswordForm((prev) => ({
+                    ...prev,
+                    confirmPassword: e.target.value,
+                  }))
+                }
                 className="bg-secondary/30 border-primary/20"
               />
             </div>

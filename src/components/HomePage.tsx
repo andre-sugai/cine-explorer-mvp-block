@@ -7,12 +7,11 @@ import { MovieFilters } from './home/MovieFilters';
 import {
   getWatchProviders,
   getLanguages,
-  getPopularMovies,
-  getPopularTVShows,
   getPopularPeople,
   searchPeople,
   getAllGenres,
 } from '@/utils/tmdb';
+import { filterAdultContent } from '@/utils/adultContentFilter';
 import { TMDBMovie, TMDBTVShow, TMDBPerson, TMDBGenre } from '@/utils/tmdb';
 import { useFilterPersistence } from '@/hooks/useFilterPersistence';
 import { useScrollManager } from '@/hooks/useScrollManager';
@@ -28,16 +27,13 @@ export const HomePage: React.FC = () => {
     selectedOrder,
     selectedYear,
     selectedLanguage,
-    searchTerm,
     setActiveCategory,
     setSelectedProvider,
     setSelectedGenre,
     setSelectedOrder,
     setSelectedYear,
     setSelectedLanguage,
-    setSearchTerm,
     saveScrollPosition,
-    resetFilters,
     isRestored,
   } = useFilterPersistence();
 
@@ -372,7 +368,10 @@ export const HomePage: React.FC = () => {
             console.log(`🔍 Buscando: ${name}`);
             const result = await searchPeople(name);
             const directors = result.results
-              .filter((person) => person.known_for_department === 'Directing')
+              .filter(
+                (person: TMDBPerson) =>
+                  person.known_for_department === 'Directing'
+              )
               .slice(0, 1);
             return directors;
           } catch (error) {
@@ -399,7 +398,9 @@ export const HomePage: React.FC = () => {
         console.log('🔄 Fallback: buscando pessoas populares...');
         const popularPeople = await getPopularPeople(page);
         const fallbackDirectors = popularPeople.results
-          .filter((person) => person.known_for_department === 'Directing')
+          .filter(
+            (person: TMDBPerson) => person.known_for_department === 'Directing'
+          )
           .slice(0, batchSize);
         console.log(
           `✅ Fallback: encontrados ${fallbackDirectors.length} diretores`
@@ -415,7 +416,9 @@ export const HomePage: React.FC = () => {
       try {
         const popularPeople = await getPopularPeople(page);
         const fallbackDirectors = popularPeople.results
-          .filter((person) => person.known_for_department === 'Directing')
+          .filter(
+            (person: TMDBPerson) => person.known_for_department === 'Directing'
+          )
           .slice(0, batchSize);
         console.log(
           `✅ Fallback final: encontrados ${fallbackDirectors.length} diretores`
@@ -436,7 +439,7 @@ export const HomePage: React.FC = () => {
   ) => {
     try {
       setIsLoading(true);
-      let response;
+      let response: any;
       if (category === 'movies' || category === 'tv') {
         // Montar parâmetros para discover
         const params: any = {
@@ -509,6 +512,13 @@ export const HomePage: React.FC = () => {
       let filteredResults =
         response && response.results ? response.results : [];
 
+      console.log(`📊 Antes do filtro adulto: ${filteredResults.length} itens`);
+
+      // Aplicar filtro de conteúdo adulto
+      filteredResults = filterAdultContent(filteredResults);
+
+      console.log(`📊 Após filtro adulto: ${filteredResults.length} itens`);
+
       if (selectedYear && category === 'movies') {
         const startYear = Number(selectedYear);
         const endYear = startYear + 9;
@@ -528,6 +538,10 @@ export const HomePage: React.FC = () => {
           return showYear >= startYear && showYear <= endYear;
         });
       }
+
+      console.log(
+        `📊 Definindo conteúdo: ${filteredResults.length} itens após filtros`
+      );
 
       if (reset) {
         setContent(filteredResults);
@@ -553,26 +567,6 @@ export const HomePage: React.FC = () => {
       const nextPage = page + 1;
       setPage(nextPage);
       loadContentComFiltros(activeCategory, nextPage, false);
-    }
-  };
-
-  const handleLuckyPick = () => {
-    if (content.length > 0) {
-      // Salvar posição do scroll antes de navegar
-      saveScrollPosition();
-
-      const randomItem = content[Math.floor(Math.random() * content.length)];
-
-      if ('title' in randomItem) {
-        // It's a movie
-        window.location.href = `/filme/${randomItem.id}`;
-      } else if ('name' in randomItem && 'first_air_date' in randomItem) {
-        // It's a TV show
-        window.location.href = `/serie/${randomItem.id}`;
-      } else if ('name' in randomItem) {
-        // It's a person
-        window.location.href = `/pessoa/${randomItem.id}`;
-      }
     }
   };
 

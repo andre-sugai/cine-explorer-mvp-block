@@ -1,9 +1,11 @@
 import React from 'react';
-import { Heart, Bookmark, Check } from 'lucide-react';
+import { Heart, Bookmark, Check, Shield } from 'lucide-react';
 import { useFavoritesContext } from '@/context/FavoritesContext';
 import { useWantToWatchContext } from '@/context/WantToWatchContext';
 import { useWatchedContext } from '@/context/WatchedContext';
+import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/components/ui/sonner';
+import { isAdminUser, addToBlacklist } from '@/utils/adultContentFilter';
 
 interface MovieCardActionsProps {
   id: number;
@@ -31,11 +33,13 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
   const { addToWantToWatch, removeFromWantToWatch, isInWantToWatch } =
     useWantToWatchContext();
   const { addToWatched, removeFromWatched, isWatched } = useWatchedContext();
+  const { user } = useAuth();
 
   const favorite = isFavorite(id, type);
   const wantToWatch = type !== 'person' ? isInWantToWatch(id) : false;
   const watched =
     type !== 'person' ? isWatched(id, type as 'movie' | 'tv') : false;
+  const isAdmin = isAdminUser(user?.email);
 
   const handleFavorite = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -112,6 +116,30 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
     }
   };
 
+  const handleAddToBlacklist = (e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    if (!isAdmin) {
+      toast.error(
+        'Acesso negado: apenas administradores podem modificar a blacklist'
+      );
+      return;
+    }
+
+    if (type === 'person') return;
+
+    try {
+      addToBlacklist(title, user?.email);
+      toast.success(`"${title}" foi adicionado à blacklist`, {
+        description: 'O filme será bloqueado pelo filtro de conteúdo adulto',
+      });
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Erro ao adicionar à blacklist'
+      );
+    }
+  };
+
   return (
     <div className="flex justify-center items-center gap-2 mt-2 pt-2 border-t border-border/20">
       <button
@@ -153,6 +181,17 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
           >
             <Check className="w-3.5 h-3.5" />
           </button>
+
+          {/* Botão Blacklist - apenas para administrador André Sugai */}
+          {isAdmin && (
+            <button
+              onClick={handleAddToBlacklist}
+              className="p-1.5 rounded-full transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+              title="Adicionar à blacklist (admin)"
+            >
+              <Shield className="w-3.5 h-3.5" />
+            </button>
+          )}
         </>
       )}
     </div>

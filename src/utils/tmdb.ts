@@ -1,6 +1,8 @@
 // TMDB API utilities
 // This file contains helper functions for interacting with The Movie Database API
 
+import { filterAdultContent } from './adultContentFilter';
+
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p';
 
@@ -100,7 +102,14 @@ export const searchMulti = async (
       throw new Error(`TMDB API error: ${response.status}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+
+    // Aplicar filtro de conteúdo adulto
+    if (data.results) {
+      data.results = filterAdultContent(data.results);
+    }
+
+    return data;
   } catch (error) {
     console.error('Error searching multi:', error);
     throw error;
@@ -124,7 +133,14 @@ export const searchMovies = async (
       throw new Error(`TMDB API error: ${response.status}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+
+    // Aplicar filtro de conteúdo adulto
+    if (data.results) {
+      data.results = filterAdultContent(data.results);
+    }
+
+    return data;
   } catch (error) {
     console.error('Error searching movies:', error);
     throw error;
@@ -248,7 +264,14 @@ export const getTrendingMovies = async (
       throw new Error(`TMDB API error: ${response.status}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+
+    // Aplicar filtro de conteúdo adulto
+    if (data.results) {
+      data.results = filterAdultContent(data.results);
+    }
+
+    return data;
   } catch (error) {
     console.error('Error getting trending movies:', error);
     throw error;
@@ -267,7 +290,14 @@ export const getPopularMovies = async (page: number = 1) => {
       throw new Error(`TMDB API error: ${response.status}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+
+    // Aplicar filtro de conteúdo adulto
+    if (data.results) {
+      data.results = filterAdultContent(data.results);
+    }
+
+    return data;
   } catch (error) {
     console.error('Error getting popular movies:', error);
     throw error;
@@ -286,7 +316,14 @@ export const getTopRatedMovies = async (page: number = 1) => {
       throw new Error(`TMDB API error: ${response.status}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+
+    // Aplicar filtro de conteúdo adulto
+    if (data.results) {
+      data.results = filterAdultContent(data.results);
+    }
+
+    return data;
   } catch (error) {
     console.error('Error getting top rated movies:', error);
     throw error;
@@ -572,7 +609,14 @@ export const getMoviesByGenre = async (genreId: number, page: number = 1) => {
       throw new Error(`TMDB API error: ${response.status}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+
+    // Aplicar filtro de conteúdo adulto
+    if (data.results) {
+      data.results = filterAdultContent(data.results);
+    }
+
+    return data;
   } catch (error) {
     console.error('Error getting movies by genre:', error);
     throw error;
@@ -630,7 +674,14 @@ export const getMoviesByDecade = async (decade: number, page: number = 1) => {
       throw new Error(`TMDB API error: ${response.status}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+
+    // Aplicar filtro de conteúdo adulto
+    if (data.results) {
+      data.results = filterAdultContent(data.results);
+    }
+
+    return data;
   } catch (error) {
     console.error('Error getting movies by decade:', error);
     throw error;
@@ -953,8 +1004,14 @@ export const getSimilarMovies = async (id: number) => {
     if (similarResponse.ok) {
       const similarData = await similarResponse.json();
 
+      // Aplicar filtro de conteúdo adulto
+      let similarMovies = similarData.results;
+      if (similarMovies) {
+        similarMovies = filterAdultContent(similarMovies);
+      }
+
       // Retornar até 12 filmes similares
-      const similarMovies = similarData.results.slice(0, 12);
+      similarMovies = similarMovies.slice(0, 12);
 
       console.log(`Encontrados ${similarMovies.length} filmes similares`);
 

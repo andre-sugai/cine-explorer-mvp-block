@@ -14,6 +14,7 @@ import {
   TMDBMovie,
   TMDBTVShow,
 } from '@/utils/tmdb';
+import { filterAdultContent } from '@/utils/adultContentFilter';
 
 export const SearchSection: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -52,7 +53,12 @@ export const SearchSection: React.FC = () => {
           getPopularMovies(1),
           getPopularTVShows(1),
         ]);
-        const all = [...(movies?.results || []), ...(tvs?.results || [])];
+
+        // Aplicar filtro de conteúdo adulto
+        const filteredMovies = filterAdultContent(movies?.results || []);
+        const filteredTVs = filterAdultContent(tvs?.results || []);
+
+        const all = [...filteredMovies, ...filteredTVs];
         const candidates = all.filter(
           (item) => item.backdrop_path || item.poster_path
         );
