@@ -350,6 +350,7 @@ export const FavoritesPage: React.FC = () => {
         getItemsByType={getFavoritesByType}
         stats={stats}
         onRemove={handleRemoveFavorite}
+        enableStreamingFilter={true}
         renderCard={(item) => (
           <PersonalListCard
             key={`${item.type}-${item.id}`}
