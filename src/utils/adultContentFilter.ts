@@ -744,3 +744,19 @@ export const removeFromBlacklist = (
 
   console.log(`✅ ADMINISTRADOR: Título "${title}" removido da blacklist`);
 };
+
+/**
+ * Verifica se um título está na blacklist
+ */
+export const isInBlacklist = (title: string): boolean => {
+  const blacklistedTitles = getBlacklistedTitles();
+  const normalizedTitle = title.toLowerCase().trim();
+
+  return blacklistedTitles.some((blacklisted) => {
+    const normalizedBlacklisted = blacklisted.toLowerCase().trim();
+    return (
+      normalizedTitle.includes(normalizedBlacklisted) ||
+      normalizedBlacklisted.includes(normalizedTitle)
+    );
+  });
+};

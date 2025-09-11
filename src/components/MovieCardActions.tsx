@@ -5,7 +5,12 @@ import { useWantToWatchContext } from '@/context/WantToWatchContext';
 import { useWatchedContext } from '@/context/WatchedContext';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/components/ui/sonner';
-import { isAdminUser, addToBlacklist } from '@/utils/adultContentFilter';
+import {
+  isAdminUser,
+  addToBlacklist,
+  isInBlacklist,
+  removeFromBlacklist,
+} from '@/utils/adultContentFilter';
 
 interface MovieCardActionsProps {
   id: number;
@@ -40,6 +45,7 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
   const watched =
     type !== 'person' ? isWatched(id, type as 'movie' | 'tv') : false;
   const isAdmin = isAdminUser(user?.email);
+  const isBlacklisted = isInBlacklist(title);
 
   const handleFavorite = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -129,13 +135,20 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
     if (type === 'person') return;
 
     try {
-      addToBlacklist(title, user?.email);
-      toast.success(`"${title}" foi adicionado à blacklist`, {
-        description: 'O filme será bloqueado pelo filtro de conteúdo adulto',
-      });
+      if (isBlacklisted) {
+        removeFromBlacklist(title, user?.email);
+        toast.success(`"${title}" foi removido da blacklist`, {
+          description: 'O filme não será mais bloqueado pelo filtro',
+        });
+      } else {
+        addToBlacklist(title, user?.email);
+        toast.success(`"${title}" foi adicionado à blacklist`, {
+          description: 'O filme será bloqueado pelo filtro de conteúdo adulto',
+        });
+      }
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : 'Erro ao adicionar à blacklist'
+        error instanceof Error ? error.message : 'Erro ao modificar blacklist'
       );
     }
   };
@@ -186,8 +199,16 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
           {isAdmin && (
             <button
               onClick={handleAddToBlacklist}
-              className="p-1.5 rounded-full transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-              title="Adicionar à blacklist (admin)"
+              className={`p-1.5 rounded-full transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center ${
+                isBlacklisted
+                  ? 'text-red-500 hover:text-red-600'
+                  : 'text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20'
+              }`}
+              title={
+                isBlacklisted
+                  ? 'Remover da blacklist (admin)'
+                  : 'Adicionar à blacklist (admin)'
+              }
             >
               <Shield className="w-3.5 h-3.5" />
             </button>

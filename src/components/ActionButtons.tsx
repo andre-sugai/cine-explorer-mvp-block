@@ -7,7 +7,12 @@ import { useWantToWatchContext } from '@/context/WantToWatchContext';
 import { useWatchedContext } from '@/context/WatchedContext';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/components/ui/sonner';
-import { isAdminUser, addToBlacklist } from '@/utils/adultContentFilter';
+import {
+  isAdminUser,
+  addToBlacklist,
+  isInBlacklist,
+  removeFromBlacklist,
+} from '@/utils/adultContentFilter';
 
 interface ActionButtonsProps {
   id: number;
@@ -37,6 +42,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
   const watched = isWatched(id, type);
   const wantToWatch = isInWantToWatch(id);
   const isAdmin = isAdminUser(user?.email);
+  const isBlacklisted = isInBlacklist(title);
 
   const handleFavorite = async () => {
     try {
@@ -123,11 +129,18 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
     }
 
     try {
-      addToBlacklist(title, user?.email);
-      toast.success(`"${title}" foi adicionado à blacklist de conteúdo adulto`);
+      if (isBlacklisted) {
+        removeFromBlacklist(title, user?.email);
+        toast.success(`"${title}" foi removido da blacklist`);
+      } else {
+        addToBlacklist(title, user?.email);
+        toast.success(
+          `"${title}" foi adicionado à blacklist de conteúdo adulto`
+        );
+      }
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : 'Erro ao adicionar à blacklist'
+        error instanceof Error ? error.message : 'Erro ao modificar blacklist'
       );
     }
   };
@@ -184,12 +197,16 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
       {/* Botão Blacklist - apenas para administrador André Sugai */}
       {isAdmin && type !== 'person' && (
         <Button
-          variant="destructive"
+          variant={isBlacklisted ? 'destructive' : 'outline'}
           onClick={handleAddToBlacklist}
-          className="bg-red-600 hover:bg-red-700 text-white"
+          className={
+            isBlacklisted
+              ? 'bg-red-500 hover:bg-red-600 text-white'
+              : 'border-red-600 text-red-600 hover:bg-red-600 hover:text-white'
+          }
         >
           <Shield className="w-4 h-4 mr-2" />
-          Adicionar à Blacklist
+          {isBlacklisted ? 'Remover da Blacklist' : 'Adicionar à Blacklist'}
         </Button>
       )}
     </div>
