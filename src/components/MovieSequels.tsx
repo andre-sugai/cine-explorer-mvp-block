@@ -32,26 +32,26 @@ export const MovieSequels: React.FC<MovieSequelsProps> = ({
   const getVisibleMovies = () => {
     if (!sequels || sequels.length === 0) return [];
 
-    if (sequels.length <= 6) {
-      return sequels; // Mostrar todos se 6 ou menos
+    if (sequels.length <= 4) {
+      return sequels; // Mostrar todos se 4 ou menos
     }
 
     if (isExpanded) {
-      // Mostrar até 18 filmes (3 linhas x 6 filmes) quando expandido
-      return sequels.slice(0, 18);
+      // Mostrar até 12 filmes (3 linhas x 4 filmes) quando expandido
+      return sequels.slice(0, 12);
     }
 
-    // Mostrar apenas 6 filmes quando não expandido
-    return sequels.slice(0, 6);
+    // Mostrar apenas 4 filmes quando não expandido
+    return sequels.slice(0, 4);
   };
 
   // Verificar se deve mostrar o botão de expandir/contrair
-  const shouldShowExpandButton = sequels && sequels.length > 6;
+  const shouldShowExpandButton = sequels && sequels.length > 4;
 
   // Calcular quantas linhas serão mostradas
   const getVisibleRows = () => {
     const visibleMovies = getVisibleMovies();
-    return Math.ceil(visibleMovies.length / 6);
+    return Math.ceil(visibleMovies.length / 4);
   };
 
   // Adicionar informação sobre a estratégia usada
@@ -107,8 +107,8 @@ export const MovieSequels: React.FC<MovieSequelsProps> = ({
           <CardTitle className="text-primary">{getTitle()}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {Array.from({ length: 6 }).map((_, index) => (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, index) => (
               <div key={index} className="space-y-2">
                 <Skeleton className="h-48 w-full rounded-lg" />
                 <Skeleton className="h-4 w-3/4" />
@@ -154,7 +154,7 @@ export const MovieSequels: React.FC<MovieSequelsProps> = ({
           <CardTitle className="text-primary flex items-center gap-2">
             <Play className="w-5 h-5" />
             {getTitle()}
-            {sequels.length > 6 && (
+            {sequels.length > 4 && (
               <span className="text-sm text-muted-foreground font-normal">
                 ({sequels.length} filmes)
               </span>
@@ -175,7 +175,7 @@ export const MovieSequels: React.FC<MovieSequelsProps> = ({
               ) : (
                 <>
                   <ChevronDown className="w-4 h-4 mr-1" />
-                  Ver mais ({Math.min(sequels.length - 6, 12)} filmes)
+                  Ver mais ({Math.min(sequels.length - 4, 8)} filmes)
                 </>
               )}
             </Button>
@@ -184,14 +184,14 @@ export const MovieSequels: React.FC<MovieSequelsProps> = ({
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
-          {/* Renderizar filmes em linhas de 6 */}
+          {/* Renderizar filmes em linhas de 4 */}
           {Array.from({ length: getVisibleRows() }).map((_, rowIndex) => (
             <div
               key={rowIndex}
-              className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4"
+              className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
             >
               {visibleMovies
-                .slice(rowIndex * 6, (rowIndex + 1) * 6)
+                .slice(rowIndex * 4, (rowIndex + 1) * 4)
                 .map((movie) => {
                   return (
                     <Card
@@ -224,7 +224,7 @@ export const MovieSequels: React.FC<MovieSequelsProps> = ({
                         </div>
 
                         {/* Content Info */}
-                        <div className="p-4">
+                        <div className="p-3">
                           <h3 className="font-semibold text-foreground text-sm leading-tight mb-2 line-clamp-2">
                             {movie.title}
                           </h3>

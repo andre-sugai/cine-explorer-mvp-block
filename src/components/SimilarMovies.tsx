@@ -31,8 +31,8 @@ export const SimilarMovies: React.FC<SimilarMoviesProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {Array.from({ length: 12 }).map((_, index) => (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {Array.from({ length: 8 }).map((_, index) => (
               <div key={index} className="space-y-2">
                 <Skeleton className="h-48 w-full rounded-lg" />
                 <Skeleton className="h-4 w-3/4" />
@@ -61,7 +61,7 @@ export const SimilarMovies: React.FC<SimilarMoviesProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {similarMovies.map((movie) => (
             <Card
               key={movie.id}
@@ -93,7 +93,7 @@ export const SimilarMovies: React.FC<SimilarMoviesProps> = ({
                 </div>
 
                 {/* Content Info */}
-                <div className="p-4">
+                <div className="p-3">
                   <h3 className="font-semibold text-foreground text-sm leading-tight mb-2 line-clamp-2">
                     {movie.title}
                   </h3>
