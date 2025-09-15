@@ -363,6 +363,43 @@ export const isAdultContent = (item: any): boolean => {
     return false;
   }
 
+  // Para séries de TV, aplicar filtros mais brandos
+  const isTVShow = item.first_air_date !== undefined || item.name !== undefined;
+
+  if (isTVShow) {
+    console.log(`📺 Aplicando filtro leve para série: "${title}"`);
+
+    // Para séries, apenas bloquear conteúdo explicitamente adulto
+    const explicitAdultKeywords = [
+      'porn',
+      'xxx',
+      'adult film',
+      'erotic film',
+      'sex tape',
+      'pornographic',
+      'hardcore',
+      'softcore',
+    ];
+
+    const titleLower = title.toLowerCase();
+    const overviewLower = overview.toLowerCase();
+
+    // Verificar se é explicitamente adulto
+    const hasExplicitContent = explicitAdultKeywords.some(
+      (keyword) =>
+        titleLower.includes(keyword) || overviewLower.includes(keyword)
+    );
+
+    if (hasExplicitContent || item.adult === true) {
+      console.log(`🔞 Série bloqueada por conteúdo explícito: ${title}`);
+      return true;
+    }
+
+    // Para séries, não aplicar filtros baseados em país/popularidade
+    console.log(`✅ Série aprovada: ${title}`);
+    return false;
+  }
+
   // LISTA NEGRA DE TÍTULOS ESPECÍFICOS (dinâmica)
   const blacklistedTitles = getBlacklistedTitles();
 
@@ -623,8 +660,64 @@ export const filterAdultContent = (items: any[]): any[] => {
 };
 
 /**
- * Verifica se o filtro de conteúdo adulto está ativado
+ * Filtra especificamente séries de TV com critérios mais brandos
  */
+export const filterTVShowsAdultContent = (tvShows: any[]): any[] => {
+  const filterEnabled = localStorage.getItem('adult_content_filter') === 'true';
+
+  console.log(
+    `📺 Filtro de séries: ${filterEnabled ? 'ATIVADO' : 'DESATIVADO'}`
+  );
+
+  if (!filterEnabled) {
+    console.log(`📋 Retornando ${tvShows.length} séries sem filtrar`);
+    return tvShows;
+  }
+
+  const originalCount = tvShows.length;
+  const filtered = tvShows.filter((show) => {
+    const title = show.name || show.original_name || '';
+    const overview = show.overview || '';
+
+    // Aplicar apenas filtros básicos para séries
+    const explicitKeywords = [
+      'porn',
+      'xxx',
+      'adult film',
+      'erotic film',
+      'sex tape',
+      'pornographic',
+      'hardcore',
+      'softcore',
+    ];
+
+    const hasExplicitContent = explicitKeywords.some(
+      (keyword) =>
+        title.toLowerCase().includes(keyword) ||
+        overview.toLowerCase().includes(keyword)
+    );
+
+    const isBlocked = hasExplicitContent || show.adult === true;
+
+    if (isBlocked) {
+      console.log(`🚫 SÉRIE BLOQUEADA: ${title}`);
+    }
+
+    return !isBlocked;
+  });
+
+  const blockedCount = originalCount - filtered.length;
+
+  if (blockedCount > 0) {
+    console.log(
+      `📺 FILTRO DE SÉRIES: ${blockedCount} de ${originalCount} séries bloqueadas`
+    );
+  } else {
+    console.log(`✅ Nenhuma série bloqueada em ${originalCount} itens`);
+  }
+
+  return filtered;
+};
 export const isAdultContentFilterEnabled = (): boolean => {
   return localStorage.getItem('adult_content_filter') === 'true';
 };

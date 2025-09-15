@@ -512,12 +512,28 @@ export const HomePage: React.FC = () => {
       let filteredResults =
         response && response.results ? response.results : [];
 
-      console.log(`📊 Antes do filtro adulto: ${filteredResults.length} itens`);
+      console.log(
+        `📊 Dados recebidos da API: ${filteredResults.length} itens para ${category}`
+      );
 
-      // Aplicar filtro de conteúdo adulto
-      filteredResults = filterAdultContent(filteredResults);
-
-      console.log(`📊 Após filtro adulto: ${filteredResults.length} itens`);
+      // Aplicar filtro de conteúdo adulto APENAS para filmes e pessoas
+      if (category === 'movies') {
+        filteredResults = filterAdultContent(filteredResults);
+        console.log(
+          `📊 Filmes após filtro adulto: ${filteredResults.length} itens`
+        );
+      } else if (category === 'tv') {
+        // Para séries (TV), não aplicar NENHUM filtro - manter todos os resultados
+        console.log(
+          `📺 Séries: mantendo todos os ${filteredResults.length} itens (sem filtro)`
+        );
+      } else {
+        // Para pessoas (atores/diretores), aplicar filtro
+        filteredResults = filterAdultContent(filteredResults);
+        console.log(
+          `👥 Pessoas após filtro adulto: ${filteredResults.length} itens`
+        );
+      }
 
       if (selectedYear && category === 'movies') {
         const startYear = Number(selectedYear);
@@ -528,6 +544,9 @@ export const HomePage: React.FC = () => {
           const movieYear = new Date(movie.release_date).getFullYear();
           return movieYear >= startYear && movieYear <= endYear;
         });
+        console.log(
+          `📊 Filmes após filtro de ano: ${filteredResults.length} itens`
+        );
       } else if (selectedYear && category === 'tv') {
         const startYear = Number(selectedYear);
         const endYear = startYear + 9;
@@ -537,10 +556,13 @@ export const HomePage: React.FC = () => {
           const showYear = new Date(show.first_air_date).getFullYear();
           return showYear >= startYear && showYear <= endYear;
         });
+        console.log(
+          `📺 Séries após filtro de ano: ${filteredResults.length} itens`
+        );
       }
 
       console.log(
-        `📊 Definindo conteúdo: ${filteredResults.length} itens após filtros`
+        `📊 FINAL: Definindo ${filteredResults.length} itens para exibição`
       );
 
       if (reset) {

@@ -60,6 +60,10 @@ const SearchResults: React.FC = () => {
       if (!decodedTerm)
         return { results: [], total_pages: 0, total_results: 0 };
 
+      console.log(
+        `🔍 Buscando: "${decodedTerm}" | Filtro: ${activeFilter} | Página: ${currentPage}`
+      );
+
       let response;
       switch (activeFilter) {
         case 'movie':
@@ -76,9 +80,26 @@ const SearchResults: React.FC = () => {
           break;
       }
 
-      // Aplicar filtro de conteúdo adulto (exceto para pessoas)
-      if (activeFilter !== 'person' && response?.results) {
+      console.log(
+        `📊 API retornou ${
+          response?.results?.length || 0
+        } resultados para "${decodedTerm}"`
+      );
+
+      // APENAS aplicar filtro de conteúdo adulto para busca específica de filmes
+      // Para séries (tv), pessoas (person) e busca geral (all), não aplicar filtro
+      if (activeFilter === 'movie' && response?.results) {
+        const originalCount = response.results.length;
         response.results = filterAdultContent(response.results);
+        console.log(
+          `🎦 Filmes: ${originalCount} → ${response.results.length} após filtro adulto`
+        );
+      } else {
+        console.log(
+          `📺 Categoria "${activeFilter}": mantendo todos os ${
+            response?.results?.length || 0
+          } resultados (sem filtro)`
+        );
       }
 
       return response;

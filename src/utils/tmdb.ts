@@ -104,10 +104,13 @@ export const searchMulti = async (
 
     const data = await response.json();
 
-    // Aplicar filtro de conteúdo adulto
-    if (data.results) {
-      data.results = filterAdultContent(data.results);
-    }
+    // Não aplicar filtro de conteúdo adulto aqui para evitar bloqueios desnecessários
+    // O filtro será aplicado no componente SearchResults se necessário
+    console.log(
+      `🔍 searchMulti: retornando ${
+        data.results?.length || 0
+      } resultados para "${query}"`
+    );
 
     return data;
   } catch (error) {
@@ -135,10 +138,13 @@ export const searchMovies = async (
 
     const data = await response.json();
 
-    // Aplicar filtro de conteúdo adulto
-    if (data.results) {
-      data.results = filterAdultContent(data.results);
-    }
+    // Não aplicar filtro de conteúdo adulto aqui para evitar bloqueios desnecessários
+    // O filtro será aplicado no componente SearchResults de forma mais controlada
+    console.log(
+      `🎦 searchMovies: retornando ${
+        data.results?.length || 0
+      } filmes para "${query}"`
+    );
 
     return data;
   } catch (error) {
