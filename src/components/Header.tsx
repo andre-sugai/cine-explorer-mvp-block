@@ -42,6 +42,7 @@ import {
 } from '@/components/ui/drawer';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useIsMobile } from '@/hooks/use-mobile';
+import QuickSearchModal from '@/components/QuickSearchModal';
 
 interface HeaderProps {
   activeTab?: string;
@@ -59,6 +60,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
   );
   const [showMigrationModal, setShowMigrationModal] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showQuickSearch, setShowQuickSearch] = useState(false);
   const [userProfile, setUserProfile] = useState<{
     profileImage?: string;
     nickname?: string;
@@ -184,6 +186,33 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
 
   const handleNavigation = (path: string) => {
     setIsMobileMenuOpen(false);
+  };
+
+  // Atalho '/': alterna modal de busca rápida
+  useEffect(() => {
+    const isEditable = (el: Element | null) => {
+      if (!el) return false;
+      const tag = (el as HTMLElement).tagName?.toLowerCase();
+      if (tag === 'input' || tag === 'textarea') return true;
+      const he = el as HTMLElement;
+      return !!he.isContentEditable;
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        if (isEditable(document.activeElement)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        setShowQuickSearch((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown, true);
+    return () => window.removeEventListener('keydown', onKeyDown, true);
+  }, []);
+
+  const handleQuickSearchSubmit = (value: string) => {
+    navigate(`/busca/${encodeURIComponent(value)}`);
+    setShowQuickSearch(false);
   };
 
   const navItems = [
@@ -534,6 +563,11 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
       <DataMigrationModal
         open={showMigrationModal}
         onClose={() => setShowMigrationModal(false)}
+      />
+      <QuickSearchModal
+        open={showQuickSearch}
+        onOpenChange={setShowQuickSearch}
+        onSubmit={handleQuickSearchSubmit}
       />
     </header>
   );
