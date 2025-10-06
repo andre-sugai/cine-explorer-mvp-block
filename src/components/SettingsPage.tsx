@@ -41,6 +41,7 @@ import { useWatchedContext } from '@/context/WatchedContext';
 import { useAuth } from '@/context/AuthContext';
 import { useProfileImage } from '@/hooks/useProfileImage';
 import { ProfileImageUpload } from '@/components/profile/ProfileImageUpload';
+import { TestToast } from '@/components/TestToast';
 import { toast } from '@/hooks/use-toast';
 
 /**
@@ -401,7 +402,7 @@ export const SettingsPage: React.FC = () => {
       </div>
 
       <Tabs defaultValue="stats" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 bg-gradient-cinema border-primary/20">
+        <TabsList className="grid w-full grid-cols-4 bg-gradient-cinema border-primary/20">
           <TabsTrigger
             value="stats"
             className="flex items-center gap-2 data-[state=active]:bg-gradient-gold data-[state=active]:text-cinema-dark"
@@ -422,6 +423,12 @@ export const SettingsPage: React.FC = () => {
           >
             <User className="w-4 h-4" />
             Perfil
+          </TabsTrigger>
+          <TabsTrigger
+            value="test"
+            className="flex items-center gap-2 data-[state=active]:bg-gradient-gold data-[state=active]:text-cinema-dark"
+          >
+            🧪 Teste Toast
           </TabsTrigger>
         </TabsList>
 
@@ -979,6 +986,11 @@ export const SettingsPage: React.FC = () => {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Aba de Teste de Toast - Temporária */}
+        <TabsContent value="test" className="space-y-6">
+          <TestToast />
         </TabsContent>
       </Tabs>
 
