@@ -13,6 +13,7 @@ import {
   isInBlacklist,
   removeFromBlacklist,
 } from '@/utils/adultContentFilter';
+import SignupInviteModal from '@/components/auth/SignupInviteModal';
 
 interface ActionButtonsProps {
   id: number;
@@ -44,7 +45,19 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
   const isAdmin = isAdminUser(user?.email);
   const isBlacklisted = isInBlacklist(title);
 
+  const isAuthenticated = !!user;
+  const [inviteOpen, setInviteOpen] = React.useState(false);
+
+  const requireAuth = () => {
+    if (!isAuthenticated) {
+      setInviteOpen(true);
+      return true;
+    }
+    return false;
+  };
+
   const handleFavorite = async () => {
+    if (requireAuth()) return;
     try {
       if (favorite) {
         await removeFromFavorites(id, type);
@@ -67,6 +80,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
   };
 
   const handleWantToWatch = () => {
+    if (requireAuth()) return;
     if (type === 'person') return;
 
     if (wantToWatch) {
@@ -87,6 +101,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
   };
 
   const handleWatched = () => {
+    if (requireAuth()) return;
     if (type === 'person') return;
 
     if (watched) {
@@ -209,6 +224,8 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
           {isBlacklisted ? 'Remover da Blacklist' : 'Adicionar à Blacklist'}
         </Button>
       )}
+
+      <SignupInviteModal open={inviteOpen} onOpenChange={setInviteOpen} />
     </div>
   );
 };

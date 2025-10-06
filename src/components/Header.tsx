@@ -54,6 +54,9 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [isSearchFocused, setIsSearchFocused] = React.useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authInitialTab, setAuthInitialTab] = useState<'login' | 'register'>(
+    'login'
+  );
   const [showMigrationModal, setShowMigrationModal] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [userProfile, setUserProfile] = useState<{
@@ -127,6 +130,19 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
     setShowAuthModal(false);
     setShowMigrationModal(true);
   };
+
+  React.useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as
+        | { tab?: 'login' | 'register' }
+        | undefined;
+      setAuthInitialTab(detail?.tab === 'register' ? 'register' : 'login');
+      setShowAuthModal(true);
+    };
+    window.addEventListener('open-auth-modal', handler as EventListener);
+    return () =>
+      window.removeEventListener('open-auth-modal', handler as EventListener);
+  }, []);
 
   /**
    * Função para lidar com a busca por voz
@@ -513,6 +529,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
         open={showAuthModal}
         onClose={() => setShowAuthModal(false)}
         onSuccess={handleAuthSuccess}
+        initialTab={authInitialTab}
       />
       <DataMigrationModal
         open={showMigrationModal}

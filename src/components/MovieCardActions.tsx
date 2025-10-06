@@ -11,6 +11,7 @@ import {
   isInBlacklist,
   removeFromBlacklist,
 } from '@/utils/adultContentFilter';
+import SignupInviteModal from '@/components/auth/SignupInviteModal';
 
 interface MovieCardActionsProps {
   id: number;
@@ -47,8 +48,21 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
   const isAdmin = isAdminUser(user?.email);
   const isBlacklisted = isInBlacklist(title);
 
+  const isAuthenticated = !!user;
+  const [inviteOpen, setInviteOpen] = React.useState(false);
+
+  const requireAuth = (e?: React.MouseEvent) => {
+    if (!isAuthenticated) {
+      e?.preventDefault?.();
+      e?.stopPropagation?.();
+      setInviteOpen(true);
+      return true;
+    }
+    return false;
+  };
+
   const handleFavorite = async (e: React.MouseEvent) => {
-    e.stopPropagation();
+    if (requireAuth(e)) return;
 
     try {
       if (favorite) {
@@ -74,7 +88,7 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
   };
 
   const handleWantToWatch = (e: React.MouseEvent) => {
-    e.stopPropagation();
+    if (requireAuth(e)) return;
     if (type === 'person') return;
 
     if (wantToWatch) {
@@ -95,7 +109,7 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
   };
 
   const handleWatched = (e: React.MouseEvent) => {
-    e.stopPropagation();
+    if (requireAuth(e)) return;
     if (type === 'person') return;
 
     if (watched) {
@@ -215,6 +229,7 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
           )}
         </>
       )}
+      <SignupInviteModal open={inviteOpen} onOpenChange={setInviteOpen} />
     </div>
   );
 };

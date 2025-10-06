@@ -16,12 +16,14 @@ interface AuthModalProps {
   open: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  initialTab?: 'login' | 'register';
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({
   open,
   onClose,
   onSuccess,
+  initialTab = 'login',
 }) => {
   const { login, register, resetPassword, isLoading } = useAuth();
   const [email, setEmail] = useState('');
@@ -31,7 +33,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [isResetMode, setIsResetMode] = useState(false);
-  const [activeTab, setActiveTab] = useState('login');
+  const [activeTab, setActiveTab] = useState<'login' | 'register'>(initialTab);
+
+  React.useEffect(() => {
+    if (open) {
+      setActiveTab(initialTab);
+    }
+  }, [open, initialTab]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
