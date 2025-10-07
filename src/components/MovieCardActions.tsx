@@ -62,6 +62,8 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
   };
 
   const handleFavorite = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (requireAuth(e)) return;
 
     try {
@@ -88,6 +90,8 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
   };
 
   const handleWantToWatch = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (requireAuth(e)) return;
     if (type === 'person') return;
 
@@ -109,6 +113,8 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
   };
 
   const handleWatched = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (requireAuth(e)) return;
     if (type === 'person') return;
 
@@ -137,6 +143,7 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
   };
 
   const handleAddToBlacklist = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
 
     if (!isAdmin) {
