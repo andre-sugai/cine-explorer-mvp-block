@@ -336,6 +336,36 @@ export const getTopRatedMovies = async (page: number = 1) => {
   }
 };
 
+/**
+ * Busca filmes que estão atualmente em cartaz nos cinemas
+ * @param page Número da página
+ * @returns Filmes em cartaz
+ */
+export const getNowPlayingMovies = async (page: number = 1) => {
+  try {
+    const url = buildApiUrl('/movie/now_playing', {
+      page: page.toString(),
+    });
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`TMDB API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    // Aplicar filtro de conteúdo adulto
+    if (data.results) {
+      data.results = filterAdultContent(data.results);
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error getting now playing movies:', error);
+    throw error;
+  }
+};
+
 // Popular TV shows
 export const getPopularTVShows = async (page: number = 1) => {
   try {

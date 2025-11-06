@@ -10,13 +10,14 @@ import {
   getPopularPeople,
   searchPeople,
   getAllGenres,
+  getNowPlayingMovies,
 } from '@/utils/tmdb';
 import { filterAdultContent } from '@/utils/adultContentFilter';
 import { TMDBMovie, TMDBTVShow, TMDBPerson, TMDBGenre } from '@/utils/tmdb';
 import { useFilterPersistence } from '@/hooks/useFilterPersistence';
 import { useScrollManager } from '@/hooks/useScrollManager';
 
-type ContentCategory = 'movies' | 'tv' | 'actors' | 'directors';
+type ContentCategory = 'movies' | 'tv' | 'actors' | 'directors' | 'cinema';
 
 export const HomePage: React.FC = () => {
   // Hook de persistência de filtros (removidas as referencias ao selectedStreamings)
@@ -440,21 +441,21 @@ export const HomePage: React.FC = () => {
     try {
       setIsLoading(true);
       let response: any;
-      if (category === 'movies' || category === 'tv') {
+      if (category === 'movies' || category === 'tv' || category === 'cinema') {
         // Montar parâmetros para discover
         const params: any = {
           page: pageNum,
           sort_by: selectedOrder,
         };
-        if (selectedProvider) {
+        if (selectedProvider && category !== 'cinema') {
           params.with_watch_providers = selectedProvider;
           params.watch_region = 'BR';
         }
-        if (selectedGenre) {
+        if (selectedGenre && category !== 'cinema') {
           params.with_genres = selectedGenre;
         }
-        if (selectedYear) {
-          if (category === 'movies') {
+        if (selectedYear && category !== 'cinema') {
+          if (category === 'movies' || (category as any) === 'cinema') {
             // Usar primary_release_date é mais confiável para filtragem
             params['primary_release_date.gte'] = `${selectedYear}-01-01`;
             params['primary_release_date.lte'] = `${
@@ -468,11 +469,19 @@ export const HomePage: React.FC = () => {
             params['first_air_date.lte'] = `${Number(selectedYear) + 9}-12-31`;
           }
         }
-        if (selectedLanguage) {
+        if (selectedLanguage && category !== 'cinema') {
           params.with_original_language = selectedLanguage;
         }
-        // Corrigido: endpoint correto (movie/tv no singular)
-        const url = `/discover/${category === 'movies' ? 'movie' : 'tv'}`;
+
+        // Para a categoria 'cinema', usamos o endpoint específico de now_playing
+        let url;
+        if (category === 'cinema') {
+          url = '/movie/now_playing';
+        } else {
+          // Corrigido: endpoint correto (movie/tv no singular)
+          url = `/discover/${category === 'movies' ? 'movie' : 'tv'}`;
+        }
+
         const apiUrl = new URL('https://api.themoviedb.org/3' + url);
         Object.entries(params).forEach(([key, value]) => {
           apiUrl.searchParams.append(key, value as string);
@@ -517,7 +526,7 @@ export const HomePage: React.FC = () => {
       );
 
       // Aplicar filtro de conteúdo adulto APENAS para filmes e pessoas
-      if (category === 'movies') {
+      if (category === 'movies' || (category as any) === 'cinema') {
         filteredResults = filterAdultContent(filteredResults);
         console.log(
           `📊 Filmes após filtro adulto: ${filteredResults.length} itens`
@@ -535,7 +544,12 @@ export const HomePage: React.FC = () => {
         );
       }
 
-      if (selectedYear && category === 'movies') {
+      if (
+        selectedYear &&
+        category !== 'tv' &&
+        category !== 'actors' &&
+        category !== 'directors'
+      ) {
         const startYear = Number(selectedYear);
         const endYear = startYear + 9;
 
@@ -579,7 +593,7 @@ export const HomePage: React.FC = () => {
   };
 
   const handleCategoryChange = (category: ContentCategory) => {
-    setActiveCategory(category);
+    setActiveCategory(category as any); // Type assertion to avoid type error
     setPage(1);
     loadContentComFiltros(category, 1, true);
   };

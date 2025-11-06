@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
-type ContentCategory = 'movies' | 'tv' | 'actors' | 'directors';
+type ContentCategory = 'movies' | 'tv' | 'actors' | 'directors' | 'cinema';
 
 interface FiltersState {
   activeCategory: ContentCategory;
@@ -46,7 +46,8 @@ const clearFiltersFromStorage = () => {
 };
 
 export const useFilterPersistence = () => {
-  const [activeCategory, setActiveCategory] = useState<ContentCategory>('movies');
+  const [activeCategory, setActiveCategory] =
+    useState<ContentCategory>('movies');
   const [selectedProvider, setSelectedProvider] = useState('');
   const [selectedGenre, setSelectedGenre] = useState('');
   const [selectedOrder, setSelectedOrder] = useState('popularity.desc');
@@ -68,13 +69,13 @@ export const useFilterPersistence = () => {
       setSelectedLanguage(savedFilters.selectedLanguage || '');
       setSelectedStreamings(savedFilters.selectedStreamings || []);
       setSearchTerm(savedFilters.searchTerm || '');
-      
+
       // Restaurar scroll position após um pequeno delay
       setTimeout(() => {
         if (savedFilters.scrollPosition > 0) {
           window.scrollTo({
             top: savedFilters.scrollPosition,
-            behavior: 'smooth'
+            behavior: 'smooth',
           });
         }
       }, 200);
@@ -95,9 +96,9 @@ export const useFilterPersistence = () => {
       selectedLanguage,
       selectedStreamings,
       searchTerm,
-      scrollPosition: window.scrollY || 0
+      scrollPosition: window.scrollY || 0,
     };
-    
+
     saveFiltersToStorage(currentFilters);
   }, [
     activeCategory,
@@ -108,13 +109,13 @@ export const useFilterPersistence = () => {
     selectedLanguage,
     selectedStreamings,
     searchTerm,
-    isRestored
+    isRestored,
   ]);
 
   // Salvar posição do scroll antes de navegar
   const saveScrollPosition = useCallback(() => {
     if (!isRestored) return;
-    
+
     const currentFilters: FiltersState = {
       activeCategory,
       selectedProvider,
@@ -124,9 +125,9 @@ export const useFilterPersistence = () => {
       selectedLanguage,
       selectedStreamings,
       searchTerm,
-      scrollPosition: window.scrollY || 0
+      scrollPosition: window.scrollY || 0,
     };
-    
+
     saveFiltersToStorage(currentFilters);
   }, [
     activeCategory,
@@ -137,7 +138,7 @@ export const useFilterPersistence = () => {
     selectedLanguage,
     selectedStreamings,
     searchTerm,
-    isRestored
+    isRestored,
   ]);
 
   // Resetar todos os filtros
@@ -164,7 +165,7 @@ export const useFilterPersistence = () => {
     selectedLanguage,
     selectedStreamings,
     searchTerm,
-    
+
     // Setters
     setActiveCategory,
     setSelectedProvider,
@@ -174,10 +175,10 @@ export const useFilterPersistence = () => {
     setSelectedLanguage,
     setSelectedStreamings,
     setSearchTerm,
-    
+
     // Utilitários
     saveScrollPosition,
     resetFilters,
-    isRestored
+    isRestored,
   };
 };

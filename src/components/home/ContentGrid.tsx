@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { MovieCardActions } from '@/components/MovieCardActions';
 import { useFavoritesContext } from '@/context/FavoritesContext';
 
-type ContentCategory = 'movies' | 'tv' | 'actors' | 'directors';
+type ContentCategory = 'movies' | 'tv' | 'actors' | 'directors' | 'cinema';
 
 interface ContentGridProps {
   content: (TMDBMovie | TMDBTVShow | TMDBPerson)[];

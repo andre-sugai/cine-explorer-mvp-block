@@ -555,14 +555,15 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
 
       {/* Modals */}
       <AuthModal
-        open={showAuthModal}
+        isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
         onSuccess={handleAuthSuccess}
         initialTab={authInitialTab}
       />
       <DataMigrationModal
-        open={showMigrationModal}
+        isOpen={showMigrationModal}
         onClose={() => setShowMigrationModal(false)}
+        onMigrationComplete={() => {}}
       />
       <QuickSearchModal
         open={showQuickSearch}
