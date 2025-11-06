@@ -229,6 +229,15 @@ const SignupInviteModal: React.FC<SignupInviteModalProps> = ({
     onOpenChange(false);
   };
 
+  const handleLogin = (e?: React.MouseEvent) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
+    window.dispatchEvent(
+      new CustomEvent('open-auth-modal', { detail: { tab: 'login' } })
+    );
+    onOpenChange(false);
+  };
+
   // Bloqueia o próximo clique global (captura) para evitar click-through
   const suppressNextGlobalClick = () => {
     const handler = (e: MouseEvent) => {
@@ -297,12 +306,21 @@ const SignupInviteModal: React.FC<SignupInviteModalProps> = ({
           </p>
         </div>
 
-        <div className="flex gap-3 pt-3">
-          <Button variant="outline" className="flex-1" onClick={handleLater}>
+        <div className="flex flex-col gap-3 pt-3">
+          <div className="flex gap-3">
+            <Button variant="outline" className="flex-1" onClick={handleLogin}>
+              Entrar
+            </Button>
+            <Button className="flex-1" onClick={handleSignup}>
+              Cadastro
+            </Button>
+          </div>
+          <Button
+            variant="ghost"
+            className="w-full text-sm text-muted-foreground hover:text-foreground"
+            onClick={handleLater}
+          >
             Tentarei mais tarde
-          </Button>
-          <Button className="flex-1" onClick={handleSignup}>
-            Cadastro
           </Button>
         </div>
       </DialogContent>
