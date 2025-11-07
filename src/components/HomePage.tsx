@@ -473,26 +473,26 @@ export const HomePage: React.FC = () => {
           params.with_original_language = selectedLanguage;
         }
 
-        // Para a categoria 'cinema', usamos o endpoint específico de now_playing
-        let url;
+        // Para a categoria 'cinema', usamos a função específica que filtra apenas filmes em cinemas
         if (category === 'cinema') {
-          url = '/movie/now_playing';
+          // Usar a função getNowPlayingMovies que filtra filmes exclusivamente em cinemas
+          // (não disponíveis em streaming)
+          response = await getNowPlayingMovies(pageNum, 'BR', true);
         } else {
           // Corrigido: endpoint correto (movie/tv no singular)
-          url = `/discover/${category === 'movies' ? 'movie' : 'tv'}`;
+          const url = `/discover/${category === 'movies' ? 'movie' : 'tv'}`;
+          const apiUrl = new URL('https://api.themoviedb.org/3' + url);
+          Object.entries(params).forEach(([key, value]) => {
+            apiUrl.searchParams.append(key, value as string);
+          });
+          apiUrl.searchParams.append(
+            'api_key',
+            localStorage.getItem('tmdb_api_key') || ''
+          );
+          apiUrl.searchParams.append('language', 'pt-BR');
+          const res = await fetch(apiUrl.toString());
+          response = await res.json();
         }
-
-        const apiUrl = new URL('https://api.themoviedb.org/3' + url);
-        Object.entries(params).forEach(([key, value]) => {
-          apiUrl.searchParams.append(key, value as string);
-        });
-        apiUrl.searchParams.append(
-          'api_key',
-          localStorage.getItem('tmdb_api_key') || ''
-        );
-        apiUrl.searchParams.append('language', 'pt-BR');
-        const res = await fetch(apiUrl.toString());
-        response = await res.json();
       } else {
         // Mantém lógica antiga para atores/diretores
         switch (category) {

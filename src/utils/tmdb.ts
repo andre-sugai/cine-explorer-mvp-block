@@ -338,13 +338,21 @@ export const getTopRatedMovies = async (page: number = 1) => {
 
 /**
  * Busca filmes que estão atualmente em cartaz nos cinemas
+ * Filtra apenas filmes que estão exclusivamente em cinemas (não disponíveis em streaming)
  * @param page Número da página
- * @returns Filmes em cartaz
+ * @param region Região para buscar filmes em cartaz (padrão: 'BR')
+ * @param filterStreaming Se true, filtra filmes que já estão disponíveis em streaming (padrão: true)
+ * @returns Filmes em cartaz exclusivamente nos cinemas
  */
-export const getNowPlayingMovies = async (page: number = 1) => {
+export const getNowPlayingMovies = async (
+  page: number = 1,
+  region: string = 'BR',
+  filterStreaming: boolean = true
+) => {
   try {
     const url = buildApiUrl('/movie/now_playing', {
       page: page.toString(),
+      region: region, // Adiciona região para garantir filmes do Brasil
     });
 
     const response = await fetch(url);
@@ -357,6 +365,87 @@ export const getNowPlayingMovies = async (page: number = 1) => {
     // Aplicar filtro de conteúdo adulto
     if (data.results) {
       data.results = filterAdultContent(data.results);
+
+      // Filtrar filmes que estão exclusivamente em cinemas
+      if (filterStreaming && data.results.length > 0) {
+        const originalCount = data.results.length;
+        const filteredMovies: TMDBMovie[] = [];
+
+        // Verificar TODOS os filmes (não apenas os antigos)
+        // Muitos filmes hoje são lançados simultaneamente em cinemas e streaming
+        const moviesToCheck: TMDBMovie[] = [...data.results];
+
+        // Verificar streaming para TODOS os filmes em paralelo (batch processing)
+        const batchSize = 3; // Reduzido para evitar timeouts em produção
+        const timeout = 5000; // 5 segundos de timeout por filme
+
+        for (let i = 0; i < moviesToCheck.length; i += batchSize) {
+          const batch = moviesToCheck.slice(i, i + batchSize);
+          const batchPromises = batch.map(async (movie) => {
+            try {
+              // Adicionar timeout à chamada para evitar travamentos
+              const timeoutPromise: Promise<never> = new Promise((_, reject) =>
+                setTimeout(
+                  () =>
+                    reject(new Error('Timeout na verificação de providers')),
+                  timeout
+                )
+              );
+
+              const providersPromise = getMovieWatchProviders(movie.id, region);
+              const providers = (await Promise.race([
+                providersPromise,
+                timeoutPromise,
+              ])) as Awaited<ReturnType<typeof getMovieWatchProviders>>;
+
+              // Verificar TODOS os tipos de disponibilidade digital
+              const hasDigitalAvailability =
+                (providers.flatrate && providers.flatrate.length > 0) || // Streaming
+                (providers.rent && providers.rent.length > 0) || // Aluguel digital
+                (providers.buy && providers.buy.length > 0); // Compra digital
+
+              if (hasDigitalAvailability) {
+                console.log(
+                  `🎬 Filme "${movie.title}" excluído: disponível digitalmente (streaming/aluguel/compra)`
+                );
+                return null;
+              }
+
+              // Filme não está disponível digitalmente - incluir (está apenas em cinemas)
+              return movie;
+            } catch (error) {
+              // Em caso de erro/timeout, EXCLUIR o filme para ser mais rigoroso
+              // Isso evita que filmes de streaming apareçam por falha na verificação
+              console.warn(
+                `⚠️ Erro ao verificar providers de "${movie.title}":`,
+                error instanceof Error ? error.message : error
+              );
+              console.log(
+                `🎬 Filme "${movie.title}" excluído por segurança (erro/timeout na verificação)`
+              );
+              return null; // Mudança: excluir em caso de erro para ser mais rigoroso
+            }
+          });
+
+          const batchResults = await Promise.all(batchPromises);
+          const validMovies = batchResults.filter(
+            (m): m is TMDBMovie => m !== null
+          );
+          filteredMovies.push(...validMovies);
+        }
+
+        data.results = filteredMovies;
+
+        if (filteredMovies.length < originalCount) {
+          console.log(
+            `🎬 Filmes em cartaz: ${originalCount} → ${filteredMovies.length} após filtro rigoroso (apenas filmes exclusivos de cinemas)`
+          );
+        } else {
+          console.log(
+            `🎬 Todos os ${filteredMovies.length} filmes passaram no filtro de cinemas exclusivos`
+          );
+        }
+      }
     }
 
     return data;
