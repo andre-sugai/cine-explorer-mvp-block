@@ -362,6 +362,18 @@ export const getNowPlayingMovies = async (
 
     const data = await response.json();
 
+    // Log para debug: verificar quais filmes estão sendo retornados
+    if (data.results && data.results.length > 0) {
+      console.log(
+        `🎬 Filmes retornados pelo endpoint now_playing (${data.results.length} total):`,
+        data.results.map((m: TMDBMovie) => ({
+          id: m.id,
+          title: m.title,
+          release_date: m.release_date,
+        }))
+      );
+    }
+
     // Aplicar filtro de conteúdo adulto
     if (data.results) {
       data.results = filterAdultContent(data.results);
@@ -414,16 +426,31 @@ export const getNowPlayingMovies = async (
               // Filme não está disponível digitalmente - incluir (está apenas em cinemas)
               return movie;
             } catch (error) {
-              // Em caso de erro/timeout, EXCLUIR o filme para ser mais rigoroso
-              // Isso evita que filmes de streaming apareçam por falha na verificação
+              // Em caso de erro/timeout, MANTER o filme mas com aviso
+              // Filmes em cartaz podem ter problemas temporários na API
+              // É melhor incluir com aviso do que excluir incorretamente (falso negativo)
+              const errorMessage =
+                error instanceof Error ? error.message : String(error);
+              const isTimeout = errorMessage.includes('Timeout');
+
               console.warn(
                 `⚠️ Erro ao verificar providers de "${movie.title}":`,
-                error instanceof Error ? error.message : error
+                errorMessage
               );
-              console.log(
-                `🎬 Filme "${movie.title}" excluído por segurança (erro/timeout na verificação)`
-              );
-              return null; // Mudança: excluir em caso de erro para ser mais rigoroso
+
+              if (isTimeout) {
+                console.log(
+                  `⏱️ Timeout ao verificar "${movie.title}" - incluindo por segurança (assumindo apenas em cinemas)`
+                );
+              } else {
+                console.log(
+                  `🎬 Filme "${movie.title}" incluído por segurança (erro na verificação, assumindo apenas em cinemas)`
+                );
+              }
+
+              // Manter o filme em caso de erro para evitar falsos negativos
+              // Se o filme está no endpoint now_playing, provavelmente está em cinemas
+              return movie;
             }
           });
 
