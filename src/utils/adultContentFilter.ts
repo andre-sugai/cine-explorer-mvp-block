@@ -400,13 +400,80 @@ export const isAdultContent = (item: any): boolean => {
     return false;
   }
 
-  // LISTA NEGRA DE TÍTULOS ESPECÍFICOS (dinâmica)
-  const blacklistedTitles = getBlacklistedTitles();
+  // WHITELIST DE FILMES MAINSTREAM (para evitar falsos positivos)
+  const whitelistedTitles = [
+    'predador',
+    'predator',
+    'alien',
+    'terminator',
+    'matrix',
+    'avengers',
+    'batman',
+    'superman',
+    'spider-man',
+    'homem-aranha',
+    'iron man',
+    'homem de ferro',
+    'thor',
+    'captain america',
+    'capitão américa',
+    'guardians of the galaxy',
+    'guardioes da galaxia',
+    'star wars',
+    'guerra nas estrelas',
+    'jurassic',
+    'jurassico',
+    'fast and furious',
+    'velozes e furiosos',
+    'mission impossible',
+    'missão impossível',
+    'james bond',
+    '007',
+    'john wick',
+    'titanic',
+    'avatar',
+    'inception',
+    'a origem',
+    'interstellar',
+    'interestelar',
+    'dune',
+    'duna',
+    'blade runner',
+    'o exterminador do futuro',
+    'the lord of the rings',
+    'o senhor dos aneis',
+    'harry potter',
+    'game of thrones',
+    'breaking bad',
+  ];
 
   const titleLower = title.toLowerCase();
   const overviewLower = overview.toLowerCase();
 
-  // Verificar lista negra primeiro
+  // Verificar whitelist primeiro (filmes conhecidos não devem ser bloqueados)
+  const isWhitelisted = whitelistedTitles.some((whitelisted) =>
+    titleLower.includes(whitelisted.toLowerCase())
+  );
+
+  // Variável para controlar se devemos pular verificações de palavras-chave
+  let skipKeywordChecks = false;
+
+  if (isWhitelisted) {
+    console.log(
+      `✅ Filme na whitelist: "${title}" - pulando verificações de palavras-chave (filme mainstream conhecido)`
+    );
+    skipKeywordChecks = true;
+    // Ainda verificar flag 'adult' do TMDB e classificação etária, mas não palavras-chave
+    if (item.adult === true) {
+      console.log(`🔞 Conteúdo adulto detectado por flag 'adult': ${title}`);
+      return true;
+    }
+  }
+
+  // LISTA NEGRA DE TÍTULOS ESPECÍFICOS (dinâmica)
+  const blacklistedTitles = getBlacklistedTitles();
+
+  // Verificar lista negra (tem prioridade sobre whitelist)
   for (const blacklisted of blacklistedTitles) {
     if (titleLower.includes(blacklisted.toLowerCase())) {
       console.log(
@@ -521,20 +588,41 @@ export const isAdultContent = (item: any): boolean => {
     return true;
   }
 
-  // 1. Verificar palavras-chave no título
-  if (hasAdultKeywords(title)) {
+  // 1. Verificar palavras-chave no título (pular se estiver na whitelist)
+  if (!skipKeywordChecks && hasAdultKeywords(title)) {
     console.log(`🔞 Conteúdo adulto detectado por título: ${title}`);
     return true;
   }
 
-  // 2. Verificar palavras-chave na sinopse
-  if (hasAdultKeywords(overview)) {
-    console.log(`🔞 Conteúdo adulto detectado por sinopse: ${title}`);
-    return true;
+  // 2. Verificar palavras-chave na sinopse (mas ser menos agressivo para filmes populares/mainstream)
+  if (!skipKeywordChecks && hasAdultKeywords(overview)) {
+    // Verificar se é filme mainstream/popular antes de bloquear
+    const popularity = item.popularity || 0;
+    const voteCount = item.vote_count || 0;
+    const voteAverage = item.vote_average || 0;
+
+    // Filmes muito populares, com muitos votos ou boa avaliação provavelmente não são adultos
+    // Isso evita falsos positivos em filmes mainstream como "Predador: Terras Selvagens"
+    const isMainstreamFilm =
+      popularity > 30 || // Popularidade alta
+      voteCount > 500 || // Muitos votos (filme conhecido)
+      (voteCount > 100 && voteAverage > 6.0); // Boa avaliação com votos suficientes
+
+    if (isMainstreamFilm) {
+      console.log(
+        `✅ Filme mainstream "${title}" (pop: ${popularity}, votes: ${voteCount}, avg: ${voteAverage}) - ignorando palavra-chave na sinopse (provável falso positivo)`
+      );
+      // Não bloquear filmes mainstream por palavras na sinopse
+    } else {
+      console.log(
+        `🔞 Conteúdo adulto detectado por sinopse: ${title} (pop: ${popularity}, votes: ${voteCount})`
+      );
+      return true;
+    }
   }
 
-  // 3. Verificar palavras-chave no tagline
-  if (hasAdultKeywords(tagline)) {
+  // 3. Verificar palavras-chave no tagline (pular se estiver na whitelist)
+  if (!skipKeywordChecks && hasAdultKeywords(tagline)) {
     console.log(`🔞 Conteúdo adulto detectado por tagline: ${title}`);
     return true;
   }
@@ -563,7 +651,7 @@ export const isAdultContent = (item: any): boolean => {
     item.production_countries?.map((c: any) => c.iso_3166_1) ||
     item.origin_country ||
     [];
-  if (isFromAdultContentCountry(countries)) {
+  if (!skipKeywordChecks && isFromAdultContentCountry(countries)) {
     const popularity = item.popularity || 0;
     const voteCount = item.vote_count || 0;
 
@@ -593,8 +681,8 @@ export const isAdultContent = (item: any): boolean => {
     return true;
   }
 
-  // 8. Detecção por padrão de popularidade baixa + palavras suspeitas
-  if (hasAdultContentPattern(item)) {
+  // 8. Detecção por padrão de popularidade baixa + palavras suspeitas (pular se estiver na whitelist)
+  if (!skipKeywordChecks && hasAdultContentPattern(item)) {
     // Se tem padrão suspeito E alguma palavra-chave, bloquear
     const suspiciousText = `${title} ${overview} ${tagline}`.toLowerCase();
     const hasSuspiciousWords = [
