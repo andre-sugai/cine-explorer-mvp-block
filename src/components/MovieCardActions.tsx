@@ -42,7 +42,8 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
   const { user } = useAuth();
 
   const favorite = isFavorite(id, type);
-  const wantToWatch = type !== 'person' ? isInWantToWatch(id) : false;
+  const wantToWatch =
+    type !== 'person' ? isInWantToWatch(id, type as 'movie' | 'tv') : false;
   const watched =
     type !== 'person' ? isWatched(id, type as 'movie' | 'tv') : false;
   const isAdmin = isAdminUser(user?.email);
@@ -96,7 +97,7 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
     if (type === 'person') return;
 
     if (wantToWatch) {
-      removeFromWantToWatch(id);
+      removeFromWantToWatch(id, type as 'movie' | 'tv');
       toast.success('Removido da lista');
     } else {
       addToWantToWatch({
@@ -135,7 +136,7 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
 
       // Se estava na lista "quero assistir", remover de lá
       if (wantToWatch) {
-        removeFromWantToWatch(id);
+        removeFromWantToWatch(id, type as 'movie' | 'tv');
       }
 
       toast.success('Marcado como assistido');

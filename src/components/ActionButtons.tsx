@@ -41,7 +41,8 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
 
   const favorite = isFavorite(id, type);
   const watched = isWatched(id, type);
-  const wantToWatch = isInWantToWatch(id);
+  const wantToWatch =
+    type !== 'person' ? isInWantToWatch(id, type as 'movie' | 'tv') : false;
   const isAdmin = isAdminUser(user?.email);
   const isBlacklisted = isInBlacklist(title);
 
@@ -84,7 +85,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
     if (type === 'person') return;
 
     if (wantToWatch) {
-      removeFromWantToWatch(id);
+      removeFromWantToWatch(id, type as 'movie' | 'tv');
       toast.success('Removido da lista de filmes para assistir');
     } else {
       addToWantToWatch({
@@ -123,7 +124,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
 
       // Se estava na lista "quero assistir", remover de lá
       if (wantToWatch) {
-        removeFromWantToWatch(id);
+        removeFromWantToWatch(id, type as 'movie' | 'tv');
       }
 
       toast.success('Marcado como assistido');

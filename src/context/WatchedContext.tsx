@@ -98,6 +98,12 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return;
 
     try {
+      // Carregar dados do localStorage primeiro (backup local)
+      const localData = localStorage.getItem('cine-explorer-watched');
+      const localWatched: WatchedItem[] = localData
+        ? JSON.parse(localData)
+        : [];
+
       const { data, error } = await supabase
         .from('user_watched')
         .select('*')
@@ -106,6 +112,10 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) {
         console.error('Error loading watched list:', error);
+        // Em caso de erro, usar dados do localStorage
+        if (localWatched.length > 0) {
+          setWatched(localWatched);
+        }
         return;
       }
 
@@ -122,13 +132,71 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
           self.findIndex((w) => w.id === item.id && w.type === item.type)
       );
 
-      setWatched(uniqueWatched);
+      // Fazer merge com dados locais (priorizar dados do Supabase, mas manter dados locais não sincronizados)
+      const mergedWatched = [...uniqueWatched];
+      localWatched.forEach((localItem) => {
+        const existsInSupabase = uniqueWatched.some(
+          (supabaseItem) =>
+            supabaseItem.id === localItem.id &&
+            supabaseItem.type === localItem.type
+        );
+        if (!existsInSupabase) {
+          // Item existe localmente mas não no Supabase - adicionar ao merge
+          mergedWatched.push(localItem);
+          console.log(
+            `Item local encontrado não sincronizado: ${localItem.title} (${localItem.id})`
+          );
+        }
+      });
+
+      // Remover duplicatas finais
+      const finalWatched = mergedWatched.filter(
+        (item, index, self) =>
+          index ===
+          self.findIndex((w) => w.id === item.id && w.type === item.type)
+      );
+
+      setWatched(finalWatched);
 
       // Sincronizar com localStorage como backup
       localStorage.setItem(
         'cine-explorer-watched',
-        JSON.stringify(uniqueWatched)
+        JSON.stringify(finalWatched)
       );
+
+      // Se houver itens locais não sincronizados, tentar sincronizar
+      if (mergedWatched.length > uniqueWatched.length) {
+        const itemsToSync = localWatched.filter(
+          (localItem) =>
+            !uniqueWatched.some(
+              (supabaseItem) =>
+                supabaseItem.id === localItem.id &&
+                supabaseItem.type === localItem.type
+            )
+        );
+        // Sincronizar itens locais com Supabase em background
+        Promise.all(
+          itemsToSync.map(async (item) => {
+            try {
+              await supabase.from('user_watched').insert({
+                user_id: user.id,
+                item_id: item.id,
+                item_type: item.type,
+                item_data: item as any,
+                watched_date: item.watchedAt,
+              });
+            } catch (error) {
+              // Ignorar erros de duplicata (item já existe)
+              console.log(
+                'Item já sincronizado ou erro ao sincronizar:',
+                item.title
+              );
+            }
+          })
+        ).catch((error) => {
+          console.error('Erro ao sincronizar itens em background:', error);
+        });
+      }
     } catch (error) {
       console.error('Error loading watched list:', error);
       // Fallback para localStorage em caso de erro
@@ -162,7 +230,7 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
     if (isAuthenticated && user) {
       // Add to Supabase
       try {
-        await supabase.from('user_watched').insert({
+        const { error } = await supabase.from('user_watched').insert({
           user_id: user.id,
           item_id: item.id,
           item_type: item.type,
@@ -170,10 +238,32 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
           watched_date: watchedItem.watchedAt,
         });
 
+        if (error) {
+          console.error('Error adding to watched list in Supabase:', error);
+          throw error;
+        }
+
         // Update local state only after successful Supabase insert
-        setWatched((prev) => [...prev, watchedItem]);
+        setWatched((prev) => {
+          const newWatched = [...prev, watchedItem];
+          // Sincronizar com localStorage como backup
+          localStorage.setItem(
+            'cine-explorer-watched',
+            JSON.stringify(newWatched)
+          );
+          return newWatched;
+        });
       } catch (error) {
         console.error('Error adding to watched list in Supabase:', error);
+        // Em caso de erro, ainda salvar no localStorage como fallback
+        setWatched((prev) => {
+          const newWatched = [...prev, watchedItem];
+          localStorage.setItem(
+            'cine-explorer-watched',
+            JSON.stringify(newWatched)
+          );
+          return newWatched;
+        });
       }
     } else {
       // Add to localStorage for non-authenticated users
@@ -189,53 +279,95 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const removeFromWatched = async (id: number, type: string) => {
+    // Backup do item antes de remover para possível restauração
+    const itemToRemove = watched.find((w) => w.id === id && w.type === type);
+
+    // Atualizar estado local otimisticamente
+    setWatched((prev) => {
+      const newWatched = prev.filter(
+        (item) => !(item.id === id && item.type === type)
+      );
+      // Atualizar localStorage imediatamente
+      localStorage.setItem('cine-explorer-watched', JSON.stringify(newWatched));
+      return newWatched;
+    });
+
     if (isAuthenticated && user) {
       // Remove from Supabase
       try {
-        await supabase
+        const { error } = await supabase
           .from('user_watched')
           .delete()
           .eq('user_id', user.id)
           .eq('item_id', id)
           .eq('item_type', type);
+
+        if (error) {
+          console.error('Error removing from watched list in Supabase:', error);
+          // Se falhar, restaurar item no estado local e localStorage
+          if (itemToRemove) {
+            setWatched((prev) => {
+              const restoredWatched = [...prev, itemToRemove];
+              localStorage.setItem(
+                'cine-explorer-watched',
+                JSON.stringify(restoredWatched)
+              );
+              return restoredWatched;
+            });
+          }
+        }
       } catch (error) {
         console.error('Error removing from watched list in Supabase:', error);
+        // Se falhar, restaurar item no estado local e localStorage
+        if (itemToRemove) {
+          setWatched((prev) => {
+            const restoredWatched = [...prev, itemToRemove];
+            localStorage.setItem(
+              'cine-explorer-watched',
+              JSON.stringify(restoredWatched)
+            );
+            return restoredWatched;
+          });
+        }
       }
-    } else {
-      // Remove from localStorage for non-authenticated users
-      setWatched((prev) => {
-        const newWatched = prev.filter(
-          (item) => !(item.id === id && item.type === type)
-        );
-        localStorage.setItem(
-          'cine-explorer-watched',
-          JSON.stringify(newWatched)
-        );
-        return newWatched;
-      });
     }
-
-    // Update local state
-    setWatched((prev) =>
-      prev.filter((item) => !(item.id === id && item.type === type))
-    );
   };
 
   const clearAllWatched = async () => {
+    // Backup dos dados antes de limpar
+    const watchedBackup = [...watched];
+
+    // Limpar estado local e localStorage otimisticamente
+    setWatched([]);
+    localStorage.removeItem('cine-explorer-watched');
+
     if (isAuthenticated && user) {
       // Clear from Supabase
       try {
-        await supabase.from('user_watched').delete().eq('user_id', user.id);
+        const { error } = await supabase
+          .from('user_watched')
+          .delete()
+          .eq('user_id', user.id);
+
+        if (error) {
+          console.error('Error clearing watched list in Supabase:', error);
+          // Se falhar, restaurar dados
+          setWatched(watchedBackup);
+          localStorage.setItem(
+            'cine-explorer-watched',
+            JSON.stringify(watchedBackup)
+          );
+        }
       } catch (error) {
         console.error('Error clearing watched list in Supabase:', error);
+        // Se falhar, restaurar dados
+        setWatched(watchedBackup);
+        localStorage.setItem(
+          'cine-explorer-watched',
+          JSON.stringify(watchedBackup)
+        );
       }
-    } else {
-      // Clear from localStorage
-      localStorage.removeItem('cine-explorer-watched');
     }
-
-    // Update local state
-    setWatched([]);
   };
 
   const cleanInvalidWatched = () => {

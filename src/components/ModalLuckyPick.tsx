@@ -199,8 +199,8 @@ export const ModalLuckyPick: React.FC<{
 
   const handleWantToWatch = () => {
     if (!result) return;
-    if (isInWantToWatch(result.item.id)) {
-      removeFromWantToWatch(result.item.id);
+    if (isInWantToWatch(result.item.id, result.type)) {
+      removeFromWantToWatch(result.item.id, result.type);
       showToast('Removido de Quero Assistir!');
     } else {
       addToWantToWatch({
@@ -421,7 +421,7 @@ export const ModalLuckyPick: React.FC<{
                   <span className="hidden sm:inline">Remover de Vistos</span>
                   <span className="sm:hidden">Visto</span>
                 </Button>
-              ) : isInWantToWatch(result.item.id) ? (
+              ) : isInWantToWatch(result.item.id, result.type) ? (
                 <Button
                   variant="cinema"
                   onClick={handleWantToWatch}

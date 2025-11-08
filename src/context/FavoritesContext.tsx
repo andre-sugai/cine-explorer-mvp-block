@@ -67,6 +67,12 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
 
     setIsLoading(true);
     try {
+      // Carregar dados do localStorage primeiro (backup local)
+      const localData = localStorage.getItem('cine-explorer-favorites');
+      const localFavorites: FavoriteItem[] = localData
+        ? JSON.parse(localData)
+        : [];
+
       const { data, error } = await supabase
         .from('user_favorites')
         .select('*')
@@ -75,8 +81,10 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) {
         console.error('Error loading favorites:', error);
-        // Fallback para localStorage em caso de erro
-        loadFavoritesFromLocalStorage();
+        // Em caso de erro, usar dados do localStorage
+        if (localFavorites.length > 0) {
+          setFavorites(localFavorites);
+        }
         return;
       }
 
@@ -86,13 +94,75 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
           addedAt: item.created_at,
         })) || [];
 
-      setFavorites(formattedFavorites);
+      // Remover duplicatas baseado em id e type
+      const uniqueFavorites = formattedFavorites.filter(
+        (item, index, self) =>
+          index ===
+          self.findIndex(
+            (f) => f.id === item.id && f.type === item.type
+          )
+      );
+
+      // Fazer merge com dados locais (priorizar dados do Supabase, mas manter dados locais não sincronizados)
+      const mergedFavorites = [...uniqueFavorites];
+      localFavorites.forEach((localItem) => {
+        const existsInSupabase = uniqueFavorites.some(
+          (supabaseItem) =>
+            supabaseItem.id === localItem.id &&
+            supabaseItem.type === localItem.type
+        );
+        if (!existsInSupabase) {
+          // Item existe localmente mas não no Supabase - adicionar ao merge
+          mergedFavorites.push(localItem);
+          console.log(
+            `Item local encontrado não sincronizado: ${localItem.title} (${localItem.id})`
+          );
+        }
+      });
+
+      // Remover duplicatas finais
+      const finalFavorites = mergedFavorites.filter(
+        (item, index, self) =>
+          index ===
+          self.findIndex((f) => f.id === item.id && f.type === item.type)
+      );
+
+      setFavorites(finalFavorites);
 
       // Sincronizar com localStorage como backup
       localStorage.setItem(
         'cine-explorer-favorites',
-        JSON.stringify(formattedFavorites)
+        JSON.stringify(finalFavorites)
       );
+
+      // Se houver itens locais não sincronizados, tentar sincronizar
+      if (mergedFavorites.length > uniqueFavorites.length) {
+        const itemsToSync = localFavorites.filter((localItem) =>
+          !uniqueFavorites.some(
+            (supabaseItem) =>
+              supabaseItem.id === localItem.id &&
+              supabaseItem.type === localItem.type
+          )
+        );
+        // Sincronizar itens locais com Supabase em background
+        Promise.all(
+          itemsToSync.map(async (item) => {
+            try {
+              await supabase.from('user_favorites').insert({
+                user_id: user.id,
+                item_id: item.id,
+                item_type: item.type,
+                item_data: item as any,
+              });
+            } catch (error) {
+              // Ignorar erros de duplicata (item já existe)
+              console.log('Item já sincronizado ou erro ao sincronizar:', item.title);
+            }
+          })
+        ).catch((error) => {
+          console.error('Erro ao sincronizar itens em background:', error);
+        });
+      }
     } catch (error) {
       console.error('Error loading favorites:', error);
       // Fallback para localStorage em caso de erro

@@ -31,7 +31,7 @@ const WantToWatchPage: React.FC = () => {
     if (
       window.confirm(`Tem certeza que deseja remover "${title}" da sua lista?`)
     ) {
-      removeFromWantToWatch(id);
+      removeFromWantToWatch(id, type as 'movie' | 'tv');
       toast.success('Removido da lista');
     }
   };
@@ -47,7 +47,7 @@ const WantToWatchPage: React.FC = () => {
       genre_ids: [],
       runtime: undefined,
     });
-    removeFromWantToWatch(item.id);
+    removeFromWantToWatch(item.id, item.type);
     toast.success('Marcado como assistido e removido da lista');
   };
 
