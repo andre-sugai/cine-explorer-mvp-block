@@ -1,5 +1,5 @@
 import React from 'react';
-import { Heart, Bookmark, Check, Shield } from 'lucide-react';
+import { Heart, Bookmark, Check, Shield, Play } from 'lucide-react';
 import { useFavoritesContext } from '@/context/FavoritesContext';
 import { useWantToWatchContext } from '@/context/WantToWatchContext';
 import { useWatchedContext } from '@/context/WatchedContext';
@@ -12,6 +12,7 @@ import {
   removeFromBlacklist,
 } from '@/utils/adultContentFilter';
 import SignupInviteModal from '@/components/auth/SignupInviteModal';
+import { TrailerCardModal } from '@/components/TrailerCardModal';
 
 interface MovieCardActionsProps {
   id: number;
@@ -51,6 +52,7 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
 
   const isAuthenticated = !!user;
   const [inviteOpen, setInviteOpen] = React.useState(false);
+  const [trailerModalOpen, setTrailerModalOpen] = React.useState(false);
 
   const requireAuth = (e?: React.MouseEvent) => {
     if (!isAuthenticated) {
@@ -217,6 +219,19 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
             <Check className="w-3.5 h-3.5" />
           </button>
 
+          {/* Botão Trailer */}
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setTrailerModalOpen(true);
+            }}
+            className="p-1.5 rounded-full transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10"
+            title="Ver trailer"
+          >
+            <Play className="w-3.5 h-3.5" />
+          </button>
+
           {/* Botão Blacklist - apenas para administrador André Sugai */}
           {isAdmin && (
             <button
@@ -238,6 +253,16 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
         </>
       )}
       <SignupInviteModal open={inviteOpen} onOpenChange={setInviteOpen} />
+      {type !== 'person' && (
+        <TrailerCardModal
+          open={trailerModalOpen}
+          onOpenChange={setTrailerModalOpen}
+          movieId={type === 'movie' ? id : undefined}
+          tvShowId={type === 'tv' ? id : undefined}
+          title={title}
+          type={type as 'movie' | 'tv'}
+        />
+      )}
     </div>
   );
 };
