@@ -287,8 +287,8 @@ export const ContentGrid: React.FC<ContentGridProps> = ({
   };
 
   const renderLoadingSkeleton = () => (
-    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-      {Array.from({ length: 12 }).map((_, index) => (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+      {Array.from({ length: 10 }).map((_, index) => (
         <Card key={`skeleton-${index}`} className="overflow-hidden">
           <CardContent className="p-0">
             <Skeleton className="aspect-[2/3] w-full" />
@@ -316,7 +316,7 @@ export const ContentGrid: React.FC<ContentGridProps> = ({
     <section className="px-4 pb-20">
       <div className="max-w-7xl mx-auto">
         {/* Content Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
           {filteredContent.map((item, index) => renderContentCard(item, index))}
         </div>
 
