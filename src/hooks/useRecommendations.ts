@@ -124,7 +124,7 @@ export const useRecommendations = () => {
       favoriteGenres,
       favoriteDecades,
       averageRating,
-      totalWatched: allItems.length,
+      totalWatched: watched.length, // Corrigido: conta apenas assistidos
       mostWatchedGenre,
       preferredType,
     };
@@ -207,8 +207,10 @@ export const useRecommendations = () => {
 
       let recommendations: RecommendationItem[] = [];
 
-      // Se o usuário tem poucos dados, usar recomendações populares
-      if (prefs.totalWatched < 5) {
+      // Se o usuário tem poucos dados assistidos, usar recomendações populares
+      // Considera também favoritos para ter uma base mínima de preferências
+      const totalUserData = favorites.length + watched.length;
+      if (totalUserData < 5) {
         const popularMovies = await getPopularMovies(1);
         const popularTV = await getPopularTVShows(1);
 

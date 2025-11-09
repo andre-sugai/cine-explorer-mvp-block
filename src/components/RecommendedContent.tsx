@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Sparkles,
   Heart,
-  Play,
   RefreshCw,
   Smile,
   Users,
@@ -20,9 +18,11 @@ import {
 } from '@/hooks/useRecommendations';
 import { useFavoritesContext } from '@/context/FavoritesContext';
 import { useWatchedContext } from '@/context/WatchedContext';
-import { buildImageUrl } from '@/utils/tmdb';
+import { useWantToWatchContext } from '@/context/WantToWatchContext';
 import { useNavigate } from 'react-router-dom';
 import { RecommendationExplanationModal } from './RecommendationExplanationModal';
+import { PersonalListCard } from '@/components/personal/PersonalListCard';
+import { toast } from 'sonner';
 
 interface RecommendedContentProps {
   className?: string;
@@ -40,8 +40,11 @@ export const RecommendedContent: React.FC<RecommendedContentProps> = ({
     refreshRecommendations,
   } = useRecommendations();
 
-  const { addToFavorites, isFavorite } = useFavoritesContext();
-  const { addToWatched, isWatched } = useWatchedContext();
+  const { addToFavorites, removeFromFavorites, isFavorite } =
+    useFavoritesContext();
+  const { addToWatched, removeFromWatched, isWatched } = useWatchedContext();
+  const { addToWantToWatch, removeFromWantToWatch, isInWantToWatch } =
+    useWantToWatchContext();
   const navigate = useNavigate();
 
   const [selectedMood, setSelectedMood] = useState<string>('');
@@ -97,135 +100,128 @@ export const RecommendedContent: React.FC<RecommendedContentProps> = ({
     navigate(path);
   };
 
-  const handleAddToFavorites = (
-    e: React.MouseEvent,
-    item: RecommendationItem
-  ) => {
-    e.stopPropagation();
-    addToFavorites({
-      id: item.id,
-      type: item.type,
-      title: item.title,
-      poster_path: item.poster_path,
-      release_date: item.release_date,
-      first_air_date: item.first_air_date,
-      vote_average: item.vote_average,
-      genre_ids: item.genre_ids,
-    });
+  const handleToggleFavorites = (item: RecommendationItem) => {
+    try {
+      if (isFavorite(item.id, item.type)) {
+        removeFromFavorites(item.id, item.type);
+        toast.success(`${item.title} foi removido dos favoritos!`);
+      } else {
+        addToFavorites({
+          id: item.id,
+          type: item.type,
+          title: item.title,
+          poster_path: item.poster_path,
+          release_date: item.release_date,
+          first_air_date: item.first_air_date,
+          vote_average: item.vote_average,
+          genre_ids: item.genre_ids,
+        });
+        toast.success(`${item.title} foi adicionado aos favoritos!`);
+      }
+    } catch (error) {
+      toast.error('Erro ao atualizar favoritos');
+    }
   };
 
-  const handleAddToWatched = (
-    e: React.MouseEvent,
-    item: RecommendationItem
-  ) => {
-    e.stopPropagation();
-    addToWatched({
-      id: item.id,
-      type: item.type,
-      title: item.title,
-      poster_path: item.poster_path,
-      release_date: item.release_date,
-      first_air_date: item.first_air_date,
-      vote_average: item.vote_average,
-      genre_ids: item.genre_ids,
-    });
+  const handleToggleWatched = (item: RecommendationItem) => {
+    try {
+      if (isWatched(item.id, item.type)) {
+        removeFromWatched(item.id, item.type);
+        toast.success(`${item.title} foi removido dos assistidos!`);
+      } else {
+        addToWatched({
+          id: item.id,
+          type: item.type,
+          title: item.title,
+          poster_path: item.poster_path,
+          release_date: item.release_date,
+          first_air_date: item.first_air_date,
+          vote_average: item.vote_average,
+          genre_ids: item.genre_ids,
+        });
+        toast.success(`${item.title} foi marcado como assistido!`);
+      }
+    } catch (error) {
+      toast.error('Erro ao atualizar assistidos');
+    }
   };
 
-  const renderRecommendationCard = (item: RecommendationItem) => (
-    <Card
-      key={`${item.id}-${item.type}`}
-      className="group cursor-pointer hover:scale-105 transition-all duration-200 bg-card/50 hover:bg-card border-primary/20 hover:border-primary/40"
-      onClick={() => handleItemClick(item)}
-    >
-      <CardContent className="p-0">
-        <div className="relative">
-          <img
-            src={buildImageUrl(item.poster_path || '', 'w500')}
-            alt={item.title}
-            className="w-full h-64 object-cover rounded-t-lg"
-            onError={(e) => {
-              e.currentTarget.src = '/placeholder.svg';
-            }}
-          />
+  const handleToggleWantToWatch = (item: RecommendationItem) => {
+    try {
+      if (isInWantToWatch(item.id, item.type)) {
+        removeFromWantToWatch(item.id, item.type);
+        toast.success(`${item.title} foi removido da lista "Quero Ver"!`);
+      } else {
+        addToWantToWatch({
+          id: item.id,
+          type: item.type,
+          title: item.title,
+          poster_path: item.poster_path,
+          release_date: item.release_date || item.first_air_date || '',
+          rating: item.vote_average || 0,
+          genres: [], // Será preenchido pelo contexto se necessário
+        });
+        toast.success(`${item.title} foi adicionado à lista "Quero Ver"!`);
+      }
+    } catch (error) {
+      toast.error('Erro ao atualizar a lista');
+    }
+  };
 
-          {/* Overlay com ações */}
-          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-t-lg flex items-center justify-center gap-2">
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={(e) => handleAddToFavorites(e, item)}
-              className="bg-primary/80 hover:bg-primary text-primary-foreground"
-            >
-              <Heart className="w-4 h-4" />
-            </Button>
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={(e) => handleAddToWatched(e, item)}
-              className="bg-primary/80 hover:bg-primary text-primary-foreground"
-            >
-              <Play className="w-4 h-4" />
-            </Button>
-          </div>
+  const renderRecommendationCard = (item: RecommendationItem) => {
+    // Preparar ações baseadas no status do item
+    const actions = [];
 
-          {/* Badge de confiança */}
-          <div className="absolute top-2 right-2">
-            <Badge
-              variant="secondary"
-              className="bg-primary/80 text-primary-foreground"
-            >
-              {Math.round(item.confidence * 100)}%
-            </Badge>
-          </div>
+    // Sempre mostrar botão de favoritar
+    // Se já for favorito, mostrar em vermelho/rosa
+    const isFav = isFavorite(item.id, item.type);
+    actions.push({
+      label: isFav ? '✓ Favorito' : 'Adicionar aos Favoritos',
+      onClick: () => handleToggleFavorites(item),
+      variant: isFav ? ('default' as const) : ('outline' as const),
+      className: isFav ? 'bg-red-600 hover:bg-red-700 text-white' : '',
+    });
 
-          {/* Indicadores de status */}
-          <div className="absolute top-2 left-2 flex gap-1">
-            {isFavorite(item.id, item.type) && (
-              <Badge variant="destructive" className="bg-red-500">
-                <Heart className="w-3 h-3" />
-              </Badge>
-            )}
-            {isWatched(item.id, item.type) && (
-              <Badge variant="default" className="bg-green-500">
-                <Play className="w-3 h-3" />
-              </Badge>
-            )}
-          </div>
-        </div>
+    // Sempre mostrar botão "Quero Ver" se não foi assistido
+    // Se já estiver na lista, mostrar em azul
+    if (!isWatched(item.id, item.type)) {
+      const isInList = isInWantToWatch(item.id, item.type);
+      actions.push({
+        label: isInList ? '✓ Quero Ver' : 'Quero Ver',
+        onClick: () => handleToggleWantToWatch(item),
+        variant: isInList ? ('default' as const) : ('outline' as const),
+        className: isInList ? 'bg-blue-600 hover:bg-blue-700 text-white' : '',
+      });
+    }
 
-        <div className="p-4">
-          <h3 className="font-semibold text-foreground line-clamp-1 mb-1">
-            {item.title}
-          </h3>
+    // Sempre mostrar botão "Marcar como Assistido"
+    // Se já foi assistido, mostrar em verde
+    const watched = isWatched(item.id, item.type);
+    actions.push({
+      label: watched ? '✓ Assistido' : 'Marcar como Assistido',
+      onClick: () => handleToggleWatched(item),
+      variant: watched ? ('default' as const) : ('outline' as const),
+      className: watched ? 'bg-green-600 hover:bg-green-700 text-white' : '',
+    });
 
-          <div className="flex items-center gap-2 mb-2">
-            {item.vote_average && (
-              <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                <Star className="w-3 h-3 fill-primary text-primary" />
-                {item.vote_average.toFixed(1)}
-              </div>
-            )}
-            <span className="text-xs text-muted-foreground">
-              {item.type === 'movie' ? 'Filme' : 'Série'}
-            </span>
-          </div>
-
-          <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
-            {item.reason}
-          </p>
-
-          {item.overview && (
-            <p className="text-xs text-muted-foreground line-clamp-2">
-              {item.overview}
-            </p>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
+    return (
+      <PersonalListCard
+        key={`${item.id}-${item.type}`}
+        item={{
+          ...item,
+          // Adicionar badge de confiança como parte do título ou descrição
+          title: item.title,
+          vote_average: item.vote_average,
+        }}
+        onDetailsClick={() => handleItemClick(item)}
+        showDate={false}
+        actions={actions}
+      />
+    );
+  };
 
   const renderSkeleton = () => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
       {Array.from({ length: 10 }).map((_, index) => (
         <Card key={index} className="bg-card/50">
           <CardContent className="p-0">
@@ -369,7 +365,7 @@ export const RecommendedContent: React.FC<RecommendedContentProps> = ({
               {moods.find((m) => m.id === selectedMood)?.label.toLowerCase()}
             </h3>
             {moodRecommendations.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {moodRecommendations.map(renderRecommendationCard)}
               </div>
             ) : (
@@ -386,7 +382,7 @@ export const RecommendedContent: React.FC<RecommendedContentProps> = ({
               {occasions.find((o) => o.id === selectedOccasion)?.label}
             </h3>
             {occasionRecommendations.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {occasionRecommendations.map(renderRecommendationCard)}
               </div>
             ) : (
@@ -403,7 +399,7 @@ export const RecommendedContent: React.FC<RecommendedContentProps> = ({
               Baseado no seu histórico
             </h3>
             {recommendations.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {recommendations.slice(0, 10).map(renderRecommendationCard)}
               </div>
             ) : (
