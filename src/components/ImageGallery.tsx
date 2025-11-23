@@ -8,6 +8,7 @@ interface ImageGalleryProps {
   size?: string;
   alt?: string;
   maxThumbs?: number;
+  onImageClick?: (index: number) => void;
 }
 
 export const ImageGallery: React.FC<ImageGalleryProps> = ({
@@ -15,6 +16,7 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({
   size = 'w500',
   alt = 'Imagem',
   maxThumbs = 10,
+  onImageClick,
 }) => {
   const [open, setOpen] = useState(false);
   const [index, setIndex] = useState(0);
@@ -32,8 +34,12 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({
             className="rounded-lg shadow-cinema h-40 object-cover cursor-pointer transition-transform hover:scale-105"
             loading="lazy"
             onClick={() => {
-              setIndex(idx);
-              setOpen(true);
+              if (onImageClick) {
+                onImageClick(idx);
+              } else {
+                setIndex(idx);
+                setOpen(true);
+              }
             }}
           />
         ))}

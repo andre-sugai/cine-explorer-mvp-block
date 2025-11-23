@@ -12,12 +12,14 @@ import { Layout } from '@/components/Layout';
 import { ChevronLeft, Calendar, Tv, Star, Users, Globe } from 'lucide-react';
 import { useDetailNameContext } from '@/context/DetailNameContext';
 import { ImageGallery } from '@/components/ImageGallery';
+import { ImageGalleryModal } from '@/components/ImageGalleryModal';
 import TVWatchProvidersSection from '@/components/TVWatchProvidersSection';
 
 const TVShowDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { setDetailName } = useDetailNameContext();
+  const [showGalleryModal, setShowGalleryModal] = React.useState(false);
 
   const {
     data: show,
@@ -192,6 +194,14 @@ const TVShowDetails: React.FC = () => {
               <ImageGallery
                 images={[...images.backdrops, ...images.posters]}
                 maxThumbs={15}
+                onImageClick={() => setShowGalleryModal(true)}
+              />
+              <ImageGalleryModal
+                open={showGalleryModal}
+                onOpenChange={setShowGalleryModal}
+                tvShowId={Number(id)}
+                title={show.name}
+                type="tv"
               />
             </div>
           )}

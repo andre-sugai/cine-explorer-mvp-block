@@ -30,12 +30,14 @@ import {
 } from 'lucide-react';
 import { useDetailNameContext } from '@/context/DetailNameContext';
 import { ImageGallery } from '@/components/ImageGallery';
+import { ImageGalleryModal } from '@/components/ImageGalleryModal';
 import WatchProvidersSection from '@/components/WatchProvidersSection';
 
 const MovieDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { setDetailName } = useDetailNameContext();
+  const [showGalleryModal, setShowGalleryModal] = React.useState(false);
 
   const {
     data: movie,
@@ -243,6 +245,14 @@ const MovieDetails: React.FC = () => {
               <ImageGallery
                 images={[...images.backdrops, ...images.posters]}
                 maxThumbs={15}
+                onImageClick={() => setShowGalleryModal(true)}
+              />
+              <ImageGalleryModal
+                open={showGalleryModal}
+                onOpenChange={setShowGalleryModal}
+                movieId={Number(id)}
+                title={movie.title}
+                type="movie"
               />
             </div>
           )}
