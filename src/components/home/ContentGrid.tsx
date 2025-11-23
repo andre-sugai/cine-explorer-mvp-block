@@ -6,6 +6,7 @@ import { TMDBMovie, TMDBTVShow, TMDBPerson, buildImageUrl } from '@/utils/tmdb';
 import { useNavigate } from 'react-router-dom';
 import { MovieCardActions } from '@/components/MovieCardActions';
 import { useFavoritesContext } from '@/context/FavoritesContext';
+import { BlacklistButton } from '@/components/BlacklistButton';
 
 type ContentCategory = 'movies' | 'tv' | 'actors' | 'directors' | 'cinema';
 
@@ -225,6 +226,18 @@ export const ContentGrid: React.FC<ContentGridProps> = ({
                 />
               </button>
             )}
+            
+            {/* Botão Blacklist no topo esquerdo */}
+            {'title' in item && (
+              <div className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <BlacklistButton title={item.title} type="movie" />
+              </div>
+            )}
+            {'name' in item && 'first_air_date' in item && (
+              <div className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <BlacklistButton title={item.name} type="tv" />
+              </div>
+            )}
           </div>
 
           {/* Content Info */}
@@ -278,6 +291,7 @@ export const ContentGrid: React.FC<ContentGridProps> = ({
                 }
                 genre_ids={'genre_ids' in item ? item.genre_ids : undefined}
                 type={'title' in item ? 'movie' : 'tv'}
+                showBlacklist={false}
               />
             )}
           </div>

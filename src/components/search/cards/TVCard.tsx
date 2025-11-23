@@ -5,6 +5,7 @@ import { Star, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { buildImageUrl, TMDBTVShow } from '@/utils/tmdb';
 import { MovieCardActions } from '@/components/MovieCardActions';
+import { BlacklistButton } from '@/components/BlacklistButton';
 
 interface TVCardProps {
   show: TMDBTVShow;
@@ -18,7 +19,8 @@ export const TVCard: React.FC<TVCardProps> = ({ show }) => {
       className="group cursor-pointer overflow-hidden bg-gradient-cinema border-primary/20 hover:shadow-glow transition-all duration-300 transform hover:scale-105"
       onClick={() => navigate(`/serie/${show.id}`)}
     >
-      <div className="relative aspect-[2/3] overflow-hidden">
+      <div className="relative">
+        <div className="relative aspect-[2/3] overflow-hidden">
         <img
           src={buildImageUrl(show.poster_path, 'w342')}
           alt={show.name}
@@ -31,7 +33,7 @@ export const TVCard: React.FC<TVCardProps> = ({ show }) => {
           }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        <Badge className="absolute top-2 left-2 bg-accent text-accent-foreground">
+        <Badge className="absolute top-2 right-2 bg-accent text-accent-foreground">
           Série
         </Badge>
         <div className="absolute bottom-2 left-2 right-2 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -39,6 +41,10 @@ export const TVCard: React.FC<TVCardProps> = ({ show }) => {
             <Star className="w-4 h-4 fill-current text-yellow-400" />
             <span>{show.vote_average.toFixed(1)}</span>
           </div>
+        </div>
+        </div>
+        <div className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <BlacklistButton title={show.name} type="tv" />
         </div>
       </div>
 
@@ -63,6 +69,7 @@ export const TVCard: React.FC<TVCardProps> = ({ show }) => {
           vote_average={show.vote_average}
           genre_ids={show.genre_ids}
           type="tv"
+          showBlacklist={false}
         />
       </div>
     </Card>

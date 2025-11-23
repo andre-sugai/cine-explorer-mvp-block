@@ -5,6 +5,7 @@ import { buildImageUrl } from '@/utils/tmdb';
 import { useNavigate } from 'react-router-dom';
 import { Star, Calendar, Play } from 'lucide-react';
 import { MovieCardActions } from '@/components/MovieCardActions';
+import { BlacklistButton } from '@/components/BlacklistButton';
 
 interface SimilarMoviesProps {
   similarMovies: any[];
@@ -90,6 +91,10 @@ export const SimilarMovies: React.FC<SimilarMoviesProps> = ({
                       {movie.vote_average.toFixed(1)}
                     </div>
                   )}
+                  
+                  <div className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <BlacklistButton title={movie.title} type="movie" />
+                  </div>
                 </div>
 
                 {/* Content Info */}
@@ -117,6 +122,7 @@ export const SimilarMovies: React.FC<SimilarMoviesProps> = ({
                     vote_average={movie.vote_average}
                     genre_ids={movie.genre_ids}
                     type="movie"
+                    showBlacklist={false}
                   />
                 </div>
               </CardContent>

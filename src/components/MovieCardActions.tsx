@@ -1,5 +1,5 @@
 import React from 'react';
-import { Heart, Bookmark, Check, Shield, Play, Image as ImageIcon } from 'lucide-react';
+import { Heart, Bookmark, Check, TriangleAlert, Play, Image as ImageIcon } from 'lucide-react';
 import { useFavoritesContext } from '@/context/FavoritesContext';
 import { useWantToWatchContext } from '@/context/WantToWatchContext';
 import { useWatchedContext } from '@/context/WatchedContext';
@@ -24,6 +24,7 @@ interface MovieCardActionsProps {
   genre_ids?: number[];
   type?: 'movie' | 'tv' | 'person';
   runtime?: number;
+  showBlacklist?: boolean;
 }
 
 export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
@@ -35,6 +36,7 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
   genre_ids,
   type = 'movie',
   runtime,
+  showBlacklist = true,
 }) => {
   const { addToFavorites, removeFromFavorites, isFavorite } =
     useFavoritesContext();
@@ -248,7 +250,7 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
           </button>
 
           {/* Botão Blacklist - apenas para administrador André Sugai */}
-          {isAdmin && (
+          {isAdmin && showBlacklist && (
             <button
               onClick={handleAddToBlacklist}
               className={`p-1.5 rounded-full transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center ${
@@ -262,7 +264,7 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
                   : 'Adicionar à blacklist (admin)'
               }
             >
-              <Shield className="w-3.5 h-3.5" />
+              <TriangleAlert className="w-3.5 h-3.5" />
             </button>
           )}
         </>

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -6,6 +5,7 @@ import { Star, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { buildImageUrl, TMDBMovie } from '@/utils/tmdb';
 import { MovieCardActions } from '@/components/MovieCardActions';
+import { BlacklistButton } from '@/components/BlacklistButton';
 
 interface MovieCardProps {
   movie: TMDBMovie;
@@ -21,7 +21,7 @@ export const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
   return (
     <Card className="group overflow-hidden bg-gradient-cinema border-primary/20 hover:shadow-glow transition-all duration-300 transform hover:scale-105">
       <div 
-        className="cursor-pointer"
+        className="cursor-pointer relative"
         onClick={handleCardClick}
       >
         <div className="relative aspect-[2/3] overflow-hidden">
@@ -36,7 +36,7 @@ export const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
             }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-          <Badge className="absolute top-2 left-2 bg-primary text-primary-foreground">
+          <Badge className="absolute top-2 right-2 bg-primary text-primary-foreground">
             Filme
           </Badge>
           <div className="absolute bottom-2 left-2 right-2 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -47,6 +47,10 @@ export const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
           </div>
         </div>
         
+        <div className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <BlacklistButton title={movie.title} type="movie" />
+        </div>
+
         <CardContent className="p-3">
           <h3 className="font-bold text-foreground line-clamp-2 mb-1">
             {movie.title}
@@ -68,6 +72,7 @@ export const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
           vote_average={movie.vote_average}
           genre_ids={movie.genre_ids}
           type="movie"
+          showBlacklist={false}
         />
       </div>
     </Card>
