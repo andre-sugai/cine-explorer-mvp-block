@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -34,14 +34,16 @@ import {
   Youtube,
   Globe,
   Save,
+  Tv,
 } from 'lucide-react';
+import { getWatchProviders, buildImageUrl } from '@/utils/tmdb';
 import { useDataManager } from '@/hooks/useDataManager';
 import { useFavoritesContext } from '@/context/FavoritesContext';
 import { useWatchedContext } from '@/context/WatchedContext';
 import { useAuth } from '@/context/AuthContext';
 import { useProfileImage } from '@/hooks/useProfileImage';
 import { ProfileImageUpload } from '@/components/profile/ProfileImageUpload';
-import { TestToast } from '@/components/TestToast';
+
 import { toast } from '@/hooks/use-toast';
 
 /**
@@ -102,6 +104,11 @@ export const SettingsPage: React.FC = () => {
     confirmPassword: '',
   });
 
+  // Estado para Meus Streamings
+  const [myStreamings, setMyStreamings] = useState<string[]>([]);
+  const [availableProviders, setAvailableProviders] = useState<any[]>([]);
+  const [isLoadingProviders, setIsLoadingProviders] = useState(false);
+
   // Hooks existentes
   const {
     exportData,
@@ -141,6 +148,56 @@ export const SettingsPage: React.FC = () => {
       }
     }
   }, []);
+
+  /**
+   * Carrega os provedores de streaming e as preferências do usuário
+   */
+  useEffect(() => {
+    const loadProviders = async () => {
+      setIsLoadingProviders(true);
+      try {
+        const providers = await getWatchProviders('BR');
+        // Filtrar apenas os principais streamings para não poluir a tela
+        // (Netflix, Prime, Disney+, HBO Max, etc)
+        const popularProviders = providers.filter((p: any) => 
+          p.display_priority <= 15 || 
+          ['Netflix', 'Amazon Prime Video', 'Disney Plus', 'Max', 'Apple TV Plus', 'Globoplay'].includes(p.provider_name)
+        ).sort((a: any, b: any) => a.display_priority - b.display_priority);
+        
+        setAvailableProviders(popularProviders);
+      } catch (error) {
+        console.error('Erro ao carregar provedores:', error);
+      } finally {
+        setIsLoadingProviders(false);
+      }
+    };
+
+    loadProviders();
+
+    // Carregar streamings salvos
+    const savedStreamings = localStorage.getItem('my_streamings');
+    if (savedStreamings) {
+      try {
+        setMyStreamings(JSON.parse(savedStreamings));
+      } catch (e) {
+        console.error('Erro ao ler streamings salvos:', e);
+      }
+    }
+  }, []);
+
+  /**
+   * Salva os streamings favoritos
+   */
+  const toggleStreaming = (providerId: string) => {
+    setMyStreamings(prev => {
+      const newStreamings = prev.includes(providerId)
+        ? prev.filter(id => id !== providerId)
+        : [...prev, providerId];
+      
+      localStorage.setItem('my_streamings', JSON.stringify(newStreamings));
+      return newStreamings;
+    });
+  };
 
   /**
    * Salva os dados do perfil no localStorage
@@ -424,11 +481,13 @@ export const SettingsPage: React.FC = () => {
             <User className="w-4 h-4" />
             Perfil
           </TabsTrigger>
+
           <TabsTrigger
-            value="test"
+            value="streamings"
             className="flex items-center gap-2 data-[state=active]:bg-gradient-gold data-[state=active]:text-cinema-dark"
           >
-            🧪 Teste Toast
+            <Tv className="w-4 h-4" />
+            Meus Streamings
           </TabsTrigger>
         </TabsList>
 
@@ -494,7 +553,7 @@ export const SettingsPage: React.FC = () => {
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Séries:</span>
                       <span className="font-medium">
-                        {favoritesStats.tvShows}
+                        {favoritesStats.series}
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -520,7 +579,7 @@ export const SettingsPage: React.FC = () => {
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Séries:</span>
                       <span className="font-medium">
-                        {watchedStats.tvShows}
+                        {watchedStats.series}
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -528,7 +587,7 @@ export const SettingsPage: React.FC = () => {
                         Tempo médio por item:
                       </span>
                       <span className="font-medium">
-                        {watchedStats.averageHours}h
+                        {watchedStats.total > 0 ? (watchedStats.totalHours / watchedStats.total).toFixed(1) : 0}h
                       </span>
                     </div>
                   </CardContent>
@@ -707,6 +766,77 @@ export const SettingsPage: React.FC = () => {
                     <Trash2 className="w-4 h-4" />
                     Limpar Tudo
                   </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Aba de Meus Streamings */}
+        <TabsContent value="streamings" className="space-y-6">
+          <Card className="bg-gradient-cinema border-primary/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-primary">
+                <Tv className="w-5 h-5" />
+                Meus Streamings Favoritos
+              </CardTitle>
+              <CardDescription>
+                Selecione seus serviços de streaming favoritos para filtrar o conteúdo na página inicial.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingProviders ? (
+                <div className="flex justify-center py-8">
+                  <Loader className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                  {availableProviders.map((provider) => {
+                    const isSelected = myStreamings.includes(provider.provider_id.toString());
+                    return (
+                      <div
+                        key={provider.provider_id}
+                        onClick={() => toggleStreaming(provider.provider_id.toString())}
+                        className={`
+                          cursor-pointer rounded-xl p-4 flex flex-col items-center gap-3 transition-all duration-200
+                          border-2 
+                          ${isSelected 
+                            ? 'border-primary bg-primary/10 scale-105 shadow-[0_0_15px_rgba(255,215,0,0.3)]' 
+                            : 'border-transparent bg-secondary/30 hover:bg-secondary/50 hover:scale-105'}
+                        `}
+                      >
+                        <div className="relative w-16 h-16 rounded-lg overflow-hidden shadow-lg">
+                          <img
+                            src={buildImageUrl(provider.logo_path, 'w200')}
+                            alt={provider.provider_name}
+                            className="w-full h-full object-cover"
+                          />
+                          {isSelected && (
+                            <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                              <CheckCircle className="w-8 h-8 text-white drop-shadow-md" />
+                            </div>
+                          )}
+                        </div>
+                        <span className={`text-sm font-medium text-center ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}>
+                          {provider.provider_name}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              
+              <div className="mt-6 p-4 bg-secondary/20 rounded-lg border border-primary/10">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-yellow-500 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-primary">Como funciona?</p>
+                    <p className="text-sm text-muted-foreground">
+                      Ao selecionar seus streamings aqui, uma nova opção <strong>"Meus Streamings"</strong> aparecerá 
+                      no filtro da página inicial. Ela será selecionada automaticamente para mostrar apenas 
+                      filmes e séries disponíveis nos seus serviços assinados.
+                    </p>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -988,10 +1118,7 @@ export const SettingsPage: React.FC = () => {
           </Card>
         </TabsContent>
 
-        {/* Aba de Teste de Toast - Temporária */}
-        <TabsContent value="test" className="space-y-6">
-          <TestToast />
-        </TabsContent>
+
       </Tabs>
 
       {/* Diálogos existentes */}

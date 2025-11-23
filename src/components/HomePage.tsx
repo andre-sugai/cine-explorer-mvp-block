@@ -448,8 +448,24 @@ export const HomePage: React.FC = () => {
           sort_by: selectedOrder,
         };
         if (selectedProvider && category !== 'cinema') {
-          params.with_watch_providers = selectedProvider;
-          params.watch_region = 'BR';
+          if (selectedProvider === 'my-streamings') {
+            // Se for "Meus Streamings", pegar do localStorage
+            const savedStreamings = localStorage.getItem('my_streamings');
+            if (savedStreamings) {
+              try {
+                const streamingsList = JSON.parse(savedStreamings);
+                if (streamingsList.length > 0) {
+                  params.with_watch_providers = streamingsList.join('|');
+                  params.watch_region = 'BR';
+                }
+              } catch (e) {
+                console.error('Erro ao ler streamings para filtro:', e);
+              }
+            }
+          } else {
+            params.with_watch_providers = selectedProvider;
+            params.watch_region = 'BR';
+          }
         }
         if (selectedGenre && category !== 'cinema') {
           params.with_genres = selectedGenre;
@@ -609,11 +625,28 @@ export const HomePage: React.FC = () => {
   // Buscar provedores, gêneros e idiomas ao montar
   useEffect(() => {
     getWatchProviders('BR').then((data) => {
+      // Verificar se tem streamings salvos
+      const savedStreamings = localStorage.getItem('my_streamings');
+      let hasMyStreamings = false;
+      
+      if (savedStreamings) {
+        try {
+          const parsed = JSON.parse(savedStreamings);
+          if (parsed.length > 0) hasMyStreamings = true;
+        } catch (e) {}
+      }
+
       const all = [
+        ...(hasMyStreamings ? [{ provider_id: 'my-streamings', provider_name: 'Meus Streamings', logo_path: null }] : []),
         { provider_id: '', provider_name: 'Todos', logo_path: null },
         ...data,
       ];
       setProviderOptions(all);
+
+      // Definir "Meus Streamings" como padrão se existir e não tiver outro selecionado
+      if (hasMyStreamings && !selectedProvider) {
+        setSelectedProvider('my-streamings');
+      }
     });
     getAllGenres().then((data) => {
       setGenreOptions(data);
