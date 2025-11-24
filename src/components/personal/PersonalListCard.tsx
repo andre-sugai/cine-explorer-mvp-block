@@ -3,6 +3,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { buildImageUrl } from '@/utils/tmdb';
+import { Play, Image as ImageIcon } from 'lucide-react';
+import { TrailerCardModal } from '@/components/TrailerCardModal';
+import { ImageGalleryModal } from '@/components/ImageGalleryModal';
 
 interface PersonalListCardItem {
   id: number;
@@ -40,6 +43,9 @@ export const PersonalListCard: React.FC<PersonalListCardProps> = ({
   showDate = false,
   dateLabel = 'Data',
 }) => {
+  const [trailerModalOpen, setTrailerModalOpen] = React.useState(false);
+  const [galleryModalOpen, setGalleryModalOpen] = React.useState(false);
+
   const getYear = () => {
     if (item.release_date) return new Date(item.release_date).getFullYear();
     if (item.first_air_date) return new Date(item.first_air_date).getFullYear();
@@ -127,6 +133,39 @@ export const PersonalListCard: React.FC<PersonalListCardProps> = ({
           >
             Ver Detalhes
           </Button>
+          
+          {/* Botões de Trailer e Galeria */}
+          {(item.type === 'movie' || item.type === 'tv') && (
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setTrailerModalOpen(true);
+                }}
+                variant="outline"
+                size="sm"
+                className="w-full"
+                title="Ver Trailer"
+              >
+                <Play className="w-3 h-3 mr-1" />
+                Trailer
+              </Button>
+              <Button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setGalleryModalOpen(true);
+                }}
+                variant="outline"
+                size="sm"
+                className="w-full"
+                title="Ver Galeria de Fotos"
+              >
+                <ImageIcon className="w-3 h-3 mr-1" />
+                Galeria
+              </Button>
+            </div>
+          )}
+
           {actions
             .filter((a) => a.variant !== 'destructive')
             .map((action, index) => (
@@ -160,6 +199,24 @@ export const PersonalListCard: React.FC<PersonalListCardProps> = ({
               ))}
         </div>
       </CardContent>
+
+      <TrailerCardModal
+        open={trailerModalOpen}
+        onOpenChange={setTrailerModalOpen}
+        movieId={item.type === 'movie' ? item.id : undefined}
+        tvShowId={item.type === 'tv' ? item.id : undefined}
+        title={item.title}
+        type={item.type as 'movie' | 'tv'}
+      />
+
+      <ImageGalleryModal
+        open={galleryModalOpen}
+        onOpenChange={setGalleryModalOpen}
+        movieId={item.type === 'movie' ? item.id : undefined}
+        tvShowId={item.type === 'tv' ? item.id : undefined}
+        title={item.title}
+        type={item.type as 'movie' | 'tv'}
+      />
     </Card>
   );
 };
