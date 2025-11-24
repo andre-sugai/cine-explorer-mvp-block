@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { Star, Calendar, Play, ChevronDown, ChevronUp } from 'lucide-react';
 import { MovieCardActions } from '@/components/MovieCardActions';
 import { BlacklistButton } from '@/components/BlacklistButton';
+import { AddToListButton } from '@/components/AddToListButton';
 
 interface MovieSequelsProps {
   sequels: any[];
@@ -223,7 +224,13 @@ export const MovieSequels: React.FC<MovieSequelsProps> = ({
                             </div>
                           )}
                         
-                        <div className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <div className="absolute top-2 left-2 z-10 flex flex-row gap-2">
+                          <AddToListButton 
+                            id={movie.id} 
+                            title={movie.title} 
+                            poster_path={movie.poster_path} 
+                            type="movie" 
+                          />
                           <BlacklistButton title={movie.title} type="movie" />
                         </div>
                         </div>

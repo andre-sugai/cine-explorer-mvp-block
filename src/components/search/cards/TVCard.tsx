@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { buildImageUrl, TMDBTVShow } from '@/utils/tmdb';
 import { MovieCardActions } from '@/components/MovieCardActions';
 import { BlacklistButton } from '@/components/BlacklistButton';
+import { AddToListButton } from '@/components/AddToListButton';
 
 interface TVCardProps {
   show: TMDBTVShow;
@@ -42,9 +43,16 @@ export const TVCard: React.FC<TVCardProps> = ({ show }) => {
             <span>{show.vote_average.toFixed(1)}</span>
           </div>
         </div>
-        </div>
-        <div className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        
+        <div className="absolute top-2 left-2 z-10 flex flex-row gap-2">
+          <AddToListButton 
+            id={show.id} 
+            title={show.name} 
+            poster_path={show.poster_path} 
+            type="tv" 
+          />
           <BlacklistButton title={show.name} type="tv" />
+        </div>
         </div>
       </div>
 

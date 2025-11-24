@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { MovieCardActions } from '@/components/MovieCardActions';
 import { useFavoritesContext } from '@/context/FavoritesContext';
 import { BlacklistButton } from '@/components/BlacklistButton';
+import { AddToListButton } from '@/components/AddToListButton';
 
 type ContentCategory = 'movies' | 'tv' | 'actors' | 'directors' | 'cinema';
 
@@ -227,14 +228,26 @@ export const ContentGrid: React.FC<ContentGridProps> = ({
               </button>
             )}
             
-            {/* Botão Blacklist no topo esquerdo */}
+            {/* Botões AddToList e Blacklist no topo esquerdo */}
             {'title' in item && (
-              <div className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <div className="absolute top-2 left-2 z-10 flex flex-row gap-2">
+                <AddToListButton 
+                  id={item.id} 
+                  title={item.title} 
+                  poster_path={item.poster_path} 
+                  type="movie" 
+                />
                 <BlacklistButton title={item.title} type="movie" />
               </div>
             )}
             {'name' in item && 'first_air_date' in item && (
-              <div className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <div className="absolute top-2 left-2 z-10 flex flex-row gap-2">
+                <AddToListButton 
+                  id={item.id} 
+                  title={item.name} 
+                  poster_path={'poster_path' in item ? item.poster_path : undefined} 
+                  type="tv" 
+                />
                 <BlacklistButton title={item.name} type="tv" />
               </div>
             )}

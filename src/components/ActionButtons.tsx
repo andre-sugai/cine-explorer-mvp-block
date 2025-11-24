@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Heart, Check, Share, Bookmark, Shield } from 'lucide-react';
+import { Heart, Check, Share, Bookmark, Shield, ListPlus } from 'lucide-react';
 import { useFavoritesContext } from '@/context/FavoritesContext';
 import { useWantToWatchContext } from '@/context/WantToWatchContext';
 import { useWatchedContext } from '@/context/WatchedContext';
@@ -14,6 +14,15 @@ import {
   removeFromBlacklist,
 } from '@/utils/adultContentFilter';
 import SignupInviteModal from '@/components/auth/SignupInviteModal';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useCustomListsContext } from '@/context/CustomListsContext';
 
 interface ActionButtonsProps {
   id: number;
@@ -37,6 +46,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
   const { addToWatched, removeFromWatched, isWatched } = useWatchedContext();
   const { addToWantToWatch, removeFromWantToWatch, isInWantToWatch } =
     useWantToWatchContext();
+  const { lists, addItemToList } = useCustomListsContext();
   const { user } = useAuth();
 
   const favorite = isFavorite(id, type);
@@ -209,6 +219,40 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
         <Share className="w-4 h-4 mr-2" />
         Compartilhar
       </Button>
+
+      {type !== 'person' && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline">
+              <ListPlus className="w-4 h-4 mr-2" />
+              Adicionar à Lista
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48 bg-popover border-primary/20">
+            <DropdownMenuLabel>Adicionar à lista...</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {lists.length > 0 ? (
+              lists.map((list) => (
+                <DropdownMenuItem
+                  key={list.id}
+                  onClick={() => {
+                    addItemToList(list.id, {
+                      id,
+                      title,
+                      poster_path: poster_path || movie?.poster_path,
+                      type: type as 'movie' | 'tv',
+                    });
+                  }}
+                >
+                  {list.name}
+                </DropdownMenuItem>
+              ))
+            ) : (
+              <DropdownMenuItem disabled>Nenhuma lista criada</DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
 
       {/* Botão Blacklist - apenas para administrador André Sugai */}
       {isAdmin && type !== 'person' && (
