@@ -12,6 +12,7 @@ import { toast } from '@/components/ui/sonner';
 import { Input } from '@/components/ui/input';
 import { PersonalListCard } from '@/components/personal/PersonalListCard';
 import { WantToWatchFiltersTabs } from '@/components/WantToWatchFiltersTabs';
+import { StreamingOptimizer } from '@/components/StreamingOptimizer';
 
 const WantToWatchPage: React.FC = () => {
   const { wantToWatchList, removeFromWantToWatch } = useWantToWatchContext();
@@ -58,9 +59,10 @@ const WantToWatchPage: React.FC = () => {
           <h1 className="text-3xl font-bold text-primary mb-4">
             Filmes e Séries que Quero Assistir
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground mb-4">
             Gerencie sua lista de filmes e séries para assistir
           </p>
+          <StreamingOptimizer />
         </div>
         <WantToWatchFiltersTabs
           items={wantToWatchList}

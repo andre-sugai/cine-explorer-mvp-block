@@ -16,6 +16,7 @@ import {
   X,
   Mic,
   MicOff,
+  List,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
@@ -225,6 +226,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
       path: '/quero-assistir',
     },
     { id: 'watched', label: 'Vistos', icon: CheckCircle, path: '/vistos' },
+    { id: 'lists', label: 'Listas', icon: List, path: '/listas' },
     {
       id: 'recommendations',
       label: 'Recomendações',
@@ -398,6 +400,12 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
                       <Link to="/configuracoes">
                         <Settings className="mr-2 h-4 w-4" />
                         Configurações
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/estatisticas">
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        Estatísticas
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
