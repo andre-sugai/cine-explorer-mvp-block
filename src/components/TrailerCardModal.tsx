@@ -281,7 +281,9 @@ export const TrailerCardModal: React.FC<TrailerCardModalProps> = ({
     }
   };
 
-  const handlePlayPause = () => {
+  const handlePlayPause = (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
     if (playerRef.current) {
       if (isPlaying) {
         playerRef.current.pauseVideo();
@@ -389,7 +391,7 @@ export const TrailerCardModal: React.FC<TrailerCardModalProps> = ({
           </div>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Video Player */}
           <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
             {/* Container do player - sempre presente */}
@@ -426,21 +428,11 @@ export const TrailerCardModal: React.FC<TrailerCardModalProps> = ({
 
           {/* Controls & Actions */}
           {!noTrailer && (
-            <div className="flex items-start justify-between gap-4">
-              {/* Info */}
-              <div className="text-sm text-muted-foreground space-y-1 flex-1">
-                <p>
-                  <strong>Título:</strong> {title}
-                </p>
-                <p>
-                  <strong>Tipo:</strong> {type === 'tv' ? 'Série de TV' : 'Filme'}
-                </p>
-              </div>
-
+            <div className="flex items-center justify-center gap-4">
               {/* Buttons */}
-              <div className="flex items-center justify-end gap-2">
+              <div className="flex items-center justify-center gap-2">
                 <Button
-                  onClick={handlePlayPause}
+                  onClick={(e) => handlePlayPause(e)}
                   variant="outline"
                   size="icon"
                   className="rounded-full w-9 h-9"

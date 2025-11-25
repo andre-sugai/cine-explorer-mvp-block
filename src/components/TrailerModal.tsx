@@ -121,7 +121,12 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
       // Limpar conteúdo anterior
       playerContainerRef.current.innerHTML = '';
 
-      playerRef.current = new window.YT.Player('youtube-player-container', {
+      // Criar div para o player
+      const playerDiv = document.createElement('div');
+      playerDiv.id = 'youtube-player';
+      playerContainerRef.current.appendChild(playerDiv);
+
+      playerRef.current = new window.YT.Player('youtube-player', {
         height: '100%',
         width: '100%',
         videoId: currentTrailer.key,
@@ -326,6 +331,11 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
               ) : (
                 <Film className="w-5 h-5 text-orange-400" />
               )}
+              {currentTrailer && (
+                <Badge variant="secondary" className="text-xs">
+                  {currentTrailer.contentType === 'tv' ? 'Série' : 'Filme'}
+                </Badge>
+              )}
               {currentCategory && (
                 <Badge variant="secondary" className="text-xs">
                   {currentCategory}
@@ -335,7 +345,7 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
           </div>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Video Player */}
           <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
             {showLoadingState ? (
@@ -352,32 +362,15 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
             ) : (
               <div
                 ref={playerContainerRef}
-                id="youtube-player-container"
                 className="w-full h-full"
               />
             )}
           </div>
 
           {/* Controls */}
-          <div className="flex items-start justify-between gap-4">
-            {/* Info */}
-            {currentTrailer && (
-              <div className="text-sm text-muted-foreground space-y-1 flex-1">
-                <p>
-                  <strong>Tipo:</strong>{' '}
-                  {currentTrailer.contentType === 'tv' ? 'Série de TV' : 'Filme'}
-                </p>
-                <p>
-                  <strong>Categoria:</strong> {currentCategory}
-                </p>
-                <p>
-                  <strong>Trailer:</strong> {currentTrailer.name}
-                </p>
-              </div>
-            )}
-
+          <div className="flex items-center justify-center gap-4">
             {/* Controls & Actions */}
-            <div className="flex items-center justify-end gap-2">
+            <div className="flex items-center justify-center gap-2">
               <Button
                 onClick={handlePlayPause}
                 variant="outline"
