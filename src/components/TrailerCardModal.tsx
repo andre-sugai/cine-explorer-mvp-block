@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Play, Pause, Loader, ExternalLink, Film, Tv } from 'lucide-react';
 import { toast } from 'sonner';
+import { TrailerActionButtons } from '@/components/TrailerActionButtons';
 
 interface TrailerCardModalProps {
   open: boolean;
@@ -349,16 +350,16 @@ export const TrailerCardModal: React.FC<TrailerCardModalProps> = ({
     }} modal={true}>
       <DialogContent
         className="max-w-5xl w-full max-h-[90vh] bg-gradient-cinema border-primary/20"
-        onEscapeKeyDown={(e) => handleModalClose(e)}
+        onEscapeKeyDown={(e) => handleModalClose(e as any)}
         onPointerDownOutside={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          handleModalClose(e);
+          handleModalClose(e as any);
         }}
         onInteractOutside={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          handleModalClose(e);
+          handleModalClose(e as any);
         }}
       >
         <DialogHeader className="space-y-4">
@@ -423,40 +424,61 @@ export const TrailerCardModal: React.FC<TrailerCardModalProps> = ({
             )}
           </div>
 
-          {/* Controls */}
+          {/* Controls & Actions */}
           {!noTrailer && (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+            <div className="flex items-start justify-between gap-4">
+              {/* Info */}
+              <div className="text-sm text-muted-foreground space-y-1 flex-1">
+                <p>
+                  <strong>Título:</strong> {title}
+                </p>
+                <p>
+                  <strong>Tipo:</strong> {type === 'tv' ? 'Série de TV' : 'Filme'}
+                </p>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex items-center justify-end gap-2">
                 <Button
                   onClick={handlePlayPause}
                   variant="outline"
-                  size="sm"
+                  size="icon"
+                  className="rounded-full w-9 h-9"
                   disabled={isLoading}
+                  title={isPlaying ? 'Pausar' : 'Reproduzir'}
                 >
                   {isPlaying ? (
                     <Pause className="w-4 h-4" />
                   ) : (
                     <Play className="w-4 h-4" />
                   )}
-                  {isPlaying ? 'Pausar' : 'Reproduzir'}
                 </Button>
-              </div>
 
-              <div className="flex items-center gap-2">
+                {/* Action Buttons */}
+                {(movieId || tvShowId) && (
+                  <TrailerActionButtons
+                    id={movieId || tvShowId || 0}
+                    title={title}
+                    type={type}
+                    className="contents"
+                  />
+                )}
+
                 <Button
                   onClick={(e) => handleMovieDetails(e)}
                   variant="outline"
-                  size="sm"
+                  size="icon"
+                  className="rounded-full w-9 h-9"
+                  title="Ver Detalhes"
                 >
-                  <ExternalLink className="w-4 h-4 mr-1" />
-                  Ver Detalhes
+                  <ExternalLink className="w-4 h-4" />
                 </Button>
               </div>
             </div>
           )}
 
           {noTrailer && (
-            <div className="flex justify-center">
+            <div className="flex justify-end">
               <Button
                 onClick={(e) => handleMovieDetails(e)}
                 variant="default"

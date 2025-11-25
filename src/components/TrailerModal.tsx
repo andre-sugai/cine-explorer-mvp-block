@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useTrailers } from '@/hooks/useTrailers';
 import { toast } from 'sonner';
+import { TrailerActionButtons } from '@/components/TrailerActionButtons';
 
 interface TrailerModalProps {
   open: boolean;
@@ -358,61 +359,73 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
           </div>
 
           {/* Controls */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          <div className="flex items-start justify-between gap-4">
+            {/* Info */}
+            {currentTrailer && (
+              <div className="text-sm text-muted-foreground space-y-1 flex-1">
+                <p>
+                  <strong>Tipo:</strong>{' '}
+                  {currentTrailer.contentType === 'tv' ? 'Série de TV' : 'Filme'}
+                </p>
+                <p>
+                  <strong>Categoria:</strong> {currentCategory}
+                </p>
+                <p>
+                  <strong>Trailer:</strong> {currentTrailer.name}
+                </p>
+              </div>
+            )}
+
+            {/* Controls & Actions */}
+            <div className="flex items-center justify-end gap-2">
               <Button
                 onClick={handlePlayPause}
                 variant="outline"
-                size="sm"
+                size="icon"
+                className="rounded-full w-9 h-9"
                 disabled={showLoadingState}
+                title={isPlaying ? 'Pausar' : 'Reproduzir'}
               >
                 {isPlaying ? (
                   <Pause className="w-4 h-4" />
                 ) : (
                   <Play className="w-4 h-4" />
                 )}
-                {isPlaying ? 'Pausar' : 'Reproduzir'}
               </Button>
 
               <Button
                 onClick={handleNextTrailer}
                 variant="outline"
-                size="sm"
+                size="icon"
+                className="rounded-full w-9 h-9"
                 disabled={showLoadingState}
+                title="Próximo Trailer"
               >
-                <SkipForward className="w-4 h-4 mr-1" />
-                Próximo
+                <SkipForward className="w-4 h-4" />
               </Button>
-            </div>
 
-            <div className="flex items-center gap-2">
+              {/* Action Buttons */}
+              {currentTrailer && (
+                <TrailerActionButtons
+                  id={currentTrailer.movieId}
+                  title={currentTrailer.movieTitle}
+                  type={currentTrailer.contentType}
+                  className="contents"
+                />
+              )}
+
               <Button
                 onClick={handleMovieDetails}
                 variant="outline"
-                size="sm"
+                size="icon"
+                className="rounded-full w-9 h-9"
                 disabled={!currentTrailer}
+                title="Ver Detalhes"
               >
-                <ExternalLink className="w-4 h-4 mr-1" />
-                Ver Detalhes
+                <ExternalLink className="w-4 h-4" />
               </Button>
             </div>
           </div>
-
-          {/* Info */}
-          {currentTrailer && (
-            <div className="text-sm text-muted-foreground space-y-1">
-              <p>
-                <strong>Tipo:</strong>{' '}
-                {currentTrailer.contentType === 'tv' ? 'Série de TV' : 'Filme'}
-              </p>
-              <p>
-                <strong>Categoria:</strong> {currentCategory}
-              </p>
-              <p>
-                <strong>Trailer:</strong> {currentTrailer.name}
-              </p>
-            </div>
-          )}
         </div>
       </DialogContent>
     </Dialog>
