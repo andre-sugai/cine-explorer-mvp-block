@@ -360,10 +360,7 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
                 </div>
               </div>
             ) : (
-              <div
-                ref={playerContainerRef}
-                className="w-full h-full"
-              />
+              <div ref={playerContainerRef} className="w-full h-full" />
             )}
           </div>
 
@@ -403,6 +400,11 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
                   id={currentTrailer.movieId}
                   title={currentTrailer.movieTitle}
                   type={currentTrailer.contentType}
+                  poster_path={currentTrailer.poster_path}
+                  release_date={currentTrailer.release_date}
+                  first_air_date={currentTrailer.first_air_date}
+                  vote_average={currentTrailer.vote_average}
+                  genre_ids={currentTrailer.genre_ids}
                   className="contents"
                 />
               )}

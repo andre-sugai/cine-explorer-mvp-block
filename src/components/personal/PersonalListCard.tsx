@@ -133,7 +133,7 @@ export const PersonalListCard: React.FC<PersonalListCardProps> = ({
           >
             Ver Detalhes
           </Button>
-          
+
           {/* Botões de Trailer e Galeria */}
           {(item.type === 'movie' || item.type === 'tv') && (
             <div className="grid grid-cols-2 gap-2">
@@ -207,6 +207,9 @@ export const PersonalListCard: React.FC<PersonalListCardProps> = ({
         tvShowId={item.type === 'tv' ? item.id : undefined}
         title={item.title}
         type={item.type as 'movie' | 'tv'}
+        poster_path={item.poster_path}
+        release_date={item.release_date || item.first_air_date}
+        vote_average={item.vote_average || item.rating}
       />
 
       <ImageGalleryModal

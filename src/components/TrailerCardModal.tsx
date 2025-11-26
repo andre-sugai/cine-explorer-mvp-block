@@ -18,6 +18,11 @@ interface TrailerCardModalProps {
   tvShowId?: number;
   title: string;
   type: 'movie' | 'tv';
+  poster_path?: string;
+  release_date?: string;
+  vote_average?: number;
+  genre_ids?: number[];
+  runtime?: number;
 }
 
 declare global {
@@ -33,6 +38,11 @@ export const TrailerCardModal: React.FC<TrailerCardModalProps> = ({
   tvShowId,
   title,
   type,
+  poster_path,
+  release_date,
+  vote_average,
+  genre_ids,
+  runtime,
 }) => {
   const navigate = useNavigate();
   const [isPlaying, setIsPlaying] = useState(true);
@@ -78,7 +88,7 @@ export const TrailerCardModal: React.FC<TrailerCardModalProps> = ({
 
       // Interceptar eventos de navegação
       window.addEventListener('popstate', blockNavigation, true);
-      
+
       // Bloquear cliques durante o fechamento
       document.addEventListener('click', blockClicks, true);
       document.addEventListener('mousedown', blockClicks, true);
@@ -306,10 +316,10 @@ export const TrailerCardModal: React.FC<TrailerCardModalProps> = ({
       e.preventDefault();
       e.stopPropagation();
     }
-    
+
     // Marcar como fechando imediatamente para bloquear eventos
     isClosingRef.current = true;
-    
+
     console.log('🚪 Iniciando fechamento do modal');
     setIsClosing(true);
     setIsPlaying(false);
@@ -345,11 +355,15 @@ export const TrailerCardModal: React.FC<TrailerCardModalProps> = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => {
-      if (!isOpen) {
-        handleModalClose();
-      }
-    }} modal={true}>
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => {
+        if (!isOpen) {
+          handleModalClose();
+        }
+      }}
+      modal={true}
+    >
       <DialogContent
         className="max-w-5xl w-full max-h-[90vh] bg-gradient-cinema border-primary/20"
         onEscapeKeyDown={(e) => handleModalClose(e as any)}
@@ -452,6 +466,11 @@ export const TrailerCardModal: React.FC<TrailerCardModalProps> = ({
                     id={movieId || tvShowId || 0}
                     title={title}
                     type={type}
+                    poster_path={poster_path}
+                    release_date={release_date}
+                    vote_average={vote_average}
+                    genre_ids={genre_ids}
+                    runtime={runtime}
                     className="contents"
                   />
                 )}

@@ -22,6 +22,11 @@ interface Trailer {
   movieId: number;
   releaseYear?: string;
   contentType: 'movie' | 'tv';
+  poster_path?: string;
+  release_date?: string;
+  first_air_date?: string;
+  vote_average?: number;
+  genre_ids?: number[];
 }
 
 interface TrailerCategory {
@@ -269,6 +274,11 @@ export const useTrailers = () => {
                   movieId: randomItem.id,
                   releaseYear,
                   contentType: selectedCategory.type as 'movie' | 'tv',
+                  poster_path: randomItem.poster_path,
+                  release_date: randomItem.release_date,
+                  first_air_date: randomItem.first_air_date,
+                  vote_average: randomItem.vote_average,
+                  genre_ids: randomItem.genre_ids,
                 };
 
                 setCurrentTrailer(trailerData);

@@ -1,5 +1,12 @@
 import React from 'react';
-import { Heart, Bookmark, Check, TriangleAlert, Play, Image as ImageIcon } from 'lucide-react';
+import {
+  Heart,
+  Bookmark,
+  Check,
+  TriangleAlert,
+  Play,
+  Image as ImageIcon,
+} from 'lucide-react';
 import { useFavoritesContext } from '@/context/FavoritesContext';
 import { useWantToWatchContext } from '@/context/WantToWatchContext';
 import { useWatchedContext } from '@/context/WatchedContext';
@@ -279,6 +286,11 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
             tvShowId={type === 'tv' ? id : undefined}
             title={title}
             type={type as 'movie' | 'tv'}
+            poster_path={poster_path}
+            release_date={release_date}
+            vote_average={vote_average}
+            genre_ids={genre_ids}
+            runtime={runtime}
           />
           <ImageGalleryModal
             open={galleryModalOpen}

@@ -7,13 +7,10 @@ import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import SignupInviteModal from '@/components/auth/SignupInviteModal';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { useCustomListsContext } from '@/context/CustomListsContext';
 import { getMovieDetails, getTVShowDetails } from '@/utils/tmdb';
 
@@ -60,10 +57,14 @@ export const TrailerActionButtons: React.FC<TrailerActionButtonsProps> = ({
   } | null>(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [listPopoverOpen, setListPopoverOpen] = useState(false);
 
   // Buscar detalhes se não foram fornecidos
   useEffect(() => {
-    if (!poster_path && !isLoadingDetails && !details) {
+    // Só buscar se realmente não temos o poster_path
+    const needsFetch = !poster_path && !isLoadingDetails && !details;
+
+    if (needsFetch) {
       setIsLoadingDetails(true);
       const fetchDetails = async () => {
         try {
@@ -91,7 +92,11 @@ export const TrailerActionButtons: React.FC<TrailerActionButtonsProps> = ({
 
   // Usar dados fornecidos ou buscados
   const finalPosterPath = poster_path || details?.poster_path;
-  const finalReleaseDate = release_date || details?.release_date || first_air_date || details?.first_air_date;
+  const finalReleaseDate =
+    release_date ||
+    details?.release_date ||
+    first_air_date ||
+    details?.first_air_date;
   const finalVoteAverage = vote_average ?? details?.vote_average ?? 0;
   const finalGenreIds = genre_ids || details?.genre_ids || [];
   const finalRuntime = runtime ?? details?.runtime;
@@ -235,8 +240,8 @@ export const TrailerActionButtons: React.FC<TrailerActionButtonsProps> = ({
           <Check className="w-3.5 h-3.5" />
         </button>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+        <Popover open={listPopoverOpen} onOpenChange={setListPopoverOpen}>
+          <PopoverTrigger asChild>
             <button
               className="p-1.5 rounded-full transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10"
               title="Adicionar a uma lista"
@@ -247,36 +252,48 @@ export const TrailerActionButtons: React.FC<TrailerActionButtonsProps> = ({
             >
               <ListPlus className="w-3.5 h-3.5" />
             </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48 bg-popover border-primary/20">
-            <DropdownMenuLabel>Adicionar à lista...</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {lists.length > 0 ? (
-              lists.map((list) => (
-                <DropdownMenuItem
-                  key={list.id}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    addItemToList(list.id, {
-                      id,
-                      title,
-                      poster_path: finalPosterPath,
-                      type,
-                    });
-                    toast.success(`Adicionado à lista "${list.name}"`);
-                  }}
-                >
-                  {list.name}
-                </DropdownMenuItem>
-              ))
-            ) : (
-              <DropdownMenuItem disabled>Nenhuma lista criada</DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+          </PopoverTrigger>
+          <PopoverContent
+            align="end"
+            className="w-48 p-0 bg-popover border-primary/20"
+          >
+            <div className="p-2">
+              <div className="px-2 py-1.5 text-sm font-semibold">
+                Adicionar à lista...
+              </div>
+              <div className="border-t border-border my-1"></div>
+              {lists.length > 0 ? (
+                <div className="space-y-1">
+                  {lists.map((list) => (
+                    <button
+                      key={list.id}
+                      className="w-full text-left px-2 py-1.5 text-sm rounded-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        addItemToList(list.id, {
+                          id,
+                          title,
+                          poster_path: finalPosterPath,
+                          type,
+                        });
+                        toast.success(`Adicionado à lista "${list.name}"`);
+                        setListPopoverOpen(false);
+                      }}
+                    >
+                      {list.name}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                  Nenhuma lista criada
+                </div>
+              )}
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
       <SignupInviteModal open={inviteOpen} onOpenChange={setInviteOpen} />
     </>
   );
 };
-
