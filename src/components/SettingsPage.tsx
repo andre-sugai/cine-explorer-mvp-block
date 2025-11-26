@@ -1,5 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -157,13 +163,86 @@ export const SettingsPage: React.FC = () => {
       setIsLoadingProviders(true);
       try {
         const providers = await getWatchProviders('BR');
+
+        // Filtrar e consolidar provedores duplicados/redundantes
+        const deduplicatedProviders = providers.filter((p: any) => {
+          const name = p.provider_name.toLowerCase();
+
+          // Remover versões "with ads" (mesmo catálogo)
+          if (name.includes('with ads') || name.includes('basic with ads')) {
+            return false;
+          }
+
+          // Remover TODOS os "Channels" (revendas através de outras plataformas)
+          // Ex: "Amazon Channel", "Apple TV Channel", "Plex Channel", "Roku Channel"
+          if (name.includes(' channel')) {
+            return false;
+          }
+
+          // Remover "Amazon Video" (manter apenas "Amazon Prime Video")
+          if (p.provider_id === 10 && name.includes('amazon video')) {
+            return false;
+          }
+
+          // Remover "Apple TV" (ID: 2) - manter apenas "Apple TV Plus" (ID: 350)
+          if (p.provider_id === 2 && name === 'apple tv') {
+            return false;
+          }
+
+          // Remover duplicatas de Apple iTunes vs Apple TV
+          if (
+            name === 'apple itunes' &&
+            providers.some(
+              (pr: any) => pr.provider_name.toLowerCase() === 'apple tv'
+            )
+          ) {
+            return false;
+          }
+
+          // Remover "Plex" se existir "Plex Channel" ou vice-versa
+          // Manter apenas um deles (o que não for channel)
+          if (
+            name === 'plex' &&
+            providers.some(
+              (pr: any) =>
+                pr.provider_name.toLowerCase().includes('plex') &&
+                !pr.provider_name.toLowerCase().includes('channel')
+            )
+          ) {
+            // Se já existe outro Plex sem "channel", manter apenas um
+            const plexProviders = providers.filter((pr: any) =>
+              pr.provider_name.toLowerCase().includes('plex')
+            );
+            if (
+              plexProviders.length > 1 &&
+              plexProviders.findIndex(
+                (pr: any) => pr.provider_id === p.provider_id
+              ) > 0
+            ) {
+              return false;
+            }
+          }
+
+          return true;
+        });
+
         // Filtrar apenas os principais streamings para não poluir a tela
         // (Netflix, Prime, Disney+, HBO Max, etc)
-        const popularProviders = providers.filter((p: any) => 
-          p.display_priority <= 15 || 
-          ['Netflix', 'Amazon Prime Video', 'Disney Plus', 'Max', 'Apple TV Plus', 'Globoplay'].includes(p.provider_name)
-        ).sort((a: any, b: any) => a.display_priority - b.display_priority);
-        
+        const popularProviders = deduplicatedProviders
+          .filter(
+            (p: any) =>
+              p.display_priority <= 15 ||
+              [
+                'Netflix',
+                'Amazon Prime Video',
+                'Disney Plus',
+                'Max',
+                'Apple TV Plus',
+                'Globoplay',
+              ].includes(p.provider_name)
+          )
+          .sort((a: any, b: any) => a.display_priority - b.display_priority);
+
         setAvailableProviders(popularProviders);
       } catch (error) {
         console.error('Erro ao carregar provedores:', error);
@@ -189,11 +268,11 @@ export const SettingsPage: React.FC = () => {
    * Salva os streamings favoritos
    */
   const toggleStreaming = (providerId: string) => {
-    setMyStreamings(prev => {
+    setMyStreamings((prev) => {
       const newStreamings = prev.includes(providerId)
-        ? prev.filter(id => id !== providerId)
+        ? prev.filter((id) => id !== providerId)
         : [...prev, providerId];
-      
+
       localStorage.setItem('my_streamings', JSON.stringify(newStreamings));
       return newStreamings;
     });
@@ -578,16 +657,19 @@ export const SettingsPage: React.FC = () => {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Séries:</span>
-                      <span className="font-medium">
-                        {watchedStats.series}
-                      </span>
+                      <span className="font-medium">{watchedStats.series}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">
                         Tempo médio por item:
                       </span>
                       <span className="font-medium">
-                        {watchedStats.total > 0 ? (watchedStats.totalHours / watchedStats.total).toFixed(1) : 0}h
+                        {watchedStats.total > 0
+                          ? (
+                              watchedStats.totalHours / watchedStats.total
+                            ).toFixed(1)
+                          : 0}
+                        h
                       </span>
                     </div>
                   </CardContent>
@@ -781,7 +863,8 @@ export const SettingsPage: React.FC = () => {
                 Meus Streamings Favoritos
               </CardTitle>
               <CardDescription>
-                Selecione seus serviços de streaming favoritos para filtrar o conteúdo na página inicial.
+                Selecione seus serviços de streaming favoritos para filtrar o
+                conteúdo na página inicial.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -792,17 +875,23 @@ export const SettingsPage: React.FC = () => {
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                   {availableProviders.map((provider) => {
-                    const isSelected = myStreamings.includes(provider.provider_id.toString());
+                    const isSelected = myStreamings.includes(
+                      provider.provider_id.toString()
+                    );
                     return (
                       <div
                         key={provider.provider_id}
-                        onClick={() => toggleStreaming(provider.provider_id.toString())}
+                        onClick={() =>
+                          toggleStreaming(provider.provider_id.toString())
+                        }
                         className={`
                           cursor-pointer rounded-xl p-4 flex flex-col items-center gap-3 transition-all duration-200
                           border-2 
-                          ${isSelected 
-                            ? 'border-primary bg-primary/10 scale-105 shadow-[0_0_15px_rgba(255,215,0,0.3)]' 
-                            : 'border-transparent bg-secondary/30 hover:bg-secondary/50 hover:scale-105'}
+                          ${
+                            isSelected
+                              ? 'border-primary bg-primary/10 scale-105 shadow-[0_0_15px_rgba(255,215,0,0.3)]'
+                              : 'border-transparent bg-secondary/30 hover:bg-secondary/50 hover:scale-105'
+                          }
                         `}
                       >
                         <div className="relative w-16 h-16 rounded-lg overflow-hidden shadow-lg">
@@ -817,7 +906,13 @@ export const SettingsPage: React.FC = () => {
                             </div>
                           )}
                         </div>
-                        <span className={`text-sm font-medium text-center ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}>
+                        <span
+                          className={`text-sm font-medium text-center ${
+                            isSelected
+                              ? 'text-primary'
+                              : 'text-muted-foreground'
+                          }`}
+                        >
                           {provider.provider_name}
                         </span>
                       </div>
@@ -825,16 +920,20 @@ export const SettingsPage: React.FC = () => {
                   })}
                 </div>
               )}
-              
+
               <div className="mt-6 p-4 bg-secondary/20 rounded-lg border border-primary/10">
                 <div className="flex items-start gap-3">
                   <AlertTriangle className="w-5 h-5 text-yellow-500 mt-0.5" />
                   <div className="space-y-1">
-                    <p className="text-sm font-medium text-primary">Como funciona?</p>
+                    <p className="text-sm font-medium text-primary">
+                      Como funciona?
+                    </p>
                     <p className="text-sm text-muted-foreground">
-                      Ao selecionar seus streamings aqui, uma nova opção <strong>"Meus Streamings"</strong> aparecerá 
-                      no filtro da página inicial. Ela será selecionada automaticamente para mostrar apenas 
-                      filmes e séries disponíveis nos seus serviços assinados.
+                      Ao selecionar seus streamings aqui, uma nova opção{' '}
+                      <strong>"Meus Streamings"</strong> aparecerá no filtro da
+                      página inicial. Ela será selecionada automaticamente para
+                      mostrar apenas filmes e séries disponíveis nos seus
+                      serviços assinados.
                     </p>
                   </div>
                 </div>
@@ -1117,8 +1216,6 @@ export const SettingsPage: React.FC = () => {
             </CardContent>
           </Card>
         </TabsContent>
-
-
       </Tabs>
 
       {/* Diálogos existentes */}

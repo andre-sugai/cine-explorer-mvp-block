@@ -628,7 +628,7 @@ export const HomePage: React.FC = () => {
       // Verificar se tem streamings salvos
       const savedStreamings = localStorage.getItem('my_streamings');
       let hasMyStreamings = false;
-      
+
       if (savedStreamings) {
         try {
           const parsed = JSON.parse(savedStreamings);
@@ -636,10 +636,78 @@ export const HomePage: React.FC = () => {
         } catch (e) {}
       }
 
+      // Filtrar e consolidar provedores duplicados/redundantes
+      const deduplicatedProviders = data.filter((provider: any) => {
+        const name = provider.provider_name.toLowerCase();
+
+        // Remover versões "with ads" (mesmo catálogo)
+        if (name.includes('with ads') || name.includes('basic with ads')) {
+          return false;
+        }
+
+        // Remover TODOS os "Channels" (revendas através de outras plataformas)
+        // Ex: "Amazon Channel", "Apple TV Channel", "Plex Channel", "Roku Channel"
+        if (name.includes(' channel')) {
+          return false;
+        }
+
+        // Remover "Amazon Video" (manter apenas "Amazon Prime Video")
+        if (provider.provider_id === 10 && name.includes('amazon video')) {
+          return false;
+        }
+
+        // Remover "Apple TV" (ID: 2) - manter apenas "Apple TV Plus" (ID: 350)
+        if (provider.provider_id === 2 && name === 'apple tv') {
+          return false;
+        }
+
+        // Remover duplicatas de Apple iTunes vs Apple TV
+        if (
+          name === 'apple itunes' &&
+          data.some((p: any) => p.provider_name.toLowerCase() === 'apple tv')
+        ) {
+          return false;
+        }
+
+        // Remover "Plex" se existir "Plex Channel" ou vice-versa
+        // Manter apenas um deles (o que não for channel)
+        if (
+          name === 'plex' &&
+          data.some(
+            (p: any) =>
+              p.provider_name.toLowerCase().includes('plex') &&
+              !p.provider_name.toLowerCase().includes('channel')
+          )
+        ) {
+          // Se já existe outro Plex sem "channel", manter apenas um
+          const plexProviders = data.filter((p: any) =>
+            p.provider_name.toLowerCase().includes('plex')
+          );
+          if (
+            plexProviders.length > 1 &&
+            plexProviders.findIndex(
+              (p: any) => p.provider_id === provider.provider_id
+            ) > 0
+          ) {
+            return false;
+          }
+        }
+
+        return true;
+      });
+
       const all = [
-        ...(hasMyStreamings ? [{ provider_id: 'my-streamings', provider_name: 'Meus Streamings', logo_path: null }] : []),
+        ...(hasMyStreamings
+          ? [
+              {
+                provider_id: 'my-streamings',
+                provider_name: 'Meus Streamings',
+                logo_path: null,
+              },
+            ]
+          : []),
         { provider_id: '', provider_name: 'Todos', logo_path: null },
-        ...data,
+        ...deduplicatedProviders,
       ];
       setProviderOptions(all);
 
