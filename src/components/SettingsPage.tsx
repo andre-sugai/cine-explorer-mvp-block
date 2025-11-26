@@ -226,24 +226,13 @@ export const SettingsPage: React.FC = () => {
           return true;
         });
 
-        // Filtrar apenas os principais streamings para não poluir a tela
-        // (Netflix, Prime, Disney+, HBO Max, etc)
-        const popularProviders = deduplicatedProviders
-          .filter(
-            (p: any) =>
-              p.display_priority <= 15 ||
-              [
-                'Netflix',
-                'Amazon Prime Video',
-                'Disney Plus',
-                'Max',
-                'Apple TV Plus',
-                'Globoplay',
-              ].includes(p.provider_name)
-          )
-          .sort((a: any, b: any) => a.display_priority - b.display_priority);
+        // Ordenar por prioridade (popularidade)
+        // Mostrar TODOS os streamings disponíveis após deduplicação
+        const sortedProviders = deduplicatedProviders.sort(
+          (a: any, b: any) => a.display_priority - b.display_priority
+        );
 
-        setAvailableProviders(popularProviders);
+        setAvailableProviders(sortedProviders);
       } catch (error) {
         console.error('Erro ao carregar provedores:', error);
       } finally {
