@@ -33,9 +33,9 @@ const StatisticsPage: React.FC = () => {
 
     // Initial load of quota
     const loadQuota = () => {
-      const limit = parseInt(localStorage.getItem('tmdb_rate_limit') || '0');
+      const limit = parseInt(localStorage.getItem('tmdb_rate_limit') || '40');
       const remaining = parseInt(
-        localStorage.getItem('tmdb_rate_remaining') || '0'
+        localStorage.getItem('tmdb_rate_remaining') || '40'
       );
       const updated = localStorage.getItem('tmdb_rate_updated');
       setApiQuota({ limit, remaining, updated });
@@ -47,8 +47,12 @@ const StatisticsPage: React.FC = () => {
     const handleQuotaUpdate = () => loadQuota();
     window.addEventListener('tmdb-quota-updated', handleQuotaUpdate);
 
+    // Atualizar a cada segundo para mostrar mudanças em tempo real
+    const intervalId = setInterval(loadQuota, 1000);
+
     return () => {
       window.removeEventListener('tmdb-quota-updated', handleQuotaUpdate);
+      clearInterval(intervalId);
     };
   }, []);
 
@@ -134,9 +138,7 @@ const StatisticsPage: React.FC = () => {
 
           <Card className="bg-card border-primary/20">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Tempo Total
-              </CardTitle>
+              <CardTitle className="text-sm font-medium">Tempo Total</CardTitle>
               <Clock className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
@@ -188,26 +190,46 @@ const StatisticsPage: React.FC = () => {
             <Activity className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            {apiQuota.limit > 0 ? (
+            <div className="space-y-3">
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Usado</span>
+                  <span className="text-muted-foreground">
+                    Usado (últimos 10s)
+                  </span>
                   <span className="font-medium">
                     {apiQuota.limit - apiQuota.remaining} / {apiQuota.limit}
                   </span>
                 </div>
-                <Progress value={quotaPercentage} className="h-2" />
-                <p className="text-xs text-muted-foreground text-right">
-                  Restam {apiQuota.remaining} requisições
+                <Progress
+                  value={quotaPercentage}
+                  className={`h-2 ${
+                    quotaPercentage > 80 ? 'bg-red-500/20' : ''
+                  }`}
+                />
+                <div className="flex justify-between items-center">
+                  <p className="text-xs text-muted-foreground">
+                    Restam {apiQuota.remaining} requisições
+                  </p>
+                  {quotaPercentage > 80 && (
+                    <span className="text-xs text-yellow-500">
+                      ⚠️ Limite próximo
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-border/50">
+                <p className="text-xs text-muted-foreground">
+                  <strong>Limite:</strong> 40 requisições a cada 10 segundos
                 </p>
+                {apiQuota.updated && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    <strong>Última atualização:</strong>{' '}
+                    {new Date(apiQuota.updated).toLocaleTimeString('pt-BR')}
+                  </p>
+                )}
               </div>
-            ) : (
-              <div className="text-sm text-muted-foreground text-center py-2">
-                Nenhum dado disponível.
-                <br />
-                Navegue pelo app para carregar.
-              </div>
-            )}
+            </div>
           </CardContent>
         </Card>
 

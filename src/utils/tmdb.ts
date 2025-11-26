@@ -35,23 +35,76 @@ export const buildApiUrl = (
   return url.toString();
 };
 
-// Helper para fazer fetch e capturar headers de quota
+// Sistema de tracking de quota local
+// TMDB API v3 tem limite de 40 requisições por 10 segundos
+const RATE_LIMIT_WINDOW = 10000; // 10 segundos em ms
+const RATE_LIMIT_MAX = 40; // Máximo de requisições por janela
+
+interface RequestLog {
+  timestamp: number;
+}
+
+// Armazenar logs de requisições
+let requestLogs: RequestLog[] = [];
+
+// Limpar logs antigos (fora da janela de 10 segundos)
+const cleanOldLogs = () => {
+  const now = Date.now();
+  requestLogs = requestLogs.filter(
+    (log) => now - log.timestamp < RATE_LIMIT_WINDOW
+  );
+};
+
+// Registrar nova requisição
+const logRequest = () => {
+  cleanOldLogs();
+  requestLogs.push({ timestamp: Date.now() });
+
+  // Atualizar localStorage
+  const remaining = Math.max(0, RATE_LIMIT_MAX - requestLogs.length);
+  localStorage.setItem('tmdb_rate_limit', RATE_LIMIT_MAX.toString());
+  localStorage.setItem('tmdb_rate_remaining', remaining.toString());
+  localStorage.setItem('tmdb_rate_updated', new Date().toISOString());
+
+  // Log para debug
+  console.log(
+    `📊 TMDB API: ${requestLogs.length}/${RATE_LIMIT_MAX} requisições nos últimos 10s (${remaining} restantes)`
+  );
+
+  // Disparar evento para atualizar UI
+  window.dispatchEvent(new Event('tmdb-quota-updated'));
+};
+
+// Obter contagem atual de requisições
+export const getCurrentRequestCount = (): number => {
+  cleanOldLogs();
+  return requestLogs.length;
+};
+
+// Obter requisições restantes
+export const getRemainingRequests = (): number => {
+  return Math.max(0, RATE_LIMIT_MAX - getCurrentRequestCount());
+};
+
+// Helper para fazer fetch e rastrear quota localmente
 export const fetchWithQuota = async (url: string): Promise<Response> => {
+  // Registrar requisição antes de fazer o fetch
+  logRequest();
+
   const response = await fetch(url);
-  
-  // Capturar headers de rate limit
+
+  // Tentar capturar headers de rate limit se existirem (alguns endpoints podem ter)
   const limit = response.headers.get('x-ratelimit-limit');
   const remaining = response.headers.get('x-ratelimit-remaining');
-  
+
   if (limit && remaining) {
+    // Se a API retornar headers, usar esses valores
     localStorage.setItem('tmdb_rate_limit', limit);
     localStorage.setItem('tmdb_rate_remaining', remaining);
     localStorage.setItem('tmdb_rate_updated', new Date().toISOString());
-    
-    // Disparar evento para atualizar UI se necessário
     window.dispatchEvent(new Event('tmdb-quota-updated'));
   }
-  
+
   return response;
 };
 
@@ -841,7 +894,7 @@ export const getMoviesByDecade = async (decade: number, page: number = 1) => {
       include_adult: 'false',
     });
 
-    const response = await fetch(url);
+    const response = await fetchWithQuota(url);
     if (!response.ok) {
       throw new Error(`TMDB API error: ${response.status}`);
     }
@@ -879,7 +932,7 @@ export const getTVShowsByDecade = async (decade: number, page: number = 1) => {
       include_adult: 'false',
     });
 
-    const response = await fetch(url);
+    const response = await fetchWithQuota(url);
     if (!response.ok) {
       throw new Error(`TMDB API error: ${response.status}`);
     }
@@ -921,7 +974,7 @@ export const getMovieSequels = async (id: number) => {
         const collectionUrl = buildApiUrl(
           `/collection/${movie.belongs_to_collection.id}`
         );
-        const collectionResponse = await fetch(collectionUrl);
+        const collectionResponse = await fetchWithQuota(collectionUrl);
 
         if (collectionResponse.ok) {
           const collectionData = await collectionResponse.json();
@@ -976,7 +1029,7 @@ export const getMovieSequels = async (id: number) => {
         page: '1',
       });
 
-      const searchResponse = await fetch(searchUrl);
+      const searchResponse = await fetchWithQuota(searchUrl);
       if (searchResponse.ok) {
         const searchData = await searchResponse.json();
 
@@ -1064,7 +1117,7 @@ export const getMovieSequels = async (id: number) => {
               page: '1',
             });
 
-            const keywordResponse = await fetch(keywordUrl);
+            const keywordResponse = await fetchWithQuota(keywordUrl);
             if (keywordResponse.ok) {
               const keywordData = await keywordResponse.json();
 
@@ -1130,7 +1183,7 @@ export const getMovieSequels = async (id: number) => {
         page: '1',
       });
 
-      const similarResponse = await fetch(similarUrl);
+      const similarResponse = await fetchWithQuota(similarUrl);
       if (similarResponse.ok) {
         const similarData = await similarResponse.json();
 
@@ -1172,7 +1225,7 @@ export const getSimilarMovies = async (id: number) => {
       page: '1',
     });
 
-    const similarResponse = await fetch(similarUrl);
+    const similarResponse = await fetchWithQuota(similarUrl);
     if (similarResponse.ok) {
       const similarData = await similarResponse.json();
 

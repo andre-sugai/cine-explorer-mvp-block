@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Bookmark, Check, ListPlus } from 'lucide-react';
+import { Heart, Bookmark, Check, ListPlus, Plus, X } from 'lucide-react';
 import { useFavoritesContext } from '@/context/FavoritesContext';
 import { useWantToWatchContext } from '@/context/WantToWatchContext';
 import { useWatchedContext } from '@/context/WatchedContext';
@@ -7,12 +7,16 @@ import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import SignupInviteModal from '@/components/auth/SignupInviteModal';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useCustomListsContext } from '@/context/CustomListsContext';
 import { getMovieDetails, getTVShowDetails } from '@/utils/tmdb';
+import { useNavigate } from 'react-router-dom';
 
 interface TrailerActionButtonsProps {
   id: number;
@@ -46,6 +50,7 @@ export const TrailerActionButtons: React.FC<TrailerActionButtonsProps> = ({
   const { addToWatched, removeFromWatched, isWatched } = useWatchedContext();
   const { lists, addItemToList } = useCustomListsContext();
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const [details, setDetails] = useState<{
     poster_path?: string;
@@ -57,7 +62,7 @@ export const TrailerActionButtons: React.FC<TrailerActionButtonsProps> = ({
   } | null>(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [listPopoverOpen, setListPopoverOpen] = useState(false);
+  const [listDialogOpen, setListDialogOpen] = useState(false);
 
   // Buscar detalhes se não foram fornecidos
   useEffect(() => {
@@ -240,60 +245,118 @@ export const TrailerActionButtons: React.FC<TrailerActionButtonsProps> = ({
           <Check className="w-3.5 h-3.5" />
         </button>
 
-        <Popover open={listPopoverOpen} onOpenChange={setListPopoverOpen}>
-          <PopoverTrigger asChild>
-            <button
-              className="p-1.5 rounded-full transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10"
-              title="Adicionar a uma lista"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-              }}
-            >
-              <ListPlus className="w-3.5 h-3.5" />
-            </button>
-          </PopoverTrigger>
-          <PopoverContent
-            align="end"
-            className="w-48 p-0 bg-popover border-primary/20"
-          >
-            <div className="p-2">
-              <div className="px-2 py-1.5 text-sm font-semibold">
-                Adicionar à lista...
-              </div>
-              <div className="border-t border-border my-1"></div>
-              {lists.length > 0 ? (
-                <div className="space-y-1">
-                  {lists.map((list) => (
-                    <button
-                      key={list.id}
-                      className="w-full text-left px-2 py-1.5 text-sm rounded-sm hover:bg-accent hover:text-accent-foreground transition-colors"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        addItemToList(list.id, {
-                          id,
-                          title,
-                          poster_path: finalPosterPath,
-                          type,
-                        });
-                        toast.success(`Adicionado à lista "${list.name}"`);
-                        setListPopoverOpen(false);
-                      }}
-                    >
-                      {list.name}
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                  Nenhuma lista criada
-                </div>
-              )}
-            </div>
-          </PopoverContent>
-        </Popover>
+        <button
+          className="p-1.5 rounded-full transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10"
+          title="Adicionar a uma lista"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (requireAuth(e)) return;
+            setListDialogOpen(true);
+          }}
+        >
+          <ListPlus className="w-3.5 h-3.5" />
+        </button>
       </div>
+
       <SignupInviteModal open={inviteOpen} onOpenChange={setInviteOpen} />
+
+      {/* Dialog de Listas */}
+      <Dialog open={listDialogOpen} onOpenChange={setListDialogOpen}>
+        <DialogContent className="sm:max-w-md bg-card border-primary/20">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ListPlus className="w-5 h-5" />
+              Adicionar à Lista
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="text-sm text-muted-foreground">
+              Selecione uma lista para adicionar <strong>{title}</strong>
+            </div>
+
+            {lists.length > 0 ? (
+              <ScrollArea className="max-h-[300px] pr-4">
+                <div className="space-y-2">
+                  {lists.map((list) => {
+                    const itemInList = list.items?.some(
+                      (item) => item.id === id && item.type === type
+                    );
+                    return (
+                      <button
+                        key={list.id}
+                        className={`w-full text-left px-4 py-3 rounded-lg transition-all flex items-center justify-between border ${
+                          itemInList
+                            ? 'bg-primary/10 border-primary text-primary'
+                            : 'bg-background border-border hover:bg-accent hover:border-accent-foreground/20'
+                        }`}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (itemInList) {
+                            toast.info(
+                              `"${title}" já está na lista "${list.name}"`
+                            );
+                          } else {
+                            addItemToList(list.id, {
+                              id,
+                              title,
+                              poster_path: finalPosterPath,
+                              type,
+                            });
+                            setListDialogOpen(false);
+                          }
+                        }}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium truncate">
+                            {list.name}
+                          </div>
+                          {list.description && (
+                            <div className="text-xs text-muted-foreground truncate mt-0.5">
+                              {list.description}
+                            </div>
+                          )}
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {list.items?.length || 0}{' '}
+                            {list.items?.length === 1 ? 'item' : 'itens'}
+                          </div>
+                        </div>
+                        {itemInList && (
+                          <Check className="w-5 h-5 ml-3 flex-shrink-0" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </ScrollArea>
+            ) : (
+              <div className="text-center py-8">
+                <ListPlus className="w-12 h-12 mx-auto text-muted-foreground/30 mb-3" />
+                <p className="text-sm text-muted-foreground mb-2">
+                  Você ainda não criou nenhuma lista
+                </p>
+                <p className="text-xs text-muted-foreground/70 mb-4">
+                  Crie listas personalizadas para organizar seus filmes e séries
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setListDialogOpen(false);
+                    navigate('/listas');
+                  }}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Criar Primeira Lista
+                </Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

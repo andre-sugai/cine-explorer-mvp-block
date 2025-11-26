@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Dialog,
@@ -46,7 +46,7 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
 
   const playerRef = useRef<any>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
-  const nextTrailerRef = useRef<any>(null);
+  const isLoadingRef = useRef(false); // Prevenir múltiplas chamadas simultâneas
 
   // Função para trocar vídeo sem destruir o player (mantém tela cheia)
   const loadVideoInPlayer = (videoId: string) => {
@@ -82,28 +82,148 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
     }
   };
 
-  // Carregar YouTube Player API
+  // Funções de carregamento de trailer (definidas antes dos useEffects)
+  const loadRandomTrailer = useCallback(async () => {
+    // Prevenir múltiplas chamadas simultâneas
+    if (isLoadingRef.current) {
+      console.log('⏸️ Já está carregando um trailer, ignorando chamada');
+      return;
+    }
+
+    isLoadingRef.current = true;
+    let attempts = 0;
+    const maxAttempts = 3;
+
+    const tryLoad = async (): Promise<void> => {
+      attempts++;
+      console.log(
+        `⏳ Carregamento inicial - Tentativa ${attempts}/${maxAttempts}`
+      );
+
+      try {
+        const trailer = await getRandomTrailer();
+
+        if (trailer) {
+          console.log('✅ Trailer carregado com sucesso');
+          isLoadingRef.current = false;
+          return;
+        }
+
+        // Se não encontrou trailer e ainda há tentativas
+        if (attempts < maxAttempts) {
+          console.log('🔄 Tentando novamente em 500ms...');
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          await tryLoad();
+        } else {
+          // Esgotaram as tentativas
+          console.error('❌ Não foi possível encontrar trailers');
+          toast.error(
+            'Não foi possível encontrar trailers disponíveis no momento.'
+          );
+          isLoadingRef.current = false;
+        }
+      } catch (error) {
+        console.error('❌ Erro ao carregar trailer:', error);
+        isLoadingRef.current = false;
+        toast.error('Erro ao carregar trailer');
+      }
+    };
+
+    await tryLoad();
+  }, [getRandomTrailer]);
+
+  const handleNextTrailer = useCallback(async () => {
+    // Prevenir múltiplas chamadas simultâneas
+    if (isLoadingRef.current) {
+      console.log('⏸️ Já está carregando, ignorando clique');
+      return;
+    }
+
+    isLoadingRef.current = true;
+    setLoadingNext(true);
+    setIsTransitioning(true);
+
+    console.log('⏭️ Buscando próximo trailer...');
+
+    // Tentar encontrar um trailer válido (até 3 tentativas)
+    let attempts = 0;
+    const maxAttempts = 3;
+
+    const tryLoadTrailer = async (): Promise<void> => {
+      attempts++;
+      console.log(`⏳ Tentativa ${attempts}/${maxAttempts}`);
+
+      try {
+        const trailer = await getRandomTrailer();
+
+        if (trailer) {
+          console.log('✅ Próximo trailer encontrado:', trailer.movieTitle);
+          setLoadingNext(false);
+          setIsTransitioning(false);
+          isLoadingRef.current = false;
+          return;
+        }
+
+        // Se não encontrou trailer e ainda há tentativas
+        if (attempts < maxAttempts) {
+          console.log('🔄 Tentando novamente em 500ms...');
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          await tryLoadTrailer();
+        } else {
+          console.error('❌ Não foi possível encontrar próximo trailer');
+          toast.error(
+            'Não foi possível encontrar trailers disponíveis no momento.'
+          );
+          setLoadingNext(false);
+          setIsTransitioning(false);
+          isLoadingRef.current = false;
+        }
+      } catch (error) {
+        console.error('❌ Erro ao buscar próximo trailer:', error);
+        setLoadingNext(false);
+        setIsTransitioning(false);
+        isLoadingRef.current = false;
+        toast.error('Erro ao carregar próximo trailer');
+      }
+    };
+
+    await tryLoadTrailer();
+  }, [getRandomTrailer]);
+
+  // Carregar YouTube Player API (otimizado)
   useEffect(() => {
     if (!window.YT) {
+      console.log('📦 Carregando YouTube IFrame API...');
       const tag = document.createElement('script');
       tag.src = 'https://www.youtube.com/iframe_api';
+      tag.async = true; // Carregar de forma assíncrona
       const firstScriptTag = document.getElementsByTagName('script')[0];
       firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
 
       (window as any).onYouTubeIframeAPIReady = () => {
+        console.log('✅ YouTube IFrame API carregada');
         setUseYTPlayer(true);
       };
     } else {
+      console.log('✅ YouTube IFrame API já disponível');
       setUseYTPlayer(true);
     }
   }, []);
 
   // Inicializar player quando modal abre e API está pronta
   useEffect(() => {
-    if (open && !currentTrailer && useYTPlayer) {
+    if (open && !currentTrailer && useYTPlayer && !isLoadingRef.current) {
+      console.log('🚀 Modal aberto, iniciando carregamento de trailer');
       loadRandomTrailer();
     }
-  }, [open, useYTPlayer]);
+  }, [open, useYTPlayer, currentTrailer, loadRandomTrailer]);
+
+  // Limpar estado ao fechar modal
+  useEffect(() => {
+    if (!open) {
+      isLoadingRef.current = false;
+    }
+  }, [open]);
 
   // Criar YouTube Player quando tiver trailer disponível
   useEffect(() => {
@@ -175,7 +295,7 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
         },
       });
     }
-  }, [useYTPlayer, currentTrailer]);
+  }, [useYTPlayer, currentTrailer, handleNextTrailer]);
 
   // Carregar novo vídeo quando currentTrailer mudar (apenas se player já existe)
   useEffect(() => {
@@ -189,86 +309,7 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
       console.log('🔄 Carregando novo trailer:', currentTrailer.movieTitle);
       loadVideoInPlayer(currentTrailer.key);
     }
-  }, [currentTrailer]);
-
-  const loadRandomTrailer = async () => {
-    let attempts = 0;
-    const maxAttempts = 3;
-
-    const tryLoad = async (): Promise<void> => {
-      attempts++;
-      console.log(
-        `Carregamento inicial - Tentativa ${attempts} de ${maxAttempts}`
-      );
-
-      const trailer = await getRandomTrailer();
-
-      if (trailer) {
-        // Trailer encontrado
-        return;
-      }
-
-      // Se não encontrou trailer e ainda há tentativas
-      if (attempts < maxAttempts) {
-        console.log('Trailer inicial não encontrado, tentando novamente...');
-        setTimeout(tryLoad, 1000);
-      } else {
-        // Esgotaram as tentativas
-        toast.error(
-          'Não foi possível encontrar trailers disponíveis no momento.'
-        );
-      }
-    };
-
-    await tryLoad();
-  };
-
-  const handleNextTrailer = async () => {
-    setLoadingNext(true);
-    setIsTransitioning(true);
-
-    console.log('🔄 Buscando próximo trailer...');
-
-    // Tentar encontrar um trailer válido (até 3 tentativas)
-    let attempts = 0;
-    const maxAttempts = 3;
-
-    const tryLoadTrailer = async (): Promise<void> => {
-      attempts++;
-      console.log(
-        `Tentativa ${attempts} de ${maxAttempts} para carregar trailer`
-      );
-
-      const trailer = await getRandomTrailer();
-
-      if (trailer) {
-        // Trailer encontrado - será carregado automaticamente pelo useEffect
-        console.log('✅ Novo trailer encontrado:', trailer.movieTitle);
-        setLoadingNext(false);
-        setIsTransitioning(false);
-        return;
-      }
-
-      // Se não encontrou trailer e ainda há tentativas
-      if (attempts < maxAttempts) {
-        console.log('Trailer não encontrado, tentando novamente...');
-        setTimeout(tryLoadTrailer, 1000);
-      } else {
-        // Esgotaram as tentativas
-        console.log(
-          'Não foi possível encontrar trailer após todas as tentativas'
-        );
-        toast.error(
-          'Não foi possível encontrar trailers disponíveis no momento.'
-        );
-        setLoadingNext(false);
-        setIsTransitioning(false);
-      }
-    };
-
-    // Começar tentativas imediatamente
-    await tryLoadTrailer();
-  };
+  }, [currentTrailer, loadVideoInPlayer]);
 
   const handlePlayPause = () => {
     if (playerRef.current) {
@@ -290,21 +331,24 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
     }
   };
 
-  const handleModalClose = () => {
+  const handleModalClose = useCallback(() => {
+    console.log('🚪 Fechando modal de trailers');
     setIsPlaying(false);
+    isLoadingRef.current = false;
 
     // Destruir player ao fechar modal
     if (playerRef.current) {
       try {
+        console.log('🗑️ Destruindo player do YouTube');
         playerRef.current.destroy();
         playerRef.current = null;
       } catch (error) {
-        console.log('Error destroying player on close:', error);
+        console.error('❌ Erro ao destruir player:', error);
       }
     }
 
     onOpenChange(false);
-  };
+  }, [onOpenChange]);
 
   // Format title with year
   const getFormattedTitle = () => {
@@ -348,19 +392,26 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
         <div className="space-y-4">
           {/* Video Player */}
           <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
-            {showLoadingState ? (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                <div className="text-center">
-                  <Loader className="w-8 h-8 animate-spin mx-auto mb-2 text-primary" />
-                  <p className="text-sm text-muted-foreground">
-                    {loadingNext
-                      ? 'Carregando próximo trailer...'
-                      : 'Carregando trailer...'}
-                  </p>
+            {/* Container do player - sempre presente */}
+            <div ref={playerContainerRef} className="w-full h-full" />
+
+            {/* Loading overlay */}
+            {showLoadingState && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm z-10">
+                <div className="text-center space-y-3">
+                  <Loader className="w-10 h-10 animate-spin mx-auto text-primary" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground mb-1">
+                      {loadingNext
+                        ? 'Carregando próximo trailer...'
+                        : 'Buscando trailer...'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {currentCategory || 'Aguarde um momento'}
+                    </p>
+                  </div>
                 </div>
               </div>
-            ) : (
-              <div ref={playerContainerRef} className="w-full h-full" />
             )}
           </div>
 

@@ -179,6 +179,7 @@ export const useTrailers = () => {
   const [currentCategory, setCurrentCategory] = useState<string>('');
 
   const getRandomTrailer = async (): Promise<Trailer | null> => {
+    console.log('🎬 Iniciando busca de trailer aleatório...');
     setIsLoading(true);
 
     // Tentar até 3 categorias diferentes se necessário
@@ -230,8 +231,23 @@ export const useTrailers = () => {
 
             // Buscar vídeos do item
             const url = buildApiUrl(`/${endpoint}/${randomItem.id}/videos`);
+            console.log(
+              `🔍 Buscando vídeos para ${endpoint} ID ${randomItem.id}`
+            );
             const videosResponse = await fetchWithQuota(url);
+
+            if (!videosResponse.ok) {
+              console.error(
+                `❌ Erro na resposta da API: ${videosResponse.status}`
+              );
+              continue;
+            }
+
             const videosData = await videosResponse.json();
+            console.log(
+              `📹 Vídeos encontrados:`,
+              videosData.results?.length || 0
+            );
 
             if (videosData.results && videosData.results.length > 0) {
               // Filtrar apenas trailers do YouTube
