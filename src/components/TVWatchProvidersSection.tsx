@@ -2,6 +2,8 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Info } from 'lucide-react';
 import { getTVWatchProviders } from '@/utils/tmdb';
 
 interface TVWatchProvidersSectionProps {
@@ -72,6 +74,15 @@ const TVWatchProvidersSection: React.FC<TVWatchProvidersSectionProps> = ({
         <CardTitle className="text-primary">Onde Assistir</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Aviso sobre disponibilidade */}
+        <Alert variant="default" className="border-blue-500/50 bg-blue-500/10">
+          <Info className="h-4 w-4 text-blue-500" />
+          <AlertDescription className="text-sm text-muted-foreground">
+            A disponibilidade de séries em streamings pode mudar frequentemente. 
+            Os dados são fornecidos por JustWatch e podem não refletir mudanças recentes.
+          </AlertDescription>
+        </Alert>
+
         {isLoading && (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -119,10 +130,6 @@ const TVWatchProvidersSection: React.FC<TVWatchProvidersSectionProps> = ({
             )}
           </div>
         )}
-
-        <p className="text-xs text-muted-foreground">
-          Dados fornecidos por JustWatch
-        </p>
       </CardContent>
     </Card>
   );
