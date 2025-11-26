@@ -711,8 +711,11 @@ export const HomePage: React.FC = () => {
       ];
       setProviderOptions(all);
 
-      // Definir "Meus Streamings" como padrão se existir e não tiver outro selecionado
-      if (hasMyStreamings && !selectedProvider) {
+      // CORREÇÃO: Só definir "Meus Streamings" como padrão se:
+      // 1. Existir "Meus Streamings"
+      // 2. Não tiver outro selecionado
+      // 3. E os filtros já foram restaurados (para não sobrescrever filtro restaurado)
+      if (hasMyStreamings && !selectedProvider && isRestored) {
         setSelectedProvider('my-streamings');
       }
     });
@@ -722,7 +725,7 @@ export const HomePage: React.FC = () => {
     getLanguages().then((data) => {
       setLanguageOptions([{ value: '', label: 'Todos' }, ...data]);
     });
-  }, []);
+  }, [isRestored]); // Adicionado isRestored como dependência
 
   // Atualizar busca ao mudar filtros (removidas as referencias ao selectedStreamings)
   useEffect(() => {
