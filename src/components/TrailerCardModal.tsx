@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Play, Pause, Loader, ExternalLink, Film, Tv } from 'lucide-react';
 import { toast } from 'sonner';
 import { TrailerActionButtons } from '@/components/TrailerActionButtons';
+import { useYouTubePlayer } from '@/hooks/useYouTubePlayer';
 
 interface TrailerCardModalProps {
   open: boolean;
@@ -114,20 +115,13 @@ export const TrailerCardModal: React.FC<TrailerCardModalProps> = ({
   }, [open, navigate]);
 
   // Carregar YouTube Player API
-  useEffect(() => {
-    if (!window.YT) {
-      const tag = document.createElement('script');
-      tag.src = 'https://www.youtube.com/iframe_api';
-      const firstScriptTag = document.getElementsByTagName('script')[0];
-      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+  const { isReady: isYTReady } = useYouTubePlayer();
 
-      (window as any).onYouTubeIframeAPIReady = () => {
-        setUseYTPlayer(true);
-      };
-    } else {
+  useEffect(() => {
+    if (isYTReady) {
       setUseYTPlayer(true);
     }
-  }, []);
+  }, [isYTReady]);
 
   // Buscar trailer quando modal abrir
   useEffect(() => {

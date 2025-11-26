@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
   getPopularMovies,
   getTopRatedMovies,
   getPopularTVShows,
+  getTopRatedTVShows,
   getTrendingMovies,
+  getTrendingTVShows,
   getMoviesByGenre,
   getTVShowsByGenre,
   getMoviesByDecade,
@@ -32,145 +34,165 @@ interface Trailer {
 interface TrailerCategory {
   id: string;
   name: string;
-  weight: number;
   function: () => Promise<any>;
-  type: 'movie' | 'tv' | 'mixed';
+  type: 'movie' | 'tv';
 }
 
-// Definição das categorias de trailers com pesos
-const trailerCategories: TrailerCategory[] = [
-  // Categorias principais (maior peso)
+// Categorias de Filmes
+const movieCategories: TrailerCategory[] = [
   {
     id: 'popular_movies',
     name: 'Filmes Populares',
-    weight: 15,
-    function: () => getPopularMovies(Math.floor(Math.random() * 5) + 1),
+    function: () => getPopularMovies(Math.floor(Math.random() * 10) + 1),
     type: 'movie',
   },
   {
     id: 'top_rated_movies',
     name: 'Filmes Bem Avaliados',
-    weight: 15,
-    function: () => getTopRatedMovies(Math.floor(Math.random() * 5) + 1),
+    function: () => getTopRatedMovies(Math.floor(Math.random() * 10) + 1),
     type: 'movie',
   },
   {
-    id: 'popular_tv',
-    name: 'Séries Populares',
-    weight: 12,
-    function: () => getPopularTVShows(Math.floor(Math.random() * 5) + 1),
-    type: 'tv',
-  },
-  {
-    id: 'trending',
-    name: 'Em Tendência',
-    weight: 10,
+    id: 'trending_movies',
+    name: 'Filmes em Alta',
     function: () => getTrendingMovies('week'),
     type: 'movie',
   },
-
-  // Categorias por gênero (peso médio)
+  // Gêneros de Filmes
   {
-    id: 'action',
-    name: 'Ação e Aventura',
-    weight: 8,
-    function: () => getMoviesByGenre(28, Math.floor(Math.random() * 3) + 1),
+    id: 'action_movies',
+    name: 'Filmes de Ação',
+    function: () => getMoviesByGenre(28, Math.floor(Math.random() * 5) + 1),
     type: 'movie',
   },
   {
-    id: 'comedy',
-    name: 'Comédia',
-    weight: 8,
-    function: () => getMoviesByGenre(35, Math.floor(Math.random() * 3) + 1),
+    id: 'comedy_movies',
+    name: 'Comédias',
+    function: () => getMoviesByGenre(35, Math.floor(Math.random() * 5) + 1),
     type: 'movie',
   },
   {
-    id: 'drama',
-    name: 'Drama',
-    weight: 8,
-    function: () => getMoviesByGenre(18, Math.floor(Math.random() * 3) + 1),
+    id: 'drama_movies',
+    name: 'Dramas',
+    function: () => getMoviesByGenre(18, Math.floor(Math.random() * 5) + 1),
     type: 'movie',
   },
   {
-    id: 'horror',
-    name: 'Terror',
-    weight: 6,
-    function: () => getMoviesByGenre(27, Math.floor(Math.random() * 3) + 1),
+    id: 'horror_movies',
+    name: 'Filmes de Terror',
+    function: () => getMoviesByGenre(27, Math.floor(Math.random() * 5) + 1),
     type: 'movie',
   },
   {
-    id: 'scifi',
+    id: 'scifi_movies',
     name: 'Ficção Científica',
-    weight: 6,
-    function: () => getMoviesByGenre(878, Math.floor(Math.random() * 3) + 1),
+    function: () => getMoviesByGenre(878, Math.floor(Math.random() * 5) + 1),
     type: 'movie',
   },
+  // Décadas de Filmes
   {
-    id: 'animation',
-    name: 'Animação',
-    weight: 5,
-    function: () => getMoviesByGenre(16, Math.floor(Math.random() * 3) + 1),
-    type: 'movie',
-  },
-
-  // Categorias por década (peso menor)
-  {
-    id: '2020s',
-    name: 'Anos 2020',
-    weight: 4,
+    id: '2020s_movies',
+    name: 'Filmes dos Anos 2020',
     function: () => getMoviesByDecade(2020, Math.floor(Math.random() * 3) + 1),
     type: 'movie',
   },
   {
-    id: '2010s',
-    name: 'Anos 2010',
-    weight: 4,
+    id: '2010s_movies',
+    name: 'Filmes dos Anos 2010',
     function: () => getMoviesByDecade(2010, Math.floor(Math.random() * 3) + 1),
     type: 'movie',
   },
   {
-    id: '2000s',
-    name: 'Anos 2000',
-    weight: 3,
+    id: '2000s_movies',
+    name: 'Filmes dos Anos 2000',
     function: () => getMoviesByDecade(2000, Math.floor(Math.random() * 3) + 1),
     type: 'movie',
   },
   {
-    id: '1990s',
-    name: 'Anos 1990',
-    weight: 3,
+    id: '1990s_movies',
+    name: 'Filmes dos Anos 90',
     function: () => getMoviesByDecade(1990, Math.floor(Math.random() * 3) + 1),
     type: 'movie',
   },
   {
-    id: '1980s',
-    name: 'Anos 1980',
-    weight: 2,
+    id: '1980s_movies',
+    name: 'Filmes dos Anos 80',
     function: () => getMoviesByDecade(1980, Math.floor(Math.random() * 3) + 1),
     type: 'movie',
   },
 ];
 
-/**
- * Seleciona uma categoria aleatória baseada nos pesos definidos
- * @returns Categoria selecionada
- */
-const selectRandomCategory = (): TrailerCategory => {
-  const totalWeight = trailerCategories.reduce(
-    (sum, cat) => sum + cat.weight,
-    0
-  );
-  let random = Math.random() * totalWeight;
-
-  for (const category of trailerCategories) {
-    random -= category.weight;
-    if (random <= 0) {
-      return category;
-    }
-  }
-
-  return trailerCategories[0]; // Fallback
-};
+// Categorias de Séries
+const tvCategories: TrailerCategory[] = [
+  {
+    id: 'popular_tv',
+    name: 'Séries Populares',
+    function: () => getPopularTVShows(Math.floor(Math.random() * 10) + 1),
+    type: 'tv',
+  },
+  {
+    id: 'top_rated_tv',
+    name: 'Séries Bem Avaliadas',
+    function: () => getTopRatedTVShows(Math.floor(Math.random() * 10) + 1),
+    type: 'tv',
+  },
+  {
+    id: 'trending_tv',
+    name: 'Séries em Alta',
+    function: () => getTrendingTVShows('week'),
+    type: 'tv',
+  },
+  // Gêneros de Séries (IDs padrão do TMDB para TV)
+  {
+    id: 'action_adventure_tv',
+    name: 'Séries de Ação e Aventura',
+    function: () => getTVShowsByGenre(10759, Math.floor(Math.random() * 5) + 1),
+    type: 'tv',
+  },
+  {
+    id: 'comedy_tv',
+    name: 'Séries de Comédia',
+    function: () => getTVShowsByGenre(35, Math.floor(Math.random() * 5) + 1),
+    type: 'tv',
+  },
+  {
+    id: 'drama_tv',
+    name: 'Séries de Drama',
+    function: () => getTVShowsByGenre(18, Math.floor(Math.random() * 5) + 1),
+    type: 'tv',
+  },
+  {
+    id: 'scifi_fantasy_tv',
+    name: 'Séries de Sci-Fi e Fantasia',
+    function: () => getTVShowsByGenre(10765, Math.floor(Math.random() * 5) + 1),
+    type: 'tv',
+  },
+  {
+    id: 'animation_tv',
+    name: 'Séries de Animação',
+    function: () => getTVShowsByGenre(16, Math.floor(Math.random() * 5) + 1),
+    type: 'tv',
+  },
+  // Décadas de Séries
+  {
+    id: '2020s_tv',
+    name: 'Séries dos Anos 2020',
+    function: () => getTVShowsByDecade(2020, Math.floor(Math.random() * 3) + 1),
+    type: 'tv',
+  },
+  {
+    id: '2010s_tv',
+    name: 'Séries dos Anos 2010',
+    function: () => getTVShowsByDecade(2010, Math.floor(Math.random() * 3) + 1),
+    type: 'tv',
+  },
+  {
+    id: '2000s_tv',
+    name: 'Séries dos Anos 2000',
+    function: () => getTVShowsByDecade(2000, Math.floor(Math.random() * 3) + 1),
+    type: 'tv',
+  },
+];
 
 export const useTrailers = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -178,107 +200,82 @@ export const useTrailers = () => {
   const [recentTrailers, setRecentTrailers] = useState<number[]>([]);
   const [currentCategory, setCurrentCategory] = useState<string>('');
 
-  const getRandomTrailer = async (): Promise<Trailer | null> => {
+  const getRandomTrailer = useCallback(async (): Promise<Trailer | null> => {
     console.log('🎬 Iniciando busca de trailer aleatório...');
     setIsLoading(true);
 
-    // Tentar até 3 categorias diferentes se necessário
-    const maxCategoryAttempts = 3;
+    const maxAttempts = 5; // Aumentado para garantir sucesso
 
-    for (
-      let categoryAttempt = 0;
-      categoryAttempt < maxCategoryAttempts;
-      categoryAttempt++
-    ) {
-      let selectedCategory;
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
       try {
-        // Selecionar categoria aleatória
-        selectedCategory = selectRandomCategory();
+        // 1. Decidir aleatoriamente entre Filme (50%) e Série (50%)
+        const isMovie = Math.random() < 0.5;
+        const categoryList = isMovie ? movieCategories : tvCategories;
+        
+        // 2. Selecionar uma categoria aleatória da lista escolhida
+        const selectedCategory = categoryList[Math.floor(Math.random() * categoryList.length)];
+        
         setCurrentCategory(selectedCategory.name);
+        console.log(`🎬 Tentativa ${attempt + 1}: Buscando em ${selectedCategory.name} (${selectedCategory.type})`);
 
-        console.log(
-          `🎬 Tentativa ${
-            categoryAttempt + 1
-          }: Selecionando trailer da categoria: ${selectedCategory.name}`
-        );
-
+        // 3. Buscar resultados da categoria
         const response = await selectedCategory.function();
 
         if (!response || !response.results || response.results.length === 0) {
-          console.log(
-            `❌ Nenhum resultado encontrado para categoria: ${selectedCategory.name}`
-          );
-          continue; // Tentar próxima categoria
+          console.log(`❌ Nenhum resultado na categoria: ${selectedCategory.name}`);
+          continue;
         }
 
-        // Filtrar filmes/séries que não foram vistos recentemente
+        // 4. Filtrar itens já vistos
         const availableItems = response.results.filter(
-          (item) => !recentTrailers.includes(item.id)
+          (item: any) => !recentTrailers.includes(item.id)
         );
 
-        // Se todos foram vistos, limpar histórico
-        const itemsToCheck =
-          availableItems.length > 0 ? availableItems : response.results;
+        // Se todos foram vistos, usar todos (reset suave)
+        const itemsToCheck = availableItems.length > 0 ? availableItems : response.results;
+        
+        // Embaralhar itens para não pegar sempre os primeiros
+        const shuffledItems = [...itemsToCheck].sort(() => Math.random() - 0.5);
 
-        // Tentar até 5 itens diferentes para encontrar um trailer
-        for (let i = 0; i < Math.min(5, itemsToCheck.length); i++) {
-          const randomItem =
-            itemsToCheck[Math.floor(Math.random() * itemsToCheck.length)];
-
+        // 5. Tentar encontrar um trailer válido nos itens
+        for (const item of shuffledItems.slice(0, 5)) { // Tentar até 5 itens da lista
           try {
-            // Determinar o endpoint baseado no tipo de conteúdo
             const endpoint = selectedCategory.type === 'tv' ? 'tv' : 'movie';
-
-            // Buscar vídeos do item
-            const url = buildApiUrl(`/${endpoint}/${randomItem.id}/videos`);
-            console.log(
-              `🔍 Buscando vídeos para ${endpoint} ID ${randomItem.id}`
-            );
+            const url = buildApiUrl(`/${endpoint}/${item.id}/videos`);
+            
             const videosResponse = await fetchWithQuota(url);
-
-            if (!videosResponse.ok) {
-              console.error(
-                `❌ Erro na resposta da API: ${videosResponse.status}`
-              );
-              continue;
-            }
+            if (!videosResponse.ok) continue;
 
             const videosData = await videosResponse.json();
-            console.log(
-              `📹 Vídeos encontrados:`,
-              videosData.results?.length || 0
-            );
-
+            
             if (videosData.results && videosData.results.length > 0) {
-              // Filtrar apenas trailers do YouTube
+              // Filtrar trailers do YouTube
               const trailers = videosData.results.filter(
-                (video: any) =>
-                  video.type === 'Trailer' && video.site === 'YouTube'
+                (video: any) => video.type === 'Trailer' && video.site === 'YouTube'
               );
 
               if (trailers.length > 0) {
-                const trailer = trailers[0]; // Pegar o primeiro trailer
-
-                // Atualizar histórico de trailers recentes
+                // Sucesso! Encontramos um trailer
+                const trailer = trailers[0];
+                
+                // Atualizar histórico
                 setRecentTrailers((prev) => {
-                  const updated = [randomItem.id, ...prev].slice(0, 50); // Manter últimos 50
+                  const updated = [item.id, ...prev].slice(0, 50);
                   return updated;
                 });
 
-                // Extract year from release date
-                const releaseDate =
-                  selectedCategory.type === 'tv'
-                    ? randomItem.first_air_date
-                    : randomItem.release_date;
+                // Extrair dados
+                const releaseDate = selectedCategory.type === 'tv' 
+                  ? item.first_air_date 
+                  : item.release_date;
 
                 const releaseYear = releaseDate
                   ? new Date(releaseDate).getFullYear().toString()
                   : undefined;
 
-                const title =
-                  selectedCategory.type === 'tv'
-                    ? randomItem.name || randomItem.original_name
-                    : randomItem.title || randomItem.original_title;
+                const title = selectedCategory.type === 'tv'
+                  ? item.name || item.original_name
+                  : item.title || item.original_title;
 
                 const trailerData: Trailer = {
                   id: trailer.id,
@@ -287,49 +284,34 @@ export const useTrailers = () => {
                   type: trailer.type,
                   site: trailer.site,
                   movieTitle: title,
-                  movieId: randomItem.id,
+                  movieId: item.id,
                   releaseYear,
-                  contentType: selectedCategory.type as 'movie' | 'tv',
-                  poster_path: randomItem.poster_path,
-                  release_date: randomItem.release_date,
-                  first_air_date: randomItem.first_air_date,
-                  vote_average: randomItem.vote_average,
-                  genre_ids: randomItem.genre_ids,
+                  contentType: selectedCategory.type,
+                  poster_path: item.poster_path,
+                  release_date: item.release_date,
+                  first_air_date: item.first_air_date,
+                  vote_average: item.vote_average,
+                  genre_ids: item.genre_ids,
                 };
 
                 setCurrentTrailer(trailerData);
-                console.log(
-                  `✅ Trailer encontrado: ${title} (${selectedCategory.name})`
-                );
                 setIsLoading(false);
                 return trailerData;
               }
             }
-          } catch (error) {
-            console.error(
-              `❌ Erro ao buscar vídeos para ${selectedCategory.type} ${randomItem.id}:`,
-              error
-            );
-            continue; // Tentar próximo item
+          } catch (err) {
+            console.error(`Erro ao verificar item ${item.id}`, err);
           }
         }
-
-        console.log(
-          `❌ Nenhum trailer encontrado após 5 tentativas na categoria: ${selectedCategory.name}`
-        );
       } catch (error) {
-        console.error(`❌ Erro na categoria ${selectedCategory?.name}:`, error);
-        continue; // Tentar próxima categoria
+        console.error(`Erro na tentativa ${attempt + 1}`, error);
       }
     }
 
-    // Se chegou aqui, não encontrou trailer em nenhuma categoria
-    console.log(
-      '❌ Nenhum trailer encontrado após todas as tentativas de categoria'
-    );
+    console.error('❌ Falha ao encontrar trailer após todas as tentativas');
     setIsLoading(false);
     return null;
-  };
+  }, [recentTrailers]);
 
   return {
     getRandomTrailer,

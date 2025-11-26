@@ -574,6 +574,44 @@ export const getPopularTVShows = async (page: number = 1) => {
   }
 };
 
+// Top rated TV shows
+export const getTopRatedTVShows = async (page: number = 1) => {
+  try {
+    const url = buildApiUrl('/tv/top_rated', {
+      page: page.toString(),
+    });
+
+    const response = await fetchWithQuota(url);
+    if (!response.ok) {
+      throw new Error(`TMDB API error: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error getting top rated TV shows:', error);
+    throw error;
+  }
+};
+
+// Trending TV shows
+export const getTrendingTVShows = async (
+  timeWindow: 'day' | 'week' = 'week'
+) => {
+  try {
+    const url = buildApiUrl(`/trending/tv/${timeWindow}`);
+
+    const response = await fetchWithQuota(url);
+    if (!response.ok) {
+      throw new Error(`TMDB API error: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error getting trending TV shows:', error);
+    throw error;
+  }
+};
+
 // Popular people
 export const getPopularPeople = async (page: number = 1) => {
   try {

@@ -18,6 +18,7 @@ import {
   Tv,
 } from 'lucide-react';
 import { useTrailers } from '@/hooks/useTrailers';
+import { useYouTubePlayer } from '@/hooks/useYouTubePlayer';
 import { toast } from 'sonner';
 import { TrailerActionButtons } from '@/components/TrailerActionButtons';
 
@@ -37,8 +38,13 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
   onOpenChange,
 }) => {
   const navigate = useNavigate();
-  const { getRandomTrailer, currentTrailer, isLoading, currentCategory } =
-    useTrailers();
+  const {
+    getRandomTrailer,
+    currentTrailer,
+    isLoading,
+    currentCategory,
+    setCurrentTrailer,
+  } = useTrailers();
   const [isPlaying, setIsPlaying] = useState(true);
   const [loadingNext, setLoadingNext] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -49,93 +55,95 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
   const isLoadingRef = useRef(false); // Prevenir múltiplas chamadas simultâneas
 
   // Função para trocar vídeo sem destruir o player (mantém tela cheia)
-  const loadVideoInPlayer = (videoId: string) => {
-    if (playerRef.current && playerRef.current.loadVideoById) {
-      console.log('🔄 Carregando novo vídeo no player existente:', videoId);
-      try {
-        playerRef.current.loadVideoById({
-          videoId: videoId,
-          startSeconds: 0,
-          suggestedQuality: 'default',
-        });
+  const loadVideoInPlayer = useCallback((videoId: string) => {
+    // Verificações de segurança
+    if (!playerRef.current) {
+      console.log('❌ Player não existe');
+      return;
+    }
 
-        // Garantir que não apareçam vídeos relacionados após carregar
-        setTimeout(() => {
-          if (playerRef.current && playerRef.current.setOption) {
+    if (
+      !playerRef.current.loadVideoById ||
+      typeof playerRef.current.loadVideoById !== 'function'
+    ) {
+      console.log('❌ Player não está pronto para carregar vídeo');
+      return;
+    }
+
+    console.log('🔄 Carregando novo vídeo no player existente:', videoId);
+
+    try {
+      playerRef.current.loadVideoById({
+        videoId: videoId,
+        startSeconds: 0,
+        suggestedQuality: 'default',
+      });
+
+      // Garantir que não apareçam vídeos relacionados após carregar
+      setTimeout(() => {
+        if (
+          playerRef.current &&
+          playerRef.current.setOption &&
+          typeof playerRef.current.setOption === 'function'
+        ) {
+          try {
             playerRef.current.setOption('rel', 0);
+          } catch (e) {
+            console.log('⚠️ Não foi possível definir opção rel');
           }
-        }, 100);
+        }
+      }, 100);
 
-        setIsPlaying(true);
-      } catch (error) {
-        console.error('Erro ao carregar vídeo:', error);
-        // Fallback: tentar método simples
-        try {
+      setIsPlaying(true);
+    } catch (error) {
+      console.error('❌ Erro ao carregar vídeo:', error);
+
+      // Fallback: tentar método simples
+      try {
+        if (playerRef.current && playerRef.current.loadVideoById) {
           playerRef.current.loadVideoById(videoId);
           setIsPlaying(true);
-        } catch (fallbackError) {
-          console.error('Erro no fallback:', fallbackError);
         }
+      } catch (fallbackError) {
+        console.error('❌ Erro no fallback:', fallbackError);
+        toast.error('Erro ao carregar vídeo. Tente novamente.');
       }
-    } else {
-      console.log('❌ Player não está pronto para carregar vídeo');
     }
-  };
+  }, []);
 
   // Funções de carregamento de trailer (definidas antes dos useEffects)
   const loadRandomTrailer = useCallback(async () => {
     // Prevenir múltiplas chamadas simultâneas
     if (isLoadingRef.current) {
-      console.log('⏸️ Já está carregando um trailer, ignorando chamada');
       return;
     }
 
     isLoadingRef.current = true;
-    let attempts = 0;
-    const maxAttempts = 3;
+    
+    try {
+      const trailer = await getRandomTrailer();
 
-    const tryLoad = async (): Promise<void> => {
-      attempts++;
-      console.log(
-        `⏳ Carregamento inicial - Tentativa ${attempts}/${maxAttempts}`
-      );
-
-      try {
-        const trailer = await getRandomTrailer();
-
-        if (trailer) {
-          console.log('✅ Trailer carregado com sucesso');
-          isLoadingRef.current = false;
-          return;
-        }
-
-        // Se não encontrou trailer e ainda há tentativas
-        if (attempts < maxAttempts) {
-          console.log('🔄 Tentando novamente em 500ms...');
-          await new Promise((resolve) => setTimeout(resolve, 500));
-          await tryLoad();
-        } else {
-          // Esgotaram as tentativas
-          console.error('❌ Não foi possível encontrar trailers');
-          toast.error(
-            'Não foi possível encontrar trailers disponíveis no momento.'
-          );
-          isLoadingRef.current = false;
-        }
-      } catch (error) {
-        console.error('❌ Erro ao carregar trailer:', error);
+      if (trailer) {
         isLoadingRef.current = false;
-        toast.error('Erro ao carregar trailer');
+        return;
       }
-    };
 
-    await tryLoad();
+      // Se não encontrou trailer
+      console.error('❌ Não foi possível encontrar trailers');
+      toast.error(
+        'Não foi possível encontrar trailers disponíveis no momento.'
+      );
+      isLoadingRef.current = false;
+    } catch (error) {
+      console.error('❌ Erro ao carregar trailer:', error);
+      isLoadingRef.current = false;
+      toast.error('Erro ao carregar trailer');
+    }
   }, [getRandomTrailer]);
 
   const handleNextTrailer = useCallback(async () => {
     // Prevenir múltiplas chamadas simultâneas
     if (isLoadingRef.current) {
-      console.log('⏸️ Já está carregando, ignorando clique');
       return;
     }
 
@@ -143,173 +151,247 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
     setLoadingNext(true);
     setIsTransitioning(true);
 
-    console.log('⏭️ Buscando próximo trailer...');
+    try {
+      const trailer = await getRandomTrailer();
 
-    // Tentar encontrar um trailer válido (até 3 tentativas)
-    let attempts = 0;
-    const maxAttempts = 3;
-
-    const tryLoadTrailer = async (): Promise<void> => {
-      attempts++;
-      console.log(`⏳ Tentativa ${attempts}/${maxAttempts}`);
-
-      try {
-        const trailer = await getRandomTrailer();
-
-        if (trailer) {
-          console.log('✅ Próximo trailer encontrado:', trailer.movieTitle);
-          setLoadingNext(false);
-          setIsTransitioning(false);
-          isLoadingRef.current = false;
-          return;
-        }
-
-        // Se não encontrou trailer e ainda há tentativas
-        if (attempts < maxAttempts) {
-          console.log('🔄 Tentando novamente em 500ms...');
-          await new Promise((resolve) => setTimeout(resolve, 500));
-          await tryLoadTrailer();
-        } else {
-          console.error('❌ Não foi possível encontrar próximo trailer');
-          toast.error(
-            'Não foi possível encontrar trailers disponíveis no momento.'
-          );
-          setLoadingNext(false);
-          setIsTransitioning(false);
-          isLoadingRef.current = false;
-        }
-      } catch (error) {
-        console.error('❌ Erro ao buscar próximo trailer:', error);
+      if (trailer) {
         setLoadingNext(false);
         setIsTransitioning(false);
         isLoadingRef.current = false;
-        toast.error('Erro ao carregar próximo trailer');
+        return;
       }
-    };
 
-    await tryLoadTrailer();
+      console.error('❌ Não foi possível encontrar próximo trailer');
+      toast.error(
+        'Não foi possível encontrar trailers disponíveis no momento.'
+      );
+      setLoadingNext(false);
+      setIsTransitioning(false);
+      isLoadingRef.current = false;
+    } catch (error) {
+      console.error('❌ Erro ao buscar próximo trailer:', error);
+      setLoadingNext(false);
+      setIsTransitioning(false);
+      isLoadingRef.current = false;
+      toast.error('Erro ao carregar próximo trailer');
+    }
   }, [getRandomTrailer]);
 
   // Carregar YouTube Player API (otimizado)
-  useEffect(() => {
-    if (!window.YT) {
-      console.log('📦 Carregando YouTube IFrame API...');
-      const tag = document.createElement('script');
-      tag.src = 'https://www.youtube.com/iframe_api';
-      tag.async = true; // Carregar de forma assíncrona
-      const firstScriptTag = document.getElementsByTagName('script')[0];
-      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+  const { isReady: isYTReady } = useYouTubePlayer();
 
-      (window as any).onYouTubeIframeAPIReady = () => {
-        console.log('✅ YouTube IFrame API carregada');
-        setUseYTPlayer(true);
-      };
-    } else {
-      console.log('✅ YouTube IFrame API já disponível');
+  useEffect(() => {
+    if (isYTReady) {
+      console.log('✅ YouTube Player API disponível via hook');
       setUseYTPlayer(true);
     }
-  }, []);
+  }, [isYTReady]);
+
+  const initialLoadDone = useRef(false);
 
   // Inicializar player quando modal abre e API está pronta
   useEffect(() => {
-    if (open && !currentTrailer && useYTPlayer && !isLoadingRef.current) {
-      console.log('🚀 Modal aberto, iniciando carregamento de trailer');
+    console.log('🔍 useEffect inicialização:', {
+      open,
+      useYTPlayer,
+      isLoading: isLoadingRef.current,
+      hasPlayer: !!playerRef.current,
+      hasTrailer: !!currentTrailer,
+      initialLoadDone: initialLoadDone.current
+    });
+
+    // Só carregar quando modal ABRE (não quando fecha)
+    if (open && useYTPlayer && !isLoadingRef.current && !initialLoadDone.current) {
+      console.log('🚀 Modal aberto, carregando novo trailer');
+      // Resetar contador de erros ao abrir
+      consecutiveErrors.current = 0;
+      // Marcar que já iniciou o carregamento para esta sessão
+      initialLoadDone.current = true;
+      // Sempre carregar um novo trailer ao abrir
       loadRandomTrailer();
+    } else {
+      if (!open) {
+         console.log('⏸️ Modal fechado');
+         initialLoadDone.current = false; // Resetar para próxima abertura
+      }
+      if (!useYTPlayer) console.log('⏸️ YouTube API não pronta');
+      if (isLoadingRef.current) console.log('⏸️ Já está carregando');
+      if (initialLoadDone.current && open) console.log('⏸️ Já carregou trailer inicial');
     }
-  }, [open, useYTPlayer, currentTrailer, loadRandomTrailer]);
+  }, [open, useYTPlayer, loadRandomTrailer]);
+
+  // Remover dependência de currentTrailer para evitar re-execuções
 
   // Limpar estado ao fechar modal
   useEffect(() => {
     if (!open) {
+      console.log('🧹 Modal fechado, limpando estado');
       isLoadingRef.current = false;
+      setCurrentTrailer(null);
+
+      // Garantir que o player seja destruído
+      if (playerRef.current) {
+        try {
+          console.log('🗑️ Destruindo player no useEffect de fechamento');
+          playerRef.current.destroy();
+          playerRef.current = null;
+        } catch (error) {
+          console.error('❌ Erro ao destruir player:', error);
+          // Forçar null mesmo com erro
+          playerRef.current = null;
+        }
+      }
     }
-  }, [open]);
+  }, [open, setCurrentTrailer]);
+
+  const consecutiveErrors = useRef(0);
+  const startTimeRef = useRef<number>(0);
+  const hasPlayedRef = useRef(false);
 
   // Criar YouTube Player quando tiver trailer disponível
   useEffect(() => {
-    if (
-      useYTPlayer &&
-      playerContainerRef.current &&
-      !playerRef.current &&
-      currentTrailer
-    ) {
-      console.log(
-        '🎬 Criando YouTube Player com trailer:',
-        currentTrailer.movieTitle
-      );
+    if (!useYTPlayer || !playerContainerRef.current || !currentTrailer) {
+      return;
+    }
 
-      // Limpar conteúdo anterior
-      playerContainerRef.current.innerHTML = '';
+    // Se já existe um player, apenas carregar o novo vídeo
+    if (playerRef.current) {
+      // Verificar se o player está pronto
+      if (
+        playerRef.current.loadVideoById &&
+        typeof playerRef.current.loadVideoById === 'function'
+      ) {
+        // Verificar se é o mesmo vídeo
+        try {
+          const videoData = playerRef.current.getVideoData?.();
+          if (videoData && videoData.video_id === currentTrailer.key) {
+            console.log('⏸️ Vídeo já está carregado:', currentTrailer.key);
+            return;
+          }
+        } catch (e) {
+          // Ignorar erro
+        }
 
-      // Criar div para o player
-      const playerDiv = document.createElement('div');
-      playerDiv.id = 'youtube-player';
-      playerContainerRef.current.appendChild(playerDiv);
+        console.log('🔄 Reutilizando player para:', currentTrailer.movieTitle);
+        hasPlayedRef.current = false; // Resetar flag de reprodução
+        loadVideoInPlayer(currentTrailer.key);
+      }
+      return;
+    }
 
-      playerRef.current = new window.YT.Player('youtube-player', {
-        height: '100%',
-        width: '100%',
-        videoId: currentTrailer.key,
-        playerVars: {
-          autoplay: 1,
-          controls: 1,
-          modestbranding: 1,
-          rel: 0, // Não mostrar vídeos relacionados
-          showinfo: 0, // Não mostrar informações do vídeo
-          fs: 1, // Permitir tela cheia
-          cc_load_policy: 0, // Não carregar legendas automaticamente
-          iv_load_policy: 3, // Não mostrar anotações
-          origin: window.location.origin,
-          playsinline: 1, // Reproduzir inline em dispositivos móveis
-          widget_referrer: window.location.origin,
-          enablejsapi: 1, // Habilitar API JavaScript
-          disablekb: 0, // Manter controles de teclado
-          end: 0, // Não definir tempo de fim (evita tela de vídeos relacionados)
+    // Se não existe, criar um novo
+    console.log(
+      '🎬 Criando YouTube Player com trailer:',
+      currentTrailer.movieTitle
+    );
+
+    // Limpar conteúdo anterior
+    playerContainerRef.current.innerHTML = '';
+
+    // Criar div para o player
+    const playerDiv = document.createElement('div');
+    playerDiv.id = 'youtube-player';
+    playerContainerRef.current.appendChild(playerDiv);
+
+    hasPlayedRef.current = false; // Resetar flag de reprodução
+
+    playerRef.current = new window.YT.Player('youtube-player', {
+      height: '100%',
+      width: '100%',
+      videoId: currentTrailer.key,
+      playerVars: {
+        autoplay: 1,
+        controls: 1,
+        modestbranding: 1,
+        rel: 0,
+        showinfo: 0,
+        fs: 1,
+        cc_load_policy: 0,
+        iv_load_policy: 3,
+        origin: window.location.origin,
+        playsinline: 1,
+        widget_referrer: window.location.origin,
+        enablejsapi: 1,
+        disablekb: 0,
+        end: 0,
+      },
+      events: {
+        onReady: () => {
+          console.log(
+            '🎬 YouTube player ready com vídeo:',
+            currentTrailer.movieTitle
+          );
+          setIsPlaying(true);
         },
-        events: {
-          onReady: () => {
-            console.log(
-              '🎬 YouTube player ready com vídeo:',
-              currentTrailer.movieTitle
-            );
+        onStateChange: (event: any) => {
+          if (event.data === window.YT.PlayerState.PLAYING) {
             setIsPlaying(true);
-          },
-          onStateChange: (event: any) => {
-            if (event.data === window.YT.PlayerState.PLAYING) {
-              setIsPlaying(true);
-            } else if (event.data === window.YT.PlayerState.PAUSED) {
-              setIsPlaying(false);
-            } else if (event.data === window.YT.PlayerState.ENDED) {
-              // Pular imediatamente para o próximo trailer sem mostrar vídeos relacionados
-              console.log('🔚 Trailer terminou, carregando próximo...');
-              setTimeout(() => {
-                handleNextTrailer();
-              }, 100); // Pequeno delay para evitar conflitos
-            }
-          },
-          onError: () => {
-            console.log('YouTube player error - vídeo indisponível');
-            toast.error('Vídeo indisponível, carregando próximo trailer...');
-            handleNextTrailer();
-          },
-        },
-      });
-    }
-  }, [useYTPlayer, currentTrailer, handleNextTrailer]);
+            // Registrar tempo de início e marcar que tocou
+            startTimeRef.current = Date.now();
+            hasPlayedRef.current = true;
+          } else if (event.data === window.YT.PlayerState.PAUSED) {
+            setIsPlaying(false);
+          } else if (event.data === window.YT.PlayerState.ENDED) {
+            console.log('🔚 Trailer terminou.');
+            
+            // Verificar se o vídeo chegou a tocar
+            if (!hasPlayedRef.current) {
+               console.log('⚠️ Vídeo terminou sem nunca tocar (erro de bloqueio)');
+               consecutiveErrors.current += 1;
+            } else {
+               // Verificar tempo de reprodução
+               const playDuration = Date.now() - startTimeRef.current;
+               console.log(`⏱️ Duração da reprodução: ${playDuration}ms`);
 
-  // Carregar novo vídeo quando currentTrailer mudar (apenas se player já existe)
-  useEffect(() => {
-    if (
-      currentTrailer &&
-      playerRef.current &&
-      playerRef.current.loadVideoById &&
-      playerRef.current.getVideoData &&
-      playerRef.current.getVideoData().video_id !== currentTrailer.key
-    ) {
-      console.log('🔄 Carregando novo trailer:', currentTrailer.movieTitle);
-      loadVideoInPlayer(currentTrailer.key);
-    }
-  }, [currentTrailer, loadVideoInPlayer]);
+               if (playDuration < 5000) {
+                  // Se tocou menos de 5 segundos, considerar erro/skip
+                  console.log('⚠️ Vídeo terminou muito rápido (possível erro/bloqueio)');
+                  consecutiveErrors.current += 1;
+               } else {
+                  // Sucesso real, resetar erros
+                  consecutiveErrors.current = 0;
+               }
+            }
+
+            if (consecutiveErrors.current >= 3) {
+               console.log('🛑 Muitos erros consecutivos, parando.');
+               toast.error('Muitos vídeos indisponíveis. Tente outra categoria.');
+               setIsPlaying(false);
+               return;
+            }
+
+            console.log('⏭️ Carregando próximo...');
+            setTimeout(() => {
+              handleNextTrailer();
+            }, 100);
+          }
+        },
+        onError: () => {
+          console.log('YouTube player error - vídeo indisponível');
+          
+          consecutiveErrors.current += 1;
+          console.log(`⚠️ Erro consecutivo #${consecutiveErrors.current}`);
+
+          if (consecutiveErrors.current >= 3) {
+             console.log('🛑 Muitos erros consecutivos, parando.');
+             toast.error('Muitos vídeos indisponíveis. Tente outra categoria.');
+             setIsPlaying(false);
+             return;
+          }
+
+          toast.error('Vídeo indisponível, tentando próximo em 2s...');
+          
+          // Delay para evitar loop rápido
+          setTimeout(() => {
+            handleNextTrailer();
+          }, 2000);
+        },
+      },
+    });
+  }, [useYTPlayer, currentTrailer, handleNextTrailer, loadVideoInPlayer]);
+
+  // Remover o useEffect antigo que tentava carregar vídeo separadamente
+  // (O bloco acima agora lida com criação E atualização)
 
   const handlePlayPause = () => {
     if (playerRef.current) {
