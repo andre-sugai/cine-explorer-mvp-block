@@ -1,21 +1,29 @@
 import React, { useState } from 'react';
 import { Layout } from '@/components/Layout';
-import { useCustomListsContext, CustomList } from '@/context/CustomListsContext';
+import { useCustomListsContext, CustomList, CustomListItem } from '@/context/CustomListsContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Trash2, Film, Tv, MoreVertical } from 'lucide-react';
-import { buildImageUrl } from '@/utils/tmdb';
+import { Plus, Trash2, Film, Tv, MoreVertical, Search, Loader, X } from 'lucide-react';
+import { buildImageUrl, searchMulti } from '@/utils/tmdb';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 const CustomListsPage: React.FC = () => {
-  const { lists, createList, deleteList, removeItemFromList } = useCustomListsContext();
+  const { lists, createList, deleteList, addItemToList, removeItemFromList } = useCustomListsContext();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const navigate = useNavigate();
+
+  // Search & Add Item State
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [activeListId, setActiveListId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearchLoading, setIsSearchLoading] = useState(false);
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,6 +33,46 @@ const CustomListsPage: React.FC = () => {
       setNewDesc('');
       setIsCreateOpen(false);
     }
+  };
+
+  const openSearchDialog = (listId: string) => {
+    setActiveListId(listId);
+    setSearchQuery('');
+    setSearchResults([]);
+    setIsSearchOpen(true);
+  };
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+
+    setIsSearchLoading(true);
+    try {
+      const data = await searchMulti(searchQuery);
+      // Filter only movies and tv shows
+      const filtered = data.results?.filter(
+        (item: any) => item.media_type === 'movie' || item.media_type === 'tv'
+      ) || [];
+      setSearchResults(filtered);
+    } catch (error) {
+      console.error('Error searching:', error);
+      toast.error('Erro ao buscar filmes/séries');
+    } finally {
+      setIsSearchLoading(false);
+    }
+  };
+
+  const handleAddItem = (item: any) => {
+    if (!activeListId) return;
+
+    const newItem: CustomListItem = {
+      id: item.id,
+      title: item.title || item.name,
+      poster_path: item.poster_path,
+      type: item.media_type === 'movie' ? 'movie' : 'tv',
+    };
+
+    addItemToList(activeListId, newItem);
   };
 
   return (
@@ -69,6 +117,73 @@ const CustomListsPage: React.FC = () => {
               </form>
             </DialogContent>
           </Dialog>
+
+          {/* Search Dialog */}
+          <Dialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+            <DialogContent className="bg-gradient-cinema border-primary/20 max-w-2xl max-h-[80vh] flex flex-col">
+              <DialogHeader>
+                <DialogTitle>Adicionar à Lista</DialogTitle>
+              </DialogHeader>
+              
+              <form onSubmit={handleSearch} className="flex gap-2 mb-4">
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Buscar filme ou série..."
+                  className="flex-1"
+                  autoFocus
+                />
+                <Button type="submit" disabled={isSearchLoading}>
+                  {isSearchLoading ? <Loader className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                </Button>
+              </form>
+
+              <div className="flex-1 overflow-y-auto space-y-2 pr-2">
+                {searchResults.length > 0 ? (
+                  searchResults.map((item) => (
+                    <div key={item.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors border border-transparent hover:border-white/10">
+                      <div className="w-12 h-18 bg-black/40 rounded overflow-hidden flex-shrink-0">
+                        {item.poster_path ? (
+                          <img 
+                            src={buildImageUrl(item.poster_path, 'w92')} 
+                            alt={item.title || item.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                            {item.media_type === 'movie' ? <Film size={16} /> : <Tv size={16} />}
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium truncate">{item.title || item.name}</h4>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <span className="uppercase">{item.media_type === 'movie' ? 'Filme' : 'Série'}</span>
+                          {item.release_date || item.first_air_date ? (
+                            <span>• {(item.release_date || item.first_air_date).substring(0, 4)}</span>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-primary hover:text-primary hover:bg-primary/10"
+                        onClick={() => handleAddItem(item)}
+                      >
+                        <Plus className="w-5 h-5" />
+                      </Button>
+                    </div>
+                  ))
+                ) : searchQuery && !isSearchLoading ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Nenhum resultado encontrado.
+                  </div>
+                ) : null}
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
 
         {lists.length === 0 ? (
@@ -94,18 +209,30 @@ const CustomListsPage: React.FC = () => {
                       {list.items.length} {list.items.length === 1 ? 'item' : 'itens'}
                     </p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                    onClick={() => {
-                      if (confirm('Tem certeza que deseja excluir esta lista?')) {
-                        deleteList(list.id);
-                      }
-                    }}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-primary hover:text-primary hover:bg-primary/10"
+                      onClick={() => openSearchDialog(list.id)}
+                      title="Adicionar item"
+                    >
+                      <Plus className="w-5 h-5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => {
+                        if (confirm('Tem certeza que deseja excluir esta lista?')) {
+                          deleteList(list.id);
+                        }
+                      }}
+                      title="Excluir lista"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {list.items.length > 0 ? (
@@ -141,7 +268,7 @@ const CustomListsPage: React.FC = () => {
                     </div>
                   ) : (
                     <div className="text-center py-8 text-muted-foreground text-sm italic bg-black/20 rounded-lg">
-                      Lista vazia. Adicione filmes ou séries navegando pelo site!
+                      Lista vazia. Adicione filmes ou séries navegando pelo site ou clicando no botão + acima!
                     </div>
                   )}
                 </CardContent>

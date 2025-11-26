@@ -8,6 +8,8 @@ import {
   getTVShowsByGenre,
   getMoviesByDecade,
   getTVShowsByDecade,
+  buildApiUrl,
+  fetchWithQuota,
 } from '@/utils/tmdb';
 
 interface Trailer {
@@ -182,9 +184,10 @@ export const useTrailers = () => {
       categoryAttempt < maxCategoryAttempts;
       categoryAttempt++
     ) {
+      let selectedCategory;
       try {
         // Selecionar categoria aleatória
-        const selectedCategory = selectRandomCategory();
+        selectedCategory = selectRandomCategory();
         setCurrentCategory(selectedCategory.name);
 
         console.log(
@@ -221,13 +224,8 @@ export const useTrailers = () => {
             const endpoint = selectedCategory.type === 'tv' ? 'tv' : 'movie';
 
             // Buscar vídeos do item
-            const videosResponse = await fetch(
-              `https://api.themoviedb.org/3/${endpoint}/${
-                randomItem.id
-              }/videos?api_key=${localStorage.getItem(
-                'tmdb_api_key'
-              )}&language=pt-BR`
-            );
+            const url = buildApiUrl(`/${endpoint}/${randomItem.id}/videos`);
+            const videosResponse = await fetchWithQuota(url);
             const videosData = await videosResponse.json();
 
             if (videosData.results && videosData.results.length > 0) {

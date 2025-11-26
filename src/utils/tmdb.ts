@@ -35,6 +35,26 @@ export const buildApiUrl = (
   return url.toString();
 };
 
+// Helper para fazer fetch e capturar headers de quota
+export const fetchWithQuota = async (url: string): Promise<Response> => {
+  const response = await fetch(url);
+  
+  // Capturar headers de rate limit
+  const limit = response.headers.get('x-ratelimit-limit');
+  const remaining = response.headers.get('x-ratelimit-remaining');
+  
+  if (limit && remaining) {
+    localStorage.setItem('tmdb_rate_limit', limit);
+    localStorage.setItem('tmdb_rate_remaining', remaining);
+    localStorage.setItem('tmdb_rate_updated', new Date().toISOString());
+    
+    // Disparar evento para atualizar UI se necessário
+    window.dispatchEvent(new Event('tmdb-quota-updated'));
+  }
+  
+  return response;
+};
+
 // Types
 export interface TMDBMovie {
   id: number;
@@ -97,7 +117,7 @@ export const searchMulti = async (
       include_adult: 'false',
     });
 
-    const response = await fetch(url);
+    const response = await fetchWithQuota(url);
     if (!response.ok) {
       throw new Error(`TMDB API error: ${response.status}`);
     }
@@ -131,7 +151,7 @@ export const searchMovies = async (
       include_adult: 'false',
     });
 
-    const response = await fetch(url);
+    const response = await fetchWithQuota(url);
     if (!response.ok) {
       throw new Error(`TMDB API error: ${response.status}`);
     }
@@ -165,7 +185,7 @@ export const searchTVShows = async (
       include_adult: 'false',
     });
 
-    const response = await fetch(url);
+    const response = await fetchWithQuota(url);
     if (!response.ok) {
       throw new Error(`TMDB API error: ${response.status}`);
     }
@@ -189,7 +209,7 @@ export const searchPeople = async (
       include_adult: 'false',
     });
 
-    const response = await fetch(url);
+    const response = await fetchWithQuota(url);
     if (!response.ok) {
       throw new Error(`TMDB API error: ${response.status}`);
     }
@@ -208,7 +228,7 @@ export const getMovieDetails = async (id: number) => {
       append_to_response: 'credits,videos,recommendations,similar,keywords',
     });
 
-    const response = await fetch(url);
+    const response = await fetchWithQuota(url);
     if (!response.ok) {
       throw new Error(`TMDB API error: ${response.status}`);
     }
@@ -227,7 +247,7 @@ export const getTVShowDetails = async (id: number) => {
       append_to_response: 'credits,videos,recommendations',
     });
 
-    const response = await fetch(url);
+    const response = await fetchWithQuota(url);
     if (!response.ok) {
       throw new Error(`TMDB API error: ${response.status}`);
     }
@@ -246,7 +266,7 @@ export const getPersonDetails = async (id: number) => {
       append_to_response: 'movie_credits,tv_credits',
     });
 
-    const response = await fetch(url);
+    const response = await fetchWithQuota(url);
     if (!response.ok) {
       throw new Error(`TMDB API error: ${response.status}`);
     }
@@ -265,7 +285,7 @@ export const getTrendingMovies = async (
   try {
     const url = buildApiUrl(`/trending/movie/${timeWindow}`);
 
-    const response = await fetch(url);
+    const response = await fetchWithQuota(url);
     if (!response.ok) {
       throw new Error(`TMDB API error: ${response.status}`);
     }
@@ -291,7 +311,7 @@ export const getPopularMovies = async (page: number = 1) => {
       page: page.toString(),
     });
 
-    const response = await fetch(url);
+    const response = await fetchWithQuota(url);
     if (!response.ok) {
       throw new Error(`TMDB API error: ${response.status}`);
     }
@@ -317,7 +337,7 @@ export const getTopRatedMovies = async (page: number = 1) => {
       page: page.toString(),
     });
 
-    const response = await fetch(url);
+    const response = await fetchWithQuota(url);
     if (!response.ok) {
       throw new Error(`TMDB API error: ${response.status}`);
     }
@@ -355,7 +375,7 @@ export const getNowPlayingMovies = async (
       region: region, // Adiciona região para garantir filmes do Brasil
     });
 
-    const response = await fetch(url);
+    const response = await fetchWithQuota(url);
     if (!response.ok) {
       throw new Error(`TMDB API error: ${response.status}`);
     }
@@ -489,7 +509,7 @@ export const getPopularTVShows = async (page: number = 1) => {
       page: page.toString(),
     });
 
-    const response = await fetch(url);
+    const response = await fetchWithQuota(url);
     if (!response.ok) {
       throw new Error(`TMDB API error: ${response.status}`);
     }
@@ -508,7 +528,7 @@ export const getPopularPeople = async (page: number = 1) => {
       page: page.toString(),
     });
 
-    const response = await fetch(url);
+    const response = await fetchWithQuota(url);
     if (!response.ok) {
       throw new Error(`TMDB API error: ${response.status}`);
     }
@@ -530,7 +550,7 @@ export const getMovieImages = async (id: number) => {
     const url = buildApiUrl(`/movie/${id}/images`, {
       include_image_language: 'en,null,pt',
     });
-    const response = await fetch(url);
+    const response = await fetchWithQuota(url);
     if (!response.ok) {
       throw new Error(`TMDB API error: ${response.status}`);
     }
@@ -551,7 +571,7 @@ export const getTVShowImages = async (id: number) => {
     const url = buildApiUrl(`/tv/${id}/images`, {
       include_image_language: 'en,null,pt',
     });
-    const response = await fetch(url);
+    const response = await fetchWithQuota(url);
     if (!response.ok) {
       throw new Error(`TMDB API error: ${response.status}`);
     }
@@ -570,7 +590,7 @@ export const getTVShowImages = async (id: number) => {
 export const getPersonImages = async (id: number) => {
   try {
     const url = buildApiUrl(`/person/${id}/images`);
-    const response = await fetch(url);
+    const response = await fetchWithQuota(url);
     if (!response.ok) {
       throw new Error(`TMDB API error: ${response.status}`);
     }
@@ -590,7 +610,7 @@ export const getPersonImages = async (id: number) => {
 export const getMovieWatchProviders = async (id: number, region = 'BR') => {
   try {
     const url = buildApiUrl(`/movie/${id}/watch/providers`);
-    const response = await fetch(url);
+    const response = await fetchWithQuota(url);
     if (!response.ok) return { flatrate: [], rent: [], buy: [] };
     const data = await response.json();
     return data.results?.[region] || { flatrate: [], rent: [], buy: [] };
@@ -607,7 +627,7 @@ export const getMovieWatchProviders = async (id: number, region = 'BR') => {
  */
 export const getWatchProviders = async (region = 'BR') => {
   const url = buildApiUrl('/watch/providers/movie', { watch_region: region });
-  const response = await fetch(url);
+  const response = await fetchWithQuota(url);
   if (!response.ok) throw new Error('Erro ao buscar provedores');
   const data = await response.json();
   return data.results || [];
@@ -622,7 +642,7 @@ export const getWatchProviders = async (region = 'BR') => {
 export const getTVWatchProviders = async (id: number, region = 'BR') => {
   try {
     const url = buildApiUrl(`/tv/${id}/watch/providers`);
-    const response = await fetch(url);
+    const response = await fetchWithQuota(url);
     if (!response.ok) return { flatrate: [], rent: [], buy: [] };
     const data = await response.json();
     return data.results?.[region] || { flatrate: [], rent: [], buy: [] };
@@ -638,7 +658,7 @@ export const getTVWatchProviders = async (id: number, region = 'BR') => {
  */
 export const getLanguages = async () => {
   const url = buildApiUrl('/configuration/languages', {});
-  const response = await fetch(url);
+  const response = await fetchWithQuota(url);
   if (!response.ok) throw new Error('Erro ao buscar idiomas');
   const data = await response.json();
   // Retorna apenas idiomas mais comuns, pode ser filtrado se necessário
@@ -687,7 +707,7 @@ const defaultGenres = [
 export const getMovieGenres = async (): Promise<TMDBGenre[]> => {
   try {
     const url = buildApiUrl('/genre/movie/list');
-    const response = await fetch(url);
+    const response = await fetchWithQuota(url);
     if (!response.ok) throw new Error('Erro ao buscar gêneros de filmes');
     const data: TMDBGenreResponse = await response.json();
     return data.genres || defaultGenres;
@@ -704,7 +724,7 @@ export const getMovieGenres = async (): Promise<TMDBGenre[]> => {
 export const getTVGenres = async (): Promise<TMDBGenre[]> => {
   try {
     const url = buildApiUrl('/genre/tv/list');
-    const response = await fetch(url);
+    const response = await fetchWithQuota(url);
     if (!response.ok) throw new Error('Erro ao buscar gêneros de séries');
     const data: TMDBGenreResponse = await response.json();
     return data.genres || defaultGenres;
@@ -756,7 +776,7 @@ export const getMoviesByGenre = async (genreId: number, page: number = 1) => {
       include_adult: 'false',
     });
 
-    const response = await fetch(url);
+    const response = await fetchWithQuota(url);
     if (!response.ok) {
       throw new Error(`TMDB API error: ${response.status}`);
     }
@@ -790,7 +810,7 @@ export const getTVShowsByGenre = async (genreId: number, page: number = 1) => {
       include_adult: 'false',
     });
 
-    const response = await fetch(url);
+    const response = await fetchWithQuota(url);
     if (!response.ok) {
       throw new Error(`TMDB API error: ${response.status}`);
     }

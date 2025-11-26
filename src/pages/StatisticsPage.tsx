@@ -2,6 +2,7 @@ import React from 'react';
 import { Layout } from '@/components/Layout';
 import { useWatchedContext } from '@/context/WatchedContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 import {
   BarChart,
   Bar,
@@ -14,16 +15,41 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { Film, Tv, Clock, Star } from 'lucide-react';
+import { Film, Tv, Clock, Star, Activity } from 'lucide-react';
 import { TMDBGenre, getAllGenres } from '@/utils/tmdb';
 
 const StatisticsPage: React.FC = () => {
   const { getStats, watched } = useWatchedContext();
   const stats = getStats();
   const [genres, setGenres] = React.useState<TMDBGenre[]>([]);
+  const [apiQuota, setApiQuota] = React.useState<{
+    limit: number;
+    remaining: number;
+    updated: string | null;
+  }>({ limit: 0, remaining: 0, updated: null });
 
   React.useEffect(() => {
     getAllGenres().then(setGenres);
+
+    // Initial load of quota
+    const loadQuota = () => {
+      const limit = parseInt(localStorage.getItem('tmdb_rate_limit') || '0');
+      const remaining = parseInt(
+        localStorage.getItem('tmdb_rate_remaining') || '0'
+      );
+      const updated = localStorage.getItem('tmdb_rate_updated');
+      setApiQuota({ limit, remaining, updated });
+    };
+
+    loadQuota();
+
+    // Listen for updates
+    const handleQuotaUpdate = () => loadQuota();
+    window.addEventListener('tmdb-quota-updated', handleQuotaUpdate);
+
+    return () => {
+      window.removeEventListener('tmdb-quota-updated', handleQuotaUpdate);
+    };
   }, []);
 
   // Prepare data for Genre Pie Chart
@@ -70,6 +96,12 @@ const StatisticsPage: React.FC = () => {
   }, [watched]);
 
   const COLORS = ['#E50914', '#FF9900', '#0063E5', '#28B463', '#8E44AD'];
+
+  // Calculate percentage used
+  const quotaPercentage =
+    apiQuota.limit > 0
+      ? ((apiQuota.limit - apiQuota.remaining) / apiQuota.limit) * 100
+      : 0;
 
   return (
     <Layout>
@@ -146,6 +178,38 @@ const StatisticsPage: React.FC = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* API Quota Card */}
+        <Card className="bg-card border-primary/20">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Cota da API TMDB
+            </CardTitle>
+            <Activity className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            {apiQuota.limit > 0 ? (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Usado</span>
+                  <span className="font-medium">
+                    {apiQuota.limit - apiQuota.remaining} / {apiQuota.limit}
+                  </span>
+                </div>
+                <Progress value={quotaPercentage} className="h-2" />
+                <p className="text-xs text-muted-foreground text-right">
+                  Restam {apiQuota.remaining} requisições
+                </p>
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground text-center py-2">
+                Nenhum dado disponível.
+                <br />
+                Navegue pelo app para carregar.
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
