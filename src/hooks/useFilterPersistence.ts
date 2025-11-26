@@ -10,6 +10,7 @@ interface FiltersState {
   selectedYear: string;
   selectedLanguage: string;
   selectedStreamings: number[];
+  selectedStudio: string;
   searchTerm: string;
   scrollPosition: number;
 }
@@ -54,6 +55,7 @@ export const useFilterPersistence = () => {
   const [selectedYear, setSelectedYear] = useState('');
   const [selectedLanguage, setSelectedLanguage] = useState('');
   const [selectedStreamings, setSelectedStreamings] = useState<number[]>([]);
+  const [selectedStudio, setSelectedStudio] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [isRestored, setIsRestored] = useState(false);
 
@@ -68,6 +70,7 @@ export const useFilterPersistence = () => {
       setSelectedYear(savedFilters.selectedYear || '');
       setSelectedLanguage(savedFilters.selectedLanguage || '');
       setSelectedStreamings(savedFilters.selectedStreamings || []);
+      setSelectedStudio(savedFilters.selectedStudio || '');
       setSearchTerm(savedFilters.searchTerm || '');
 
       // Restaurar scroll position após um pequeno delay
@@ -95,6 +98,7 @@ export const useFilterPersistence = () => {
       selectedYear,
       selectedLanguage,
       selectedStreamings,
+      selectedStudio,
       searchTerm,
       scrollPosition: window.scrollY || 0,
     };
@@ -108,6 +112,7 @@ export const useFilterPersistence = () => {
     selectedYear,
     selectedLanguage,
     selectedStreamings,
+    selectedStudio,
     searchTerm,
     isRestored,
   ]);
@@ -124,6 +129,7 @@ export const useFilterPersistence = () => {
       selectedYear,
       selectedLanguage,
       selectedStreamings,
+      selectedStudio,
       searchTerm,
       scrollPosition: window.scrollY || 0,
     };
@@ -137,6 +143,7 @@ export const useFilterPersistence = () => {
     selectedYear,
     selectedLanguage,
     selectedStreamings,
+    selectedStudio,
     searchTerm,
     isRestored,
   ]);
@@ -150,6 +157,7 @@ export const useFilterPersistence = () => {
     setSelectedYear('');
     setSelectedLanguage('');
     setSelectedStreamings([]);
+    setSelectedStudio('');
     setSearchTerm('');
     clearFiltersFromStorage();
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -164,6 +172,7 @@ export const useFilterPersistence = () => {
     selectedYear,
     selectedLanguage,
     selectedStreamings,
+    selectedStudio,
     searchTerm,
 
     // Setters
@@ -174,6 +183,7 @@ export const useFilterPersistence = () => {
     setSelectedYear,
     setSelectedLanguage,
     setSelectedStreamings,
+    setSelectedStudio,
     setSearchTerm,
 
     // Utilitários

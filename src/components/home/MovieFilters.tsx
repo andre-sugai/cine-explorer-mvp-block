@@ -16,6 +16,9 @@ interface MovieFiltersProps {
   providers: Provider[];
   selectedProvider: string;
   onProviderChange: (id: string) => void;
+  studios: { value: string; label: string }[];
+  selectedStudio: string;
+  onStudioChange: (id: string) => void;
   genres: Genre[];
   selectedGenre: string;
   onGenreChange: (id: string) => void;
@@ -34,6 +37,9 @@ export const MovieFilters: React.FC<MovieFiltersProps> = ({
   providers,
   selectedProvider,
   onProviderChange,
+  studios,
+  selectedStudio,
+  onStudioChange,
   genres,
   selectedGenre,
   onGenreChange,
@@ -65,6 +71,24 @@ export const MovieFilters: React.FC<MovieFiltersProps> = ({
               value={provider.provider_id}
             >
               {provider.provider_name}
+            </option>
+          ))}
+        </select>
+      </div>
+      
+      {/* Dropdown de Estúdios */}
+      <div className="min-w-[200px]">
+        <label className="block text-sm mb-1 font-medium text-primary">
+          Estúdios
+        </label>
+        <select
+          value={selectedStudio}
+          onChange={(e) => onStudioChange(e.target.value)}
+          className="w-full rounded px-3 py-2 bg-secondary/50 border border-primary/20"
+        >
+          {studios.map((studio) => (
+            <option key={studio.value} value={studio.value}>
+              {studio.label}
             </option>
           ))}
         </select>

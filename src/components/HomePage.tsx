@@ -28,12 +28,14 @@ export const HomePage: React.FC = () => {
     selectedOrder,
     selectedYear,
     selectedLanguage,
+    selectedStudio,
     setActiveCategory,
     setSelectedProvider,
     setSelectedGenre,
     setSelectedOrder,
     setSelectedYear,
     setSelectedLanguage,
+    setSelectedStudio,
     saveScrollPosition,
     isRestored,
   } = useFilterPersistence();
@@ -63,6 +65,26 @@ export const HomePage: React.FC = () => {
     { value: '1950', label: '1950s' },
   ]);
   const [languageOptions, setLanguageOptions] = useState([]);
+  const [studioOptions] = useState([
+    { value: '', label: 'Todos os estúdios' },
+    { value: '174', label: 'Warner Bros.' },
+    { value: '33', label: 'Universal Pictures' },
+    { value: '4', label: 'Paramount Pictures' },
+    { value: '25', label: '20th Century Studios' },
+    { value: '5', label: 'Columbia Pictures' },
+    { value: '2', label: 'Walt Disney Pictures' },
+    { value: '420', label: 'Marvel Studios' },
+    { value: '3', label: 'Pixar' },
+    { value: '213', label: 'Netflix' },
+    { value: '521', label: 'DreamWorks' },
+    { value: '1632', label: 'Lionsgate' },
+    { value: '34', label: 'Sony Pictures' },
+    { value: '12', label: 'New Line Cinema' },
+    { value: '21', label: 'MGM' },
+    { value: '41077', label: 'A24' },
+    { value: '3172', label: 'Blumhouse Productions' },
+    { value: '923', label: 'Legendary Pictures' },
+  ]);
 
   // Lista de diretores com americanos primeiro, depois brasileiros, latino-americanos, europeus, asiáticos, africanos, australianos e mulheres diretoras
   const famousDirectors = [
@@ -488,6 +510,9 @@ export const HomePage: React.FC = () => {
         if (selectedLanguage && category !== 'cinema') {
           params.with_original_language = selectedLanguage;
         }
+        if (selectedStudio && category !== 'cinema') {
+          params.with_companies = selectedStudio;
+        }
 
         // Para a categoria 'cinema', usamos a função específica que filtra apenas filmes em cinemas
         if (category === 'cinema') {
@@ -506,8 +531,15 @@ export const HomePage: React.FC = () => {
             localStorage.getItem('tmdb_api_key') || ''
           );
           apiUrl.searchParams.append('language', 'pt-BR');
+          
+          // Debug: log da URL completa
+          console.log('🔍 API URL:', apiUrl.toString());
+          console.log('📊 Params:', params);
+          
           const res = await fetch(apiUrl.toString());
           response = await res.json();
+          
+          console.log('📊 Resultados encontrados:', response.results?.length || 0);
         }
       } else {
         // Mantém lógica antiga para atores/diretores
@@ -743,6 +775,7 @@ export const HomePage: React.FC = () => {
     selectedOrder,
     selectedYear,
     selectedLanguage,
+    selectedStudio,
     isRestored,
   ]);
 
@@ -776,6 +809,9 @@ export const HomePage: React.FC = () => {
           providers={providerOptions}
           selectedProvider={selectedProvider}
           onProviderChange={setSelectedProvider}
+          studios={studioOptions}
+          selectedStudio={selectedStudio}
+          onStudioChange={setSelectedStudio}
           genres={genreOptions}
           selectedGenre={selectedGenre}
           onGenreChange={setSelectedGenre}
