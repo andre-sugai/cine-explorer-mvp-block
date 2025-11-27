@@ -65,6 +65,13 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
   const loadFavoritesFromSupabase = async () => {
     if (!user) return;
 
+    // Verificar se a sincronização está ativada
+    const isSyncEnabled = localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
+    if (!isSyncEnabled) {
+      loadFavoritesFromLocalStorage();
+      return;
+    }
+
     setIsLoading(true);
     try {
       // Carregar dados do localStorage primeiro (backup local)
@@ -181,7 +188,9 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
     // Atualizar estado local otimisticamente
     setFavorites((prev) => [...prev, favoriteItem]);
 
-    if (isAuthenticated && user) {
+    const isSyncEnabled = localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
+
+    if (isAuthenticated && user && isSyncEnabled) {
       // Tentar adicionar ao Supabase
       try {
         const { error } = await supabase.from('user_favorites').insert({
@@ -240,7 +249,9 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
       prev.filter((fav) => !(fav.id === id && fav.type === type))
     );
 
-    if (isAuthenticated && user) {
+    const isSyncEnabled = localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
+
+    if (isAuthenticated && user && isSyncEnabled) {
       // Tentar remover do Supabase
       try {
         const { error } = await supabase
@@ -293,7 +304,9 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
     // Limpar estado local otimisticamente
     setFavorites([]);
 
-    if (isAuthenticated && user) {
+    const isSyncEnabled = localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
+
+    if (isAuthenticated && user && isSyncEnabled) {
       // Tentar limpar do Supabase
       try {
         const { error } = await supabase

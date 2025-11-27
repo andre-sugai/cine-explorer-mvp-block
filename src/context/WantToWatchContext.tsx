@@ -64,6 +64,13 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
   const loadWantToWatchFromSupabase = async () => {
     if (!user) return;
 
+    // Verificar se a sincronização está ativada
+    const isSyncEnabled = localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
+    if (!isSyncEnabled) {
+      loadWantToWatchFromLocalStorage();
+      return;
+    }
+
     try {
       // Carregar dados do localStorage primeiro (backup local)
       const localData = localStorage.getItem(WANT_TO_WATCH_KEY);
@@ -180,7 +187,9 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
       added_date: new Date().toISOString(),
     };
 
-    if (isAuthenticated && user) {
+    const isSyncEnabled = localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
+
+    if (isAuthenticated && user && isSyncEnabled) {
       // Add to Supabase
       try {
         const { error } = await supabase.from('user_watchlist').insert({
@@ -237,7 +246,9 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
       return updatedList;
     });
 
-    if (isAuthenticated && user) {
+    const isSyncEnabled = localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
+
+    if (isAuthenticated && user && isSyncEnabled) {
       // Remove from Supabase
       try {
         let query = supabase

@@ -97,6 +97,13 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
   const loadWatchedFromSupabase = async () => {
     if (!user) return;
 
+    // Verificar se a sincronização está ativada
+    const isSyncEnabled = localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
+    if (!isSyncEnabled) {
+      loadWatchedFromLocalStorage();
+      return;
+    }
+
     try {
       // Carregar dados do localStorage primeiro (backup local)
       const localData = localStorage.getItem('cine-explorer-watched');
@@ -227,7 +234,9 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
       year: releaseYear,
     };
 
-    if (isAuthenticated && user) {
+    const isSyncEnabled = localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
+
+    if (isAuthenticated && user && isSyncEnabled) {
       // Add to Supabase
       try {
         const { error } = await supabase.from('user_watched').insert({
@@ -292,7 +301,9 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
       return newWatched;
     });
 
-    if (isAuthenticated && user) {
+    const isSyncEnabled = localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
+
+    if (isAuthenticated && user && isSyncEnabled) {
       // Remove from Supabase
       try {
         const { error } = await supabase
@@ -341,7 +352,9 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
     setWatched([]);
     localStorage.removeItem('cine-explorer-watched');
 
-    if (isAuthenticated && user) {
+    const isSyncEnabled = localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
+
+    if (isAuthenticated && user && isSyncEnabled) {
       // Clear from Supabase
       try {
         const { error } = await supabase

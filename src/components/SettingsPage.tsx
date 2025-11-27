@@ -796,6 +796,58 @@ export const SettingsPage: React.FC = () => {
                 </div>
               </div>
 
+              {/* Sincronização com a Nuvem */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-primary">
+                  Sincronização
+                </h3>
+                <div className="p-4 bg-secondary/30 rounded-lg border border-primary/20">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Globe className="w-4 h-4 text-primary" />
+                        <span className="font-medium text-primary">
+                          Sincronizar com a nuvem
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Mantém suas listas salvas na nuvem para acessar em outros dispositivos.
+                        Desative para manter os dados apenas neste dispositivo.
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="cloud-sync-toggle"
+                        className="rounded border-primary/20"
+                        defaultChecked={
+                          localStorage.getItem('cine-explorer-sync-enabled') !== 'false'
+                        }
+                        onChange={(e) => {
+                          localStorage.setItem(
+                            'cine-explorer-sync-enabled',
+                            e.target.checked.toString()
+                          );
+                          toast({
+                            title: e.target.checked
+                              ? 'Sincronização ativada'
+                              : 'Sincronização desativada',
+                            description: e.target.checked
+                              ? 'Suas listas serão sincronizadas com a nuvem.'
+                              : 'Suas listas serão mantidas apenas localmente.',
+                          });
+                          // Recarregar para aplicar mudanças nos contextos
+                          setTimeout(() => window.location.reload(), 1000);
+                        }}
+                      />
+                      <Label htmlFor="cloud-sync-toggle" className="text-sm">
+                        Ativar
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Limpeza de Dados */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-primary">
