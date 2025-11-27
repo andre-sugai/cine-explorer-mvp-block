@@ -1303,3 +1303,44 @@ export const getSimilarMovies = async (id: number) => {
     };
   }
 };
+
+/**
+ * Busca filmes lançados em um intervalo de datas específico.
+ * @param startDate Data inicial (YYYY-MM-DD)
+ * @param endDate Data final (YYYY-MM-DD)
+ * @param page Página de resultados
+ * @returns Lista de filmes no intervalo
+ */
+export const getMoviesByDateRange = async (
+  startDate: string,
+  endDate: string,
+  page: number = 1
+) => {
+  try {
+    const url = buildApiUrl('/discover/movie', {
+      'primary_release_date.gte': startDate,
+      'primary_release_date.lte': endDate,
+      sort_by: 'popularity.desc',
+      page: page.toString(),
+      include_adult: 'false',
+      include_video: 'true',
+    });
+
+    const response = await fetchWithQuota(url);
+    if (!response.ok) {
+      throw new Error(`TMDB API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    // Aplicar filtro de conteúdo adulto
+    if (data.results) {
+      data.results = filterAdultContent(data.results);
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error getting movies by date range:', error);
+    throw error;
+  }
+};

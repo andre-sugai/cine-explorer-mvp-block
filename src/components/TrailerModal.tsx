@@ -25,6 +25,7 @@ import { TrailerActionButtons } from '@/components/TrailerActionButtons';
 interface TrailerModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  filters?: { startDate: string; endDate: string; label: string };
 }
 
 declare global {
@@ -36,6 +37,7 @@ declare global {
 export const TrailerModal: React.FC<TrailerModalProps> = ({
   open,
   onOpenChange,
+  filters,
 }) => {
   const navigate = useNavigate();
   const {
@@ -121,7 +123,7 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
     isLoadingRef.current = true;
     
     try {
-      const trailer = await getRandomTrailer();
+      const trailer = await getRandomTrailer(filters);
 
       if (trailer) {
         isLoadingRef.current = false;
@@ -139,7 +141,7 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
       isLoadingRef.current = false;
       toast.error('Erro ao carregar trailer');
     }
-  }, [getRandomTrailer]);
+  }, [getRandomTrailer, filters]);
 
   const handleNextTrailer = useCallback(async () => {
     // Prevenir múltiplas chamadas simultâneas
@@ -152,7 +154,7 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
     setIsTransitioning(true);
 
     try {
-      const trailer = await getRandomTrailer();
+      const trailer = await getRandomTrailer(filters);
 
       if (trailer) {
         setLoadingNext(false);
@@ -175,7 +177,7 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
       isLoadingRef.current = false;
       toast.error('Erro ao carregar próximo trailer');
     }
-  }, [getRandomTrailer]);
+  }, [getRandomTrailer, filters]);
 
   // Carregar YouTube Player API (otimizado)
   const { isReady: isYTReady } = useYouTubePlayer();

@@ -12,6 +12,7 @@ import {
   getTVShowsByDecade,
   buildApiUrl,
   fetchWithQuota,
+  getMoviesByDateRange,
 } from '@/utils/tmdb';
 
 interface Trailer {
@@ -200,29 +201,40 @@ export const useTrailers = () => {
   const [recentTrailers, setRecentTrailers] = useState<number[]>([]);
   const [currentCategory, setCurrentCategory] = useState<string>('');
 
-  const getRandomTrailer = useCallback(async (): Promise<Trailer | null> => {
-    console.log('🎬 Iniciando busca de trailer aleatório...');
+  const getRandomTrailer = useCallback(async (filters?: { startDate: string; endDate: string; label: string }): Promise<Trailer | null> => {
+    console.log('🎬 Iniciando busca de trailer aleatório...', filters ? `Com filtros: ${filters.label}` : 'Sem filtros');
     setIsLoading(true);
 
     const maxAttempts = 5; // Aumentado para garantir sucesso
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       try {
-        // 1. Decidir aleatoriamente entre Filme (50%) e Série (50%)
-        const isMovie = Math.random() < 0.5;
-        const categoryList = isMovie ? movieCategories : tvCategories;
-        
-        // 2. Selecionar uma categoria aleatória da lista escolhida
-        const selectedCategory = categoryList[Math.floor(Math.random() * categoryList.length)];
-        
-        setCurrentCategory(selectedCategory.name);
-        console.log(`🎬 Tentativa ${attempt + 1}: Buscando em ${selectedCategory.name} (${selectedCategory.type})`);
+        let response;
+        let selectedCategoryType: 'movie' | 'tv' = 'movie';
 
-        // 3. Buscar resultados da categoria
-        const response = await selectedCategory.function();
+        if (filters) {
+          // Se tiver filtros, usar busca por data
+          setCurrentCategory(filters.label);
+          response = await getMoviesByDateRange(filters.startDate, filters.endDate, Math.floor(Math.random() * 3) + 1);
+          selectedCategoryType = 'movie';
+        } else {
+          // 1. Decidir aleatoriamente entre Filme (50%) e Série (50%)
+          const isMovie = Math.random() < 0.5;
+          const categoryList = isMovie ? movieCategories : tvCategories;
+          selectedCategoryType = isMovie ? 'movie' : 'tv';
+          
+          // 2. Selecionar uma categoria aleatória da lista escolhida
+          const selectedCategory = categoryList[Math.floor(Math.random() * categoryList.length)];
+          
+          setCurrentCategory(selectedCategory.name);
+          console.log(`🎬 Tentativa ${attempt + 1}: Buscando em ${selectedCategory.name} (${selectedCategory.type})`);
+
+          // 3. Buscar resultados da categoria
+          response = await selectedCategory.function();
+        }
 
         if (!response || !response.results || response.results.length === 0) {
-          console.log(`❌ Nenhum resultado na categoria: ${selectedCategory.name}`);
+          console.log(`❌ Nenhum resultado encontrado`);
           continue;
         }
 
@@ -240,7 +252,7 @@ export const useTrailers = () => {
         // 5. Tentar encontrar um trailer válido nos itens
         for (const item of shuffledItems.slice(0, 5)) { // Tentar até 5 itens da lista
           try {
-            const endpoint = selectedCategory.type === 'tv' ? 'tv' : 'movie';
+            const endpoint = selectedCategoryType === 'tv' ? 'tv' : 'movie';
             const url = buildApiUrl(`/${endpoint}/${item.id}/videos`);
             
             const videosResponse = await fetchWithQuota(url);
@@ -265,7 +277,7 @@ export const useTrailers = () => {
                 });
 
                 // Extrair dados
-                const releaseDate = selectedCategory.type === 'tv' 
+                const releaseDate = selectedCategoryType === 'tv' 
                   ? item.first_air_date 
                   : item.release_date;
 
@@ -273,7 +285,7 @@ export const useTrailers = () => {
                   ? new Date(releaseDate).getFullYear().toString()
                   : undefined;
 
-                const title = selectedCategory.type === 'tv'
+                const title = selectedCategoryType === 'tv'
                   ? item.name || item.original_name
                   : item.title || item.original_title;
 
@@ -286,7 +298,7 @@ export const useTrailers = () => {
                   movieTitle: title,
                   movieId: item.id,
                   releaseYear,
-                  contentType: selectedCategory.type,
+                  contentType: selectedCategoryType,
                   poster_path: item.poster_path,
                   release_date: item.release_date,
                   first_air_date: item.first_air_date,
