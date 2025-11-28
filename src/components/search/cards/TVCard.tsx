@@ -7,6 +7,7 @@ import { buildImageUrl, TMDBTVShow } from '@/utils/tmdb';
 import { MovieCardActions } from '@/components/MovieCardActions';
 import { BlacklistButton } from '@/components/BlacklistButton';
 import { AddToListButton } from '@/components/AddToListButton';
+import { useStreamingProvider } from '@/hooks/useStreamingProvider';
 
 interface TVCardProps {
   show: TMDBTVShow;
@@ -14,6 +15,7 @@ interface TVCardProps {
 
 export const TVCard: React.FC<TVCardProps> = ({ show }) => {
   const navigate = useNavigate();
+  const streamingProvider = useStreamingProvider(show.id, 'tv');
 
   return (
     <Card
@@ -57,14 +59,27 @@ export const TVCard: React.FC<TVCardProps> = ({ show }) => {
       </div>
 
       <CardContent className="p-3">
-        <h3 className="font-bold text-foreground line-clamp-2 mb-1">
-          {show.name}
-        </h3>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Calendar className="w-3 h-3" />
-          {show.first_air_date
-            ? new Date(show.first_air_date).getFullYear()
-            : 'N/A'}
+        <div className="flex justify-between items-start">
+          <div className="flex-1 min-w-0 pr-2">
+            <h3 className="font-bold text-foreground line-clamp-2 mb-1">
+              {show.name}
+            </h3>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Calendar className="w-3 h-3" />
+              {show.first_air_date
+                ? new Date(show.first_air_date).getFullYear()
+                : 'N/A'}
+            </div>
+          </div>
+          {streamingProvider.logoPath && (
+            <div className="flex-shrink-0 mb-2" title={`Disponível em ${streamingProvider.providerName}`}>
+              <img
+                src={streamingProvider.logoPath}
+                alt={streamingProvider.providerName || 'Streaming Service'}
+                className="w-8 h-8 rounded-md object-cover shadow-sm"
+              />
+            </div>
+          )}
         </div>
       </CardContent>
       {/* Botões de ação */}
