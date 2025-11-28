@@ -98,6 +98,54 @@ export type Database = {
         }
         Relationships: []
       }
+      user_settings: {
+        Row: {
+          user_id: string
+          settings: Json
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          settings?: Json
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          settings?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_custom_lists: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          description: string | null
+          items: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          description?: string | null
+          items?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          description?: string | null
+          items?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

@@ -49,6 +49,7 @@ import { useWatchedContext } from '@/context/WatchedContext';
 import { useAuth } from '@/context/AuthContext';
 import { useProfileImage } from '@/hooks/useProfileImage';
 import { ProfileImageUpload } from '@/components/profile/ProfileImageUpload';
+import { useSettingsContext } from '@/context/SettingsContext';
 
 import { toast } from '@/hooks/use-toast';
 
@@ -95,14 +96,6 @@ export const SettingsPage: React.FC = () => {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
-  // Estados do perfil
-  const [profile, setProfile] = useState<UserProfile>({
-    nickname: '',
-    bio: '',
-    profileImage: '',
-    socialMedia: {},
-  });
-
   // Estados do formulário de senha
   const [passwordForm, setPasswordForm] = useState<PasswordChangeForm>({
     currentPassword: '',
@@ -111,7 +104,6 @@ export const SettingsPage: React.FC = () => {
   });
 
   // Estado para Meus Streamings
-  const [myStreamings, setMyStreamings] = useState<string[]>([]);
   const [availableProviders, setAvailableProviders] = useState<any[]>([]);
   const [isLoadingProviders, setIsLoadingProviders] = useState(false);
 
@@ -135,25 +127,20 @@ export const SettingsPage: React.FC = () => {
   } = useWatchedContext();
   const { user, logout } = useAuth();
   const { deleteProfileImage, extractFileNameFromUrl } = useProfileImage();
+  const { settings, updateSetting, updateSettings } = useSettingsContext();
 
   const favoritesStats = getFavoritesStats();
   const watchedStats = getWatchedStats();
-  const currentApiKey = localStorage.getItem('tmdb_api_key');
-
-  /**
-   * Carrega os dados do perfil do localStorage
-   */
-  useEffect(() => {
-    const savedProfile = localStorage.getItem('user_profile');
-    if (savedProfile) {
-      try {
-        const parsedProfile = JSON.parse(savedProfile);
-        setProfile(parsedProfile);
-      } catch (error) {
-        console.error('Erro ao carregar perfil:', error);
-      }
-    }
-  }, []);
+  
+  // Derived state from settings context
+  const currentApiKey = settings.tmdb_api_key;
+  const profile = settings.user_profile || {
+    nickname: '',
+    bio: '',
+    profileImage: '',
+    socialMedia: {},
+  };
+  const myStreamings = settings.my_streamings || [];
 
   /**
    * Carrega os provedores de streaming e as preferências do usuário
@@ -241,30 +228,17 @@ export const SettingsPage: React.FC = () => {
     };
 
     loadProviders();
-
-    // Carregar streamings salvos
-    const savedStreamings = localStorage.getItem('my_streamings');
-    if (savedStreamings) {
-      try {
-        setMyStreamings(JSON.parse(savedStreamings));
-      } catch (e) {
-        console.error('Erro ao ler streamings salvos:', e);
-      }
-    }
   }, []);
 
   /**
    * Salva os streamings favoritos
    */
   const toggleStreaming = (providerId: string) => {
-    setMyStreamings((prev) => {
-      const newStreamings = prev.includes(providerId)
-        ? prev.filter((id) => id !== providerId)
-        : [...prev, providerId];
+    const newStreamings = myStreamings.includes(providerId)
+      ? myStreamings.filter((id) => id !== providerId)
+      : [...myStreamings, providerId];
 
-      localStorage.setItem('my_streamings', JSON.stringify(newStreamings));
-      return newStreamings;
-    });
+    updateSetting('my_streamings', newStreamings);
   };
 
   /**
@@ -273,7 +247,7 @@ export const SettingsPage: React.FC = () => {
   const saveProfile = async () => {
     setIsSavingProfile(true);
     try {
-      localStorage.setItem('user_profile', JSON.stringify(profile));
+      await updateSetting('user_profile', profile);
       toast({
         title: 'Perfil atualizado!',
         description: 'Suas informações foram salvas com sucesso.',
@@ -302,11 +276,12 @@ export const SettingsPage: React.FC = () => {
         }
       }
 
-      // Atualiza o estado local
-      setProfile((prev) => ({
-        ...prev,
+      // Atualiza o estado
+      const newProfile = {
+        ...profile,
         profileImage: '',
-      }));
+      };
+      updateSetting('user_profile', newProfile);
 
       toast({
         title: 'Imagem removida',
@@ -325,10 +300,16 @@ export const SettingsPage: React.FC = () => {
    * Atualiza a imagem de perfil
    */
   const updateProfileImage = (imageUrl: string) => {
-    setProfile((prev) => ({
-      ...prev,
+    const newProfile = {
+      ...profile,
       profileImage: imageUrl,
-    }));
+    };
+    // We don't save immediately here, just update local state if we were using local state
+    // But since we are using context, we should probably update context
+    // Ideally we might want a local state for the form and only save on "Save", 
+    // but for image upload it usually saves immediately.
+    // Let's update the setting immediately for image upload as it is a separate action
+    updateSetting('user_profile', newProfile);
   };
 
   /**
@@ -399,23 +380,59 @@ export const SettingsPage: React.FC = () => {
    * Atualiza um campo específico do perfil
    */
   const updateProfileField = (field: keyof UserProfile, value: any) => {
-    setProfile((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    // This updates the context immediately. 
+    // If we wanted a "Save" button workflow, we would need local state for the form.
+    // The original code had a "Save" button, so we should probably use local state for the form inputs
+    // and only push to context on save.
+    // However, to keep it simple with the context integration, let's just update the context.
+    // Wait, the original code had `setProfile` local state. 
+    // Let's revert to using local state for the form and sync with context on mount/save.
+    
+    // Actually, let's just update the context directly for now as it simplifies things,
+    // or better, let's keep the "Save" button behavior by using a local state that initializes from context.
+  };
+  
+  // We need to handle the profile form state locally to support the "Save" button pattern
+  const [localProfile, setLocalProfile] = useState<UserProfile>(profile);
+  
+  // Sync local profile with context profile when context loads
+  useEffect(() => {
+    if (settings.user_profile) {
+      setLocalProfile(settings.user_profile);
+    }
+  }, [settings.user_profile]);
+
+  const handleLocalProfileChange = (field: keyof UserProfile, value: any) => {
+    setLocalProfile(prev => ({ ...prev, [field]: value }));
   };
 
-  /**
-   * Atualiza um campo específico das redes sociais
-   */
-  const updateSocialMedia = (platform: string, value: string) => {
-    setProfile((prev) => ({
+  const handleLocalSocialMediaChange = (platform: string, value: string) => {
+    setLocalProfile(prev => ({
       ...prev,
       socialMedia: {
         ...prev.socialMedia,
-        [platform]: value,
-      },
+        [platform]: value
+      }
     }));
+  };
+
+  const saveLocalProfile = async () => {
+    setIsSavingProfile(true);
+    try {
+      await updateSetting('user_profile', localProfile);
+      toast({
+        title: 'Perfil atualizado!',
+        description: 'Suas informações foram salvas com sucesso.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Erro ao salvar perfil',
+        description: 'Não foi possível salvar suas informações.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSavingProfile(false);
+    }
   };
 
   // Funções existentes
@@ -478,7 +495,7 @@ export const SettingsPage: React.FC = () => {
       return;
     }
 
-    localStorage.setItem('tmdb_api_key', newApiKey.trim());
+    updateSetting('tmdb_api_key', newApiKey.trim());
     setNewApiKey('');
     setShowApiKeyDialog(false);
     toast({
@@ -506,8 +523,12 @@ export const SettingsPage: React.FC = () => {
       case 'all':
         clearAllFavorites();
         clearAllWatched();
-        localStorage.removeItem('tmdb_api_key');
-        localStorage.removeItem('user_profile');
+        updateSettings({
+          tmdb_api_key: undefined,
+          user_profile: undefined,
+          my_streamings: [],
+          adult_content_filter: false
+        });
         toast({
           title: 'Todos os dados limpos',
           description: 'Todos os seus dados foram removidos.',
@@ -763,15 +784,9 @@ export const SettingsPage: React.FC = () => {
                         type="checkbox"
                         id="adult-content-filter"
                         className="rounded border-primary/20"
-                        defaultChecked={
-                          localStorage.getItem('adult_content_filter') ===
-                          'true'
-                        }
+                        defaultChecked={settings.adult_content_filter}
                         onChange={(e) => {
-                          localStorage.setItem(
-                            'adult_content_filter',
-                            e.target.checked.toString()
-                          );
+                          updateSetting('adult_content_filter', e.target.checked);
                           toast({
                             title: e.target.checked
                               ? 'Filtro ativado'
@@ -1021,33 +1036,28 @@ export const SettingsPage: React.FC = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="nickname">Nome/Nickname</Label>
+                    <Label htmlFor="nickname">Apelido</Label>
                     <Input
                       id="nickname"
-                      placeholder="Seu nome ou nickname"
-                      value={profile.nickname}
+                      placeholder="Como você quer ser chamado"
+                      value={localProfile.nickname}
                       onChange={(e) =>
-                        updateProfileField('nickname', e.target.value)
+                        handleLocalProfileChange('nickname', e.target.value)
                       }
-                      maxLength={30}
-                      className="bg-secondary/30 border-primary/20"
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="bio">Bio</Label>
+                  <Label htmlFor="bio">Biografia</Label>
                   <Textarea
                     id="bio"
-                    placeholder="Conte um pouco sobre você e seus gostos cinematográficos..."
-                    value={profile.bio}
-                    onChange={(e) => updateProfileField('bio', e.target.value)}
-                    maxLength={500}
+                    placeholder="Conte um pouco sobre você..."
+                    value={localProfile.bio}
+                    onChange={(e) =>
+                      handleLocalProfileChange('bio', e.target.value)
+                    }
                     rows={4}
-                    className="bg-secondary/30 border-primary/20"
                   />
-                  <p className="text-xs text-muted-foreground">
-                    {profile.bio.length}/500 caracteres
-                  </p>
                 </div>
               </div>
 
@@ -1068,9 +1078,9 @@ export const SettingsPage: React.FC = () => {
                     <Input
                       id="instagram"
                       placeholder="@seu_usuario"
-                      value={profile.socialMedia.instagram || ''}
+                      value={localProfile.socialMedia.instagram || ''}
                       onChange={(e) =>
-                        updateSocialMedia('instagram', e.target.value)
+                        handleLocalSocialMediaChange('instagram', e.target.value)
                       }
                       className="bg-secondary/30 border-primary/20"
                     />
@@ -1086,9 +1096,9 @@ export const SettingsPage: React.FC = () => {
                     <Input
                       id="twitter"
                       placeholder="@seu_usuario"
-                      value={profile.socialMedia.twitter || ''}
+                      value={localProfile.socialMedia.twitter || ''}
                       onChange={(e) =>
-                        updateSocialMedia('twitter', e.target.value)
+                        handleLocalSocialMediaChange('twitter', e.target.value)
                       }
                       className="bg-secondary/30 border-primary/20"
                     />
@@ -1104,9 +1114,9 @@ export const SettingsPage: React.FC = () => {
                     <Input
                       id="facebook"
                       placeholder="facebook.com/seu_perfil"
-                      value={profile.socialMedia.facebook || ''}
+                      value={localProfile.socialMedia.facebook || ''}
                       onChange={(e) =>
-                        updateSocialMedia('facebook', e.target.value)
+                        handleLocalSocialMediaChange('facebook', e.target.value)
                       }
                       className="bg-secondary/30 border-primary/20"
                     />
@@ -1122,9 +1132,9 @@ export const SettingsPage: React.FC = () => {
                     <Input
                       id="linkedin"
                       placeholder="linkedin.com/in/seu_perfil"
-                      value={profile.socialMedia.linkedin || ''}
+                      value={localProfile.socialMedia.linkedin || ''}
                       onChange={(e) =>
-                        updateSocialMedia('linkedin', e.target.value)
+                        handleLocalSocialMediaChange('linkedin', e.target.value)
                       }
                       className="bg-secondary/30 border-primary/20"
                     />
@@ -1140,9 +1150,9 @@ export const SettingsPage: React.FC = () => {
                     <Input
                       id="youtube"
                       placeholder="youtube.com/@seu_canal"
-                      value={profile.socialMedia.youtube || ''}
+                      value={localProfile.socialMedia.youtube || ''}
                       onChange={(e) =>
-                        updateSocialMedia('youtube', e.target.value)
+                        handleLocalSocialMediaChange('youtube', e.target.value)
                       }
                       className="bg-secondary/30 border-primary/20"
                     />
@@ -1158,9 +1168,9 @@ export const SettingsPage: React.FC = () => {
                     <Input
                       id="website"
                       placeholder="https://seu-site.com"
-                      value={profile.socialMedia.website || ''}
+                      value={localProfile.socialMedia.website || ''}
                       onChange={(e) =>
-                        updateSocialMedia('website', e.target.value)
+                        handleLocalSocialMediaChange('website', e.target.value)
                       }
                       className="bg-secondary/30 border-primary/20"
                     />
@@ -1214,9 +1224,9 @@ export const SettingsPage: React.FC = () => {
                 <h3 className="text-lg font-semibold text-primary">
                   Ações da Conta
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex justify-end">
                   <Button
-                    onClick={saveProfile}
+                    onClick={saveLocalProfile}
                     disabled={isSavingProfile}
                     className="flex items-center gap-2"
                   >
@@ -1225,8 +1235,10 @@ export const SettingsPage: React.FC = () => {
                     ) : (
                       <Save className="w-4 h-4" />
                     )}
-                    {isSavingProfile ? 'Salvando...' : 'Salvar Perfil'}
+                    Salvar Alterações
                   </Button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Button
                     onClick={() => setShowPasswordDialog(true)}
                     variant="outline"

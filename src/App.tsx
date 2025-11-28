@@ -21,6 +21,7 @@ import { WatchedProvider } from '@/context/WatchedContext';
 import { DetailNameProvider } from '@/context/DetailNameContext';
 import { AuthProvider } from '@/context/AuthContext';
 import { CustomListsProvider } from '@/context/CustomListsContext';
+import { SettingsProvider } from '@/context/SettingsContext';
 import CustomListsPage from '@/pages/CustomListsPage';
 
 const queryClient = new QueryClient();
@@ -32,38 +33,40 @@ const App = () => (
       <Sonner />
       <AuthProvider>
         <DetailNameProvider>
-          <FavoritesProvider>
-            <WantToWatchProvider>
-              <WatchedProvider>
-                <CustomListsProvider>
-                  <BrowserRouter>
-                    <Routes>
-                      <Route path="/" element={<Index />} />
-                      <Route path="/busca/:term" element={<SearchResults />} />
-                      <Route path="/filme/:id" element={<MovieDetails />} />
-                      <Route path="/serie/:id" element={<TVShowDetails />} />
-                      <Route path="/pessoa/:id" element={<PersonDetails />} />
-                      <Route path="/favoritos" element={<FavoritesPage />} />
-                      <Route
-                        path="/quero-assistir"
-                        element={<WantToWatchPage />}
-                      />
-                      <Route path="/vistos" element={<WatchedPage />} />
-                      <Route path="/listas" element={<CustomListsPage />} />
-                      <Route
-                        path="/recomendacoes"
-                        element={<RecommendationsPage />}
-                      />
-                      <Route path="/configuracoes" element={<SettingsPage />} />
-                      <Route path="/estatisticas" element={<StatisticsPage />} />
-                      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
-                  </BrowserRouter>
-                </CustomListsProvider>
-              </WatchedProvider>
-            </WantToWatchProvider>
-          </FavoritesProvider>
+          <SettingsProvider>
+            <FavoritesProvider>
+              <WantToWatchProvider>
+                <WatchedProvider>
+                  <CustomListsProvider>
+                    <BrowserRouter>
+                      <Routes>
+                        <Route path="/" element={<Index />} />
+                        <Route path="/busca/:term" element={<SearchResults />} />
+                        <Route path="/filme/:id" element={<MovieDetails />} />
+                        <Route path="/serie/:id" element={<TVShowDetails />} />
+                        <Route path="/pessoa/:id" element={<PersonDetails />} />
+                        <Route path="/favoritos" element={<FavoritesPage />} />
+                        <Route
+                          path="/quero-assistir"
+                          element={<WantToWatchPage />}
+                        />
+                        <Route path="/vistos" element={<WatchedPage />} />
+                        <Route path="/listas" element={<CustomListsPage />} />
+                        <Route
+                          path="/recomendacoes"
+                          element={<RecommendationsPage />}
+                        />
+                        <Route path="/configuracoes" element={<SettingsPage />} />
+                        <Route path="/estatisticas" element={<StatisticsPage />} />
+                        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </BrowserRouter>
+                  </CustomListsProvider>
+                </WatchedProvider>
+              </WantToWatchProvider>
+            </FavoritesProvider>
+          </SettingsProvider>
         </DetailNameProvider>
       </AuthProvider>
     </TooltipProvider>
