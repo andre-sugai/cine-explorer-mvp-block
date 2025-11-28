@@ -21,6 +21,7 @@ import { useTrailers } from '@/hooks/useTrailers';
 import { useYouTubePlayer } from '@/hooks/useYouTubePlayer';
 import { toast } from 'sonner';
 import { TrailerActionButtons } from '@/components/TrailerActionButtons';
+import { useStreamingProvider } from '@/hooks/useStreamingProvider';
 
 interface TrailerModalProps {
   open: boolean;
@@ -51,6 +52,11 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
   const [loadingNext, setLoadingNext] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [useYTPlayer, setUseYTPlayer] = useState(false);
+  
+  const { logoPath: streamingLogo, providerName: streamingProviderName } = useStreamingProvider(
+    currentTrailer?.movieId,
+    currentTrailer?.contentType
+  );
 
   const playerRef = useRef<any>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
@@ -450,7 +456,17 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
         <DialogHeader className="space-y-4">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-2xl font-bold text-primary flex items-center gap-3">
-              <Play className="w-6 h-6" />
+              {streamingLogo ? (
+                <img
+                  key={streamingLogo} // Force re-render to trigger animation
+                  src={streamingLogo}
+                  alt={streamingProviderName || 'Streaming Service'}
+                  className="w-8 h-8 object-contain rounded-md animate-flip"
+                  title={`Disponível em ${streamingProviderName}`}
+                />
+              ) : (
+                <Play className="w-6 h-6" />
+              )}
               {getFormattedTitle()}
             </DialogTitle>
             <div className="flex items-center gap-2">

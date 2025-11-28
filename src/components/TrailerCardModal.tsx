@@ -11,6 +11,7 @@ import { Play, Pause, Loader, ExternalLink, Film, Tv } from 'lucide-react';
 import { toast } from 'sonner';
 import { TrailerActionButtons } from '@/components/TrailerActionButtons';
 import { useYouTubePlayer } from '@/hooks/useYouTubePlayer';
+import { useStreamingProvider } from '@/hooks/useStreamingProvider';
 
 interface TrailerCardModalProps {
   open: boolean;
@@ -49,6 +50,11 @@ export const TrailerCardModal: React.FC<TrailerCardModalProps> = ({
   const [isPlaying, setIsPlaying] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [useYTPlayer, setUseYTPlayer] = useState(false);
+  
+  const { logoPath: streamingLogo, providerName: streamingProviderName } = useStreamingProvider(
+    movieId || tvShowId,
+    type
+  );
   const [trailerKey, setTrailerKey] = useState<string | null>(null);
   const [noTrailer, setNoTrailer] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
@@ -375,7 +381,17 @@ export const TrailerCardModal: React.FC<TrailerCardModalProps> = ({
         <DialogHeader className="space-y-4">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-2xl font-bold text-primary flex items-center gap-3">
-              <Play className="w-6 h-6" />
+              {streamingLogo ? (
+                <img
+                  key={streamingLogo} // Force re-render to trigger animation
+                  src={streamingLogo}
+                  alt={streamingProviderName || 'Streaming Service'}
+                  className="w-8 h-8 object-contain rounded-md animate-flip"
+                  title={`Disponível em ${streamingProviderName}`}
+                />
+              ) : (
+                <Play className="w-6 h-6" />
+              )}
               {title}
             </DialogTitle>
             <div className="flex items-center gap-3">

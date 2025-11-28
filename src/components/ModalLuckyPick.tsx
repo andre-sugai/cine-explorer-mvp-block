@@ -36,6 +36,7 @@ import { useFavoritesContext } from '@/context/FavoritesContext';
 import { useWantToWatchContext } from '@/context/WantToWatchContext';
 import { useWatchedContext } from '@/context/WatchedContext';
 import { useNavigate } from 'react-router-dom';
+import { useStreamingProvider } from '@/hooks/useStreamingProvider';
 
 export const ModalLuckyPick: React.FC<{
   open: boolean;
@@ -54,6 +55,11 @@ export const ModalLuckyPick: React.FC<{
   const [actionLoading, setActionLoading] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const { logoPath: streamingLogo, providerName: streamingProviderName } = useStreamingProvider(
+    result?.item?.id,
+    result?.type
+  );
 
   // Disable body scroll when modal is open
   useEffect(() => {
@@ -303,9 +309,21 @@ export const ModalLuckyPick: React.FC<{
           {/* Title and type */}
           <div>
             <h2 className="text-xl lg:text-2xl font-bold text-primary mb-2 flex items-center gap-2 line-clamp-2">
-              {type === 'movie' && <Film className="w-5 h-5 lg:w-6 lg:h-6 text-gold flex-shrink-0" />}
-              {type === 'tv' && <Users className="w-5 h-5 lg:w-6 lg:h-6 text-gold flex-shrink-0" />}
-              {type === 'person' && <User className="w-5 h-5 lg:w-6 lg:h-6 text-gold flex-shrink-0" />}
+              {streamingLogo ? (
+                <img
+                  key={streamingLogo} // Force re-render to trigger animation
+                  src={streamingLogo}
+                  alt={streamingProviderName || 'Streaming Service'}
+                  className="w-6 h-6 lg:w-8 lg:h-8 object-contain rounded-md flex-shrink-0 animate-flip"
+                  title={`Disponível em ${streamingProviderName}`}
+                />
+              ) : (
+                <>
+                  {type === 'movie' && <Film className="w-5 h-5 lg:w-6 lg:h-6 text-gold flex-shrink-0" />}
+                  {type === 'tv' && <Users className="w-5 h-5 lg:w-6 lg:h-6 text-gold flex-shrink-0" />}
+                  {type === 'person' && <User className="w-5 h-5 lg:w-6 lg:h-6 text-gold flex-shrink-0" />}
+                </>
+              )}
               <span className="break-words">{item.title || item.name}</span>
             </h2>
             <div className="flex flex-wrap gap-2 items-center mb-2">
