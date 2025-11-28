@@ -3,8 +3,9 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { buildImageUrl } from '@/utils/tmdb';
-import { MovieCardActions } from '@/components/MovieCardActions';
 import { Film, Tv } from 'lucide-react';
+import { ContentCard } from '@/components/home/ContentCard';
+import { TMDBMovie, TMDBTVShow } from '@/utils/tmdb';
 
 interface PersonCreditsProps {
   movieCredits?: {
@@ -63,44 +64,11 @@ const PersonCredits: React.FC<PersonCreditsProps> = ({ movieCredits, tvCredits }
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {topMovies.map((movie) => (
-                <div key={movie.id} className="group">
-                  <div
-                    className="cursor-pointer transform hover:scale-105 transition-transform"
-                    onClick={() => navigate(`/filme/${movie.id}`)}
-                  >
-                    <img
-                      src={buildImageUrl(movie.poster_path, 'w342')}
-                      alt={movie.title}
-                      className="w-full rounded-lg shadow-md"
-                    />
-                    <div className="mt-2">
-                      <p className="text-sm text-foreground line-clamp-2 font-medium">
-                        {movie.title}
-                      </p>
-                      {movie.character && (
-                        <p className="text-xs text-muted-foreground line-clamp-1">
-                          {movie.character}
-                        </p>
-                      )}
-                      {movie.release_date && (
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(movie.release_date).getFullYear()}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* Action Icons */}
-                  <MovieCardActions
-                    id={movie.id}
-                    title={movie.title}
-                    poster_path={movie.poster_path}
-                    release_date={movie.release_date}
-                    vote_average={movie.vote_average}
-                    genre_ids={movie.genre_ids}
-                    type="movie"
-                  />
-                </div>
+                <ContentCard
+                  key={movie.id}
+                  item={movie as unknown as TMDBMovie}
+                  category="movies"
+                />
               ))}
             </div>
           </CardContent>
@@ -119,44 +87,11 @@ const PersonCredits: React.FC<PersonCreditsProps> = ({ movieCredits, tvCredits }
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {topTVShows.map((show) => (
-                <div key={show.id} className="group">
-                  <div
-                    className="cursor-pointer transform hover:scale-105 transition-transform"
-                    onClick={() => navigate(`/serie/${show.id}`)}
-                  >
-                    <img
-                      src={buildImageUrl(show.poster_path, 'w342')}
-                      alt={show.name}
-                      className="w-full rounded-lg shadow-md"
-                    />
-                    <div className="mt-2">
-                      <p className="text-sm text-foreground line-clamp-2 font-medium">
-                        {show.name}
-                      </p>
-                      {show.character && (
-                        <p className="text-xs text-muted-foreground line-clamp-1">
-                          {show.character}
-                        </p>
-                      )}
-                      {show.first_air_date && (
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(show.first_air_date).getFullYear()}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* Action Icons */}
-                  <MovieCardActions
-                    id={show.id}
-                    title={show.name}
-                    poster_path={show.poster_path}
-                    release_date={show.first_air_date}
-                    vote_average={show.vote_average}
-                    genre_ids={show.genre_ids}
-                    type="tv"
-                  />
-                </div>
+                <ContentCard
+                  key={show.id}
+                  item={show as unknown as TMDBTVShow}
+                  category="tv"
+                />
               ))}
             </div>
           </CardContent>
