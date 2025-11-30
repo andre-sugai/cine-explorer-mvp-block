@@ -12,6 +12,9 @@ interface FiltersState {
   selectedStreamings: number[];
   selectedStudio: string;
   searchTerm: string;
+  selectedRuntime: string;
+  selectedVoteCount: string;
+  selectedKeyword: string;
   scrollPosition: number;
 }
 
@@ -59,6 +62,10 @@ export const useFilterPersistence = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isRestored, setIsRestored] = useState(false);
 
+  const [selectedRuntime, setSelectedRuntime] = useState('');
+  const [selectedVoteCount, setSelectedVoteCount] = useState('');
+  const [selectedKeyword, setSelectedKeyword] = useState('');
+
   // Carregar filtros salvos ao montar componente
   useEffect(() => {
     const savedFilters = loadFiltersFromStorage();
@@ -72,6 +79,9 @@ export const useFilterPersistence = () => {
       setSelectedStreamings(savedFilters.selectedStreamings || []);
       setSelectedStudio(savedFilters.selectedStudio || '');
       setSearchTerm(savedFilters.searchTerm || '');
+      setSelectedRuntime(savedFilters.selectedRuntime || '');
+      setSelectedVoteCount(savedFilters.selectedVoteCount || '');
+      setSelectedKeyword(savedFilters.selectedKeyword || '');
 
       // Restaurar scroll position após um pequeno delay
       setTimeout(() => {
@@ -100,6 +110,9 @@ export const useFilterPersistence = () => {
       selectedStreamings,
       selectedStudio,
       searchTerm,
+      selectedRuntime,
+      selectedVoteCount,
+      selectedKeyword,
       scrollPosition: window.scrollY || 0,
     };
 
@@ -114,6 +127,9 @@ export const useFilterPersistence = () => {
     selectedStreamings,
     selectedStudio,
     searchTerm,
+    selectedRuntime,
+    selectedVoteCount,
+    selectedKeyword,
     isRestored,
   ]);
 
@@ -131,6 +147,9 @@ export const useFilterPersistence = () => {
       selectedStreamings,
       selectedStudio,
       searchTerm,
+      selectedRuntime,
+      selectedVoteCount,
+      selectedKeyword,
       scrollPosition: window.scrollY || 0,
     };
 
@@ -145,6 +164,9 @@ export const useFilterPersistence = () => {
     selectedStreamings,
     selectedStudio,
     searchTerm,
+    selectedRuntime,
+    selectedVoteCount,
+    selectedKeyword,
     isRestored,
   ]);
 
@@ -159,6 +181,9 @@ export const useFilterPersistence = () => {
     setSelectedStreamings([]);
     setSelectedStudio('');
     setSearchTerm('');
+    setSelectedRuntime('');
+    setSelectedVoteCount('');
+    setSelectedKeyword('');
     clearFiltersFromStorage();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
@@ -174,6 +199,9 @@ export const useFilterPersistence = () => {
     selectedStreamings,
     selectedStudio,
     searchTerm,
+    selectedRuntime,
+    selectedVoteCount,
+    selectedKeyword,
 
     // Setters
     setActiveCategory,
@@ -185,6 +213,9 @@ export const useFilterPersistence = () => {
     setSelectedStreamings,
     setSelectedStudio,
     setSearchTerm,
+    setSelectedRuntime,
+    setSelectedVoteCount,
+    setSelectedKeyword,
 
     // Utilitários
     saveScrollPosition,

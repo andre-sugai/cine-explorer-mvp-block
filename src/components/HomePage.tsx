@@ -11,7 +11,9 @@ import {
   searchPeople,
   getAllGenres,
   getNowPlayingMovies,
+  searchKeywords,
 } from '@/utils/tmdb';
+
 import { filterAdultContent } from '@/utils/adultContentFilter';
 import { TMDBMovie, TMDBTVShow, TMDBPerson, TMDBGenre } from '@/utils/tmdb';
 import { useFilterPersistence } from '@/hooks/useFilterPersistence';
@@ -29,6 +31,10 @@ export const HomePage: React.FC = () => {
     selectedYear,
     selectedLanguage,
     selectedStudio,
+    searchTerm,
+    selectedRuntime,
+    selectedVoteCount,
+    selectedKeyword,
     setActiveCategory,
     setSelectedProvider,
     setSelectedGenre,
@@ -36,6 +42,10 @@ export const HomePage: React.FC = () => {
     setSelectedYear,
     setSelectedLanguage,
     setSelectedStudio,
+    setSearchTerm,
+    setSelectedRuntime,
+    setSelectedVoteCount,
+    setSelectedKeyword,
     saveScrollPosition,
     isRestored,
   } = useFilterPersistence();
@@ -55,6 +65,7 @@ export const HomePage: React.FC = () => {
   ]);
   const [yearOptions] = useState([
     { value: '', label: 'Todas' },
+    { value: 'current-month', label: 'Este Mês' },
     { value: '2020', label: '2020s' },
     { value: '2010', label: '2010s' },
     { value: '2000', label: '2000s' },
@@ -269,6 +280,7 @@ export const HomePage: React.FC = () => {
     'Béla Tarr',
     'István Szabó',
     'Aki Kaurismäki',
+    'Ruben Östlund',
     // ASIÁTICOS
     'Akira Kurosawa',
     'Yasujiro Ozu',
@@ -493,18 +505,38 @@ export const HomePage: React.FC = () => {
           params.with_genres = selectedGenre;
         }
         if (selectedYear && category !== 'cinema') {
-          if (category === 'movies' || (category as any) === 'cinema') {
-            // Usar primary_release_date é mais confiável para filtragem
-            params['primary_release_date.gte'] = `${selectedYear}-01-01`;
-            params['primary_release_date.lte'] = `${
-              Number(selectedYear) + 9
-            }-12-31`;
-            // Backup: também usar release_date para máxima cobertura
-            params['release_date.gte'] = `${selectedYear}-01-01`;
-            params['release_date.lte'] = `${Number(selectedYear) + 9}-12-31`;
-          } else if (category === 'tv') {
-            params['first_air_date.gte'] = `${selectedYear}-01-01`;
-            params['first_air_date.lte'] = `${Number(selectedYear) + 9}-12-31`;
+          if (selectedYear === 'current-month') {
+            const now = new Date();
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
+              .toISOString()
+              .split('T')[0];
+            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+              .toISOString()
+              .split('T')[0];
+
+            if (category === 'movies') {
+              params['primary_release_date.gte'] = firstDay;
+              params['primary_release_date.lte'] = lastDay;
+            } else if (category === 'tv') {
+              params['first_air_date.gte'] = firstDay;
+              params['first_air_date.lte'] = lastDay;
+            }
+          } else {
+            if (category === 'movies') {
+              // Usar primary_release_date é mais confiável para filtragem
+              params['primary_release_date.gte'] = `${selectedYear}-01-01`;
+              params['primary_release_date.lte'] = `${
+                Number(selectedYear) + 9
+              }-12-31`;
+              // Backup: também usar release_date para máxima cobertura
+              params['release_date.gte'] = `${selectedYear}-01-01`;
+              params['release_date.lte'] = `${Number(selectedYear) + 9}-12-31`;
+            } else if (category === 'tv') {
+              params['first_air_date.gte'] = `${selectedYear}-01-01`;
+              params['first_air_date.lte'] = `${
+                Number(selectedYear) + 9
+              }-12-31`;
+            }
           }
         }
         if (selectedLanguage && category !== 'cinema') {
@@ -513,6 +545,20 @@ export const HomePage: React.FC = () => {
         if (selectedStudio && category !== 'cinema') {
           params.with_companies = selectedStudio;
         }
+        if (selectedRuntime && category === 'movies') {
+          params['with_runtime.lte'] = selectedRuntime;
+        }
+        if (selectedVoteCount && category !== 'cinema') {
+          params['vote_count.gte'] = selectedVoteCount;
+        }
+        if (selectedKeyword && category !== 'cinema') {
+          params.with_keywords = selectedKeyword; // Isso assume que o usuário digitou IDs. Para texto livre, precisaria buscar IDs primeiro.
+          // Como o endpoint discover espera IDs, vamos tentar usar o texto como query se for possível ou implementar busca de keywords.
+          // O endpoint discover NÃO aceita texto livre em with_keywords, apenas IDs.
+          // Para MVP, vamos assumir que o usuário não vai digitar IDs.
+          // Precisamos buscar o ID da keyword primeiro.
+          // VOU IMPLEMENTAR ISSO ABAIXO ANTES DE CHAMAR O DISCOVER
+        }
 
         // Para a categoria 'cinema', usamos a função específica que filtra apenas filmes em cinemas
         if (category === 'cinema') {
@@ -520,6 +566,30 @@ export const HomePage: React.FC = () => {
           // (não disponíveis em streaming)
           response = await getNowPlayingMovies(pageNum, 'BR', true);
         } else {
+          // Se tiver keyword selecionada (texto), buscar o ID primeiro
+          if (selectedKeyword && category !== 'cinema') {
+            try {
+              const keywordSearchUrl = `https://api.themoviedb.org/3/search/keyword?query=${encodeURIComponent(
+                selectedKeyword
+              )}&page=1&api_key=${localStorage.getItem('tmdb_api_key')}`;
+              const keywordRes = await fetch(keywordSearchUrl);
+              const keywordData = await keywordRes.json();
+              if (keywordData.results && keywordData.results.length > 0) {
+                // Pegar o ID da primeira keyword encontrada
+                params.with_keywords = keywordData.results[0].id;
+                console.log(
+                  `🔍 Keyword "${selectedKeyword}" resolvida para ID: ${params.with_keywords}`
+                );
+              } else {
+                console.warn(
+                  `⚠️ Keyword "${selectedKeyword}" não encontrada. Ignorando filtro.`
+                );
+              }
+            } catch (e) {
+              console.error('Erro ao buscar keyword:', e);
+            }
+          }
+
           // Corrigido: endpoint correto (movie/tv no singular)
           const url = `/discover/${category === 'movies' ? 'movie' : 'tv'}`;
           const apiUrl = new URL('https://api.themoviedb.org/3' + url);
@@ -594,6 +664,7 @@ export const HomePage: React.FC = () => {
 
       if (
         selectedYear &&
+        selectedYear !== 'current-month' &&
         category !== 'tv' &&
         category !== 'actors' &&
         category !== 'directors'
@@ -609,7 +680,11 @@ export const HomePage: React.FC = () => {
         console.log(
           `📊 Filmes após filtro de ano: ${filteredResults.length} itens`
         );
-      } else if (selectedYear && category === 'tv') {
+      } else if (
+        selectedYear &&
+        selectedYear !== 'current-month' &&
+        category === 'tv'
+      ) {
         const startYear = Number(selectedYear);
         const endYear = startYear + 9;
 
@@ -776,6 +851,9 @@ export const HomePage: React.FC = () => {
     selectedYear,
     selectedLanguage,
     selectedStudio,
+    selectedRuntime,
+    selectedVoteCount,
+    selectedKeyword,
     isRestored,
   ]);
 
@@ -806,25 +884,31 @@ export const HomePage: React.FC = () => {
       {/* Filtros avançados para filmes e séries (removidas as props do selectedStreamings) */}
       {(activeCategory === 'movies' || activeCategory === 'tv') && (
         <MovieFilters
-          providers={providerOptions}
-          selectedProvider={selectedProvider}
-          onProviderChange={setSelectedProvider}
-          studios={studioOptions}
-          selectedStudio={selectedStudio}
-          onStudioChange={setSelectedStudio}
-          genres={genreOptions}
-          selectedGenre={selectedGenre}
-          onGenreChange={setSelectedGenre}
-          orderOptions={orderOptions}
-          selectedOrder={selectedOrder}
-          onOrderChange={setSelectedOrder}
-          yearOptions={yearOptions}
-          selectedYear={selectedYear}
-          onYearChange={setSelectedYear}
-          languageOptions={languageOptions}
-          selectedLanguage={selectedLanguage}
-          onLanguageChange={setSelectedLanguage}
-        />
+        providers={providerOptions}
+        selectedProvider={selectedProvider}
+        onProviderChange={setSelectedProvider}
+        studios={studioOptions}
+        selectedStudio={selectedStudio}
+        onStudioChange={setSelectedStudio}
+        genres={genreOptions}
+        selectedGenre={selectedGenre}
+        onGenreChange={setSelectedGenre}
+        orderOptions={orderOptions}
+        selectedOrder={selectedOrder}
+        onOrderChange={setSelectedOrder}
+        yearOptions={yearOptions}
+        selectedYear={selectedYear}
+        onYearChange={setSelectedYear}
+        languageOptions={languageOptions}
+        selectedLanguage={selectedLanguage}
+        onLanguageChange={setSelectedLanguage}
+        selectedRuntime={selectedRuntime}
+        onRuntimeChange={setSelectedRuntime}
+        selectedVoteCount={selectedVoteCount}
+        onVoteCountChange={setSelectedVoteCount}
+        selectedKeyword={selectedKeyword}
+        onKeywordChange={setSelectedKeyword}
+      />
       )}
 
       {/* Infinite Content Grid */}

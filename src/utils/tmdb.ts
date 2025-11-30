@@ -1378,3 +1378,20 @@ export const getMoviesByDateRange = async (
     throw error;
   }
 };
+// Buscar palavras-chave
+export const searchKeywords = async (query: string) => {
+  try {
+    const url = buildApiUrl('/search/keyword', {
+      query: query,
+      page: '1',
+    });
+    const response = await fetchWithQuota(url);
+    if (!response.ok) {
+      throw new Error(`TMDB API error: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error searching keywords:', error);
+    return { results: [] };
+  }
+};

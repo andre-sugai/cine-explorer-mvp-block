@@ -31,6 +31,12 @@ interface MovieFiltersProps {
   languageOptions: { value: string; label: string }[];
   selectedLanguage: string;
   onLanguageChange: (value: string) => void;
+  selectedRuntime: string;
+  onRuntimeChange: (value: string) => void;
+  selectedVoteCount: string;
+  onVoteCountChange: (value: string) => void;
+  selectedKeyword: string;
+  onKeywordChange: (value: string) => void;
 }
 
 export const MovieFilters: React.FC<MovieFiltersProps> = ({
@@ -52,6 +58,12 @@ export const MovieFilters: React.FC<MovieFiltersProps> = ({
   languageOptions,
   selectedLanguage,
   onLanguageChange,
+  selectedRuntime,
+  onRuntimeChange,
+  selectedVoteCount,
+  onVoteCountChange,
+  selectedKeyword,
+  onKeywordChange,
 }) => {
   return (
     <div className="flex flex-wrap gap-4 items-center justify-center my-6">
@@ -165,6 +177,54 @@ export const MovieFilters: React.FC<MovieFiltersProps> = ({
             </option>
           ))}
         </select>
+      </div>
+
+      {/* Dropdown de Duração */}
+      <div className="min-w-[140px]">
+        <label className="block text-sm mb-1 font-medium text-primary">
+          Duração
+        </label>
+        <select
+          value={selectedRuntime}
+          onChange={(e) => onRuntimeChange(e.target.value)}
+          className="w-full rounded px-3 py-2 bg-secondary/50 border border-primary/20"
+        >
+          <option value="">Qualquer</option>
+          <option value="90">Menos de 90 min</option>
+          <option value="120">Menos de 2h</option>
+          <option value="180">Menos de 3h</option>
+        </select>
+      </div>
+
+      {/* Dropdown de Votos */}
+      <div className="min-w-[140px]">
+        <label className="block text-sm mb-1 font-medium text-primary">
+          Avaliações
+        </label>
+        <select
+          value={selectedVoteCount}
+          onChange={(e) => onVoteCountChange(e.target.value)}
+          className="w-full rounded px-3 py-2 bg-secondary/50 border border-primary/20"
+        >
+          <option value="">Qualquer</option>
+          <option value="100">Mais de 100</option>
+          <option value="500">Mais de 500</option>
+          <option value="1000">Mais de 1000</option>
+        </select>
+      </div>
+
+      {/* Input de Palavras-chave (Tema) */}
+      <div className="min-w-[200px]">
+        <label className="block text-sm mb-1 font-medium text-primary">
+          Tema (Palavra-chave)
+        </label>
+        <input
+          type="text"
+          value={selectedKeyword}
+          onChange={(e) => onKeywordChange(e.target.value)}
+          placeholder="Ex: viagem no tempo..."
+          className="w-full rounded px-3 py-2 bg-secondary/50 border border-primary/20 text-foreground placeholder:text-muted-foreground"
+        />
       </div>
     </div>
   );
