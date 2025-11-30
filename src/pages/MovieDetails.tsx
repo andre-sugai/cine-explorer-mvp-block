@@ -225,6 +225,41 @@ const MovieDetails: React.FC = () => {
                     movie={movie}
                   />
 
+                  {movie.belongs_to_collection && (
+                    <div className="mt-6">
+                      <div
+                        className="relative rounded-lg overflow-hidden cursor-pointer group"
+                        onClick={() =>
+                          navigate(`/colecao/${movie.belongs_to_collection.id}`)
+                        }
+                      >
+                        <div
+                          className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
+                          style={{
+                            backgroundImage: `url(${buildImageUrl(
+                              movie.belongs_to_collection.backdrop_path,
+                              'w780'
+                            )})`,
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-black/60 group-hover:bg-black/50 transition-colors" />
+                        <div className="relative p-6 flex items-center justify-between">
+                          <div>
+                            <p className="text-sm text-muted-foreground mb-1">
+                              Faz parte da coleção
+                            </p>
+                            <h3 className="text-xl font-bold text-white group-hover:text-primary transition-colors">
+                              {movie.belongs_to_collection.name}
+                            </h3>
+                          </div>
+                          <Button variant="secondary" className="shrink-0">
+                            Ver Coleção
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Onde Assistir - seção completa de provedores (abaixo dos botões) */}
                   <div className="mt-6">
                     <WatchProvidersSection movieId={movie.id} />

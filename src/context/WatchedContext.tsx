@@ -10,7 +10,7 @@ import { useAuth } from '@/context/AuthContext';
 
 interface WatchedItem {
   id: number;
-  type: 'movie' | 'tv';
+  type: 'movie' | 'tv' | 'episode';
   title: string;
   poster_path?: string;
   release_date?: string;
@@ -20,6 +20,8 @@ interface WatchedItem {
   runtime?: number;
   watchedAt: string;
   year?: number;
+  tvId?: number;
+  seasonNumber?: number;
 }
 
 interface WatchedContextData {

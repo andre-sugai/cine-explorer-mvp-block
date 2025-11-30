@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,17 +9,24 @@ import { getTVShowDetails, buildImageUrl, getTVShowImages } from '@/utils/tmdb';
 import ActionButtons from '@/components/ActionButtons';
 import TrailerPlayer from '@/components/TrailerPlayer';
 import { Layout } from '@/components/Layout';
-import { ChevronLeft, Calendar, Tv, Star, Users, Globe } from 'lucide-react';
+import { ChevronLeft, Calendar, Tv, Star, Users, Globe, CheckCircle } from 'lucide-react';
 import { useDetailNameContext } from '@/context/DetailNameContext';
 import { ImageGallery } from '@/components/ImageGallery';
 import { ImageGalleryModal } from '@/components/ImageGalleryModal';
 import TVWatchProvidersSection from '@/components/TVWatchProvidersSection';
+import { SeasonDetailsModal } from '@/components/SeasonDetailsModal';
+import { useWatchedContext } from '@/context/WatchedContext';
 
 const TVShowDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { setDetailName } = useDetailNameContext();
-  const [showGalleryModal, setShowGalleryModal] = React.useState(false);
+  const [showGalleryModal, setShowGalleryModal] = useState(false);
+  const [selectedSeason, setSelectedSeason] = useState<{
+    number: number;
+    name: string;
+  } | null>(null);
+  const { watched } = useWatchedContext();
 
   const {
     data: show,
@@ -294,31 +301,66 @@ const TVShowDetails: React.FC = () => {
                     {show.seasons
                       .filter((season: any) => season.season_number > 0)
                       .slice(0, 5)
-                      .map((season: any) => (
-                        <div
-                          key={season.id}
-                          className="flex items-center gap-3 p-2 rounded-lg bg-secondary/50"
-                        >
-                          <img
-                            src={buildImageUrl(season.poster_path, 'w185')}
-                            alt={season.name}
-                            className="w-12 h-16 object-cover rounded"
-                          />
-                          <div className="flex-1">
-                            <p className="font-semibold text-foreground text-sm">
-                              {season.name}
-                            </p>
-                            <p className="text-muted-foreground text-xs">
-                              {season.episode_count} episódios
-                            </p>
-                            {season.air_date && (
+                      .map((season: any) => {
+                        const seasonEpisodes = watched.filter(
+                          (w) =>
+                            w.type === 'episode' &&
+                            w.tvId === Number(id) &&
+                            w.seasonNumber === season.season_number
+                        );
+                        const isSeasonWatched =
+                          season.episode_count > 0 &&
+                          seasonEpisodes.length === season.episode_count;
+
+                        return (
+                          <div
+                            key={season.id}
+                            className="flex items-center gap-3 p-2 rounded-lg bg-secondary/50 hover:bg-secondary/70 transition-colors cursor-pointer"
+                            onClick={() =>
+                              setSelectedSeason({
+                                number: season.season_number,
+                                name: season.name,
+                              })
+                            }
+                          >
+                            <div className="relative">
+                              <img
+                                src={buildImageUrl(season.poster_path, 'w185')}
+                                alt={season.name}
+                                className="w-12 h-16 object-cover rounded"
+                              />
+                              {isSeasonWatched && (
+                                <div className="absolute -top-2 -right-2 bg-green-500 rounded-full p-0.5 shadow-md">
+                                  <CheckCircle className="w-4 h-4 text-white" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <p className="font-semibold text-foreground text-sm">
+                                  {season.name}
+                                </p>
+                                {isSeasonWatched && (
+                                  <span className="text-xs text-green-500 font-medium flex items-center gap-1">
+                                    <CheckCircle className="w-3 h-3" />
+                                    Visto
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-muted-foreground text-xs">
-                                {new Date(season.air_date).getFullYear()}
+                                {season.episode_count} episódios
+                                {isSeasonWatched &&
+                                  ` (${seasonEpisodes.length}/${season.episode_count})`}
                               </p>
-                            )}
+                              {season.air_date && (
+                                <p className="text-muted-foreground text-xs">
+                                  {new Date(season.air_date).getFullYear()}
+                                </p>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                   </div>
                 </CardContent>
               </Card>
@@ -399,6 +441,14 @@ const TVShowDetails: React.FC = () => {
             <TrailerPlayer videos={show.videos} />
           </div>
         </div>
+
+        <SeasonDetailsModal
+          isOpen={!!selectedSeason}
+          onClose={() => setSelectedSeason(null)}
+          tvId={Number(id)}
+          seasonNumber={selectedSeason?.number ?? null}
+          seasonName={selectedSeason?.name ?? ''}
+        />
       </div>
     </Layout>
   );

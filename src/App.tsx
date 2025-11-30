@@ -7,6 +7,7 @@ import Index from './pages/Index';
 import SearchResults from './pages/SearchResults';
 import MovieDetails from './pages/MovieDetails';
 import TVShowDetails from './pages/TVShowDetails';
+import CollectionDetails from './pages/CollectionDetails';
 import PersonDetails from './pages/PersonDetails';
 import FavoritesPage from './pages/FavoritesPage';
 import WantToWatchPage from './pages/WantToWatchPage';
@@ -44,6 +45,7 @@ const App = () => (
                         <Route path="/busca/:term" element={<SearchResults />} />
                         <Route path="/filme/:id" element={<MovieDetails />} />
                         <Route path="/serie/:id" element={<TVShowDetails />} />
+                        <Route path="/colecao/:id" element={<CollectionDetails />} />
                         <Route path="/pessoa/:id" element={<PersonDetails />} />
                         <Route path="/favoritos" element={<FavoritesPage />} />
                         <Route

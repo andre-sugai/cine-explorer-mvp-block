@@ -312,6 +312,40 @@ export const getTVShowDetails = async (id: number) => {
   }
 };
 
+// Detalhes da temporada
+export const getTVSeasonDetails = async (tvId: number, seasonNumber: number) => {
+  try {
+    const url = buildApiUrl(`/tv/${tvId}/season/${seasonNumber}`);
+
+    const response = await fetchWithQuota(url);
+    if (!response.ok) {
+      throw new Error(`TMDB API error: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error getting TV season details:', error);
+    throw error;
+  }
+};
+
+// Detalhes da coleção
+export const getCollectionDetails = async (id: number) => {
+  try {
+    const url = buildApiUrl(`/collection/${id}`);
+
+    const response = await fetchWithQuota(url);
+    if (!response.ok) {
+      throw new Error(`TMDB API error: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error getting collection details:', error);
+    throw error;
+  }
+};
+
 // Detalhes de pessoa
 export const getPersonDetails = async (id: number) => {
   try {
