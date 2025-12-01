@@ -106,6 +106,7 @@ const CollectionDetails: React.FC = () => {
                 src={buildImageUrl(collection.poster_path, 'w342')}
                 alt={collection.name}
                 className="w-32 md:w-48 rounded-lg shadow-cinema hidden md:block"
+                loading="lazy"
               />
               <div className="flex-1">
                 <h1 className="text-3xl md:text-4xl font-bold text-primary mb-4">

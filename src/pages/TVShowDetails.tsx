@@ -120,6 +120,7 @@ const TVShowDetails: React.FC = () => {
                   src={buildImageUrl(show.poster_path, 'w500')}
                   alt={show.name}
                   className="w-full rounded-lg shadow-cinema"
+                  loading="lazy"
                 />
               </div>
 
@@ -191,6 +192,74 @@ const TVShowDetails: React.FC = () => {
           </div>
         </div>
 
+        {/* Temporadas - Seção em Destaque */}
+        {show.seasons && show.seasons.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-primary mb-6">Temporadas</h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+              {show.seasons
+                .filter((season: any) => season.season_number > 0)
+                .map((season: any) => {
+                  const seasonEpisodes = watched.filter(
+                    (w) =>
+                      w.type === 'episode' &&
+                      w.tvId === Number(id) &&
+                      w.seasonNumber === season.season_number
+                  );
+                  const isSeasonWatched =
+                    season.episode_count > 0 &&
+                    seasonEpisodes.length === season.episode_count;
+
+                  return (
+                    <Card
+                      key={season.id}
+                      className="bg-gradient-cinema border-primary/20 hover:border-primary/40 transition-all cursor-pointer group overflow-hidden"
+                      onClick={() =>
+                        setSelectedSeason({
+                          number: season.season_number,
+                          name: season.name,
+                        })
+                      }
+                    >
+                      <CardContent className="p-0">
+                        <div className="relative">
+                          <img
+                            src={buildImageUrl(season.poster_path, 'w342')}
+                            alt={season.name}
+                            className="w-full aspect-[2/3] object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                          {isSeasonWatched && (
+                            <div className="absolute top-2 right-2 bg-green-500 rounded-full p-1.5 shadow-lg">
+                              <CheckCircle className="w-5 h-5 text-white" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="p-4">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-semibold text-foreground text-sm line-clamp-1">
+                              {season.name}
+                            </h3>
+                            {isSeasonWatched && (
+                              <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                            )}
+                          </div>
+                          <p className="text-muted-foreground text-xs mb-2">
+                            {season.episode_count} episódio{season.episode_count !== 1 ? 's' : ''}
+                          </p>
+                          {season.air_date && (
+                            <p className="text-muted-foreground text-xs">
+                              {new Date(season.air_date).getFullYear()}
+                            </p>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+            </div>
+          </div>
+        )}
+
         {/* Galeria de Imagens Extras */}
         {images &&
           (images.backdrops.length > 0 || images.posters.length > 0) && (
@@ -212,26 +281,6 @@ const TVShowDetails: React.FC = () => {
               />
             </div>
           )}
-
-        {/* Galeria de Vídeos (todos os vídeos disponíveis) */}
-        {show.videos?.results?.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-xl font-bold text-primary mb-4">Vídeos</h2>
-            <div className="flex flex-wrap gap-4 overflow-x-auto pb-2">
-              {show.videos.results.map((video: any) => (
-                <iframe
-                  key={video.key}
-                  width="320"
-                  height="180"
-                  src={`https://www.youtube.com/embed/${video.key}`}
-                  title={video.name}
-                  className="rounded-lg shadow-cinema"
-                  allowFullScreen
-                />
-              ))}
-            </div>
-          </div>
-        )}
 
         <div className="grid md:grid-cols-3 gap-8">
           {/* Informações da Série */}
@@ -290,81 +339,6 @@ const TVShowDetails: React.FC = () => {
                 )}
               </CardContent>
             </Card>
-
-            {show.seasons && show.seasons.length > 0 && (
-              <Card className="bg-gradient-cinema border-primary/20">
-                <CardHeader>
-                  <CardTitle className="text-primary">Temporadas</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {show.seasons
-                      .filter((season: any) => season.season_number > 0)
-                      .slice(0, 5)
-                      .map((season: any) => {
-                        const seasonEpisodes = watched.filter(
-                          (w) =>
-                            w.type === 'episode' &&
-                            w.tvId === Number(id) &&
-                            w.seasonNumber === season.season_number
-                        );
-                        const isSeasonWatched =
-                          season.episode_count > 0 &&
-                          seasonEpisodes.length === season.episode_count;
-
-                        return (
-                          <div
-                            key={season.id}
-                            className="flex items-center gap-3 p-2 rounded-lg bg-secondary/50 hover:bg-secondary/70 transition-colors cursor-pointer"
-                            onClick={() =>
-                              setSelectedSeason({
-                                number: season.season_number,
-                                name: season.name,
-                              })
-                            }
-                          >
-                            <div className="relative">
-                              <img
-                                src={buildImageUrl(season.poster_path, 'w185')}
-                                alt={season.name}
-                                className="w-12 h-16 object-cover rounded"
-                              />
-                              {isSeasonWatched && (
-                                <div className="absolute -top-2 -right-2 bg-green-500 rounded-full p-0.5 shadow-md">
-                                  <CheckCircle className="w-4 h-4 text-white" />
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <p className="font-semibold text-foreground text-sm">
-                                  {season.name}
-                                </p>
-                                {isSeasonWatched && (
-                                  <span className="text-xs text-green-500 font-medium flex items-center gap-1">
-                                    <CheckCircle className="w-3 h-3" />
-                                    Visto
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-muted-foreground text-xs">
-                                {season.episode_count} episódios
-                                {isSeasonWatched &&
-                                  ` (${seasonEpisodes.length}/${season.episode_count})`}
-                              </p>
-                              {season.air_date && (
-                                <p className="text-muted-foreground text-xs">
-                                  {new Date(season.air_date).getFullYear()}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
           </div>
 
           {/* Elenco e Equipe */}

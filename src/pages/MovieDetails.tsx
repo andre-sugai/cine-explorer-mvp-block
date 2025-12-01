@@ -169,6 +169,7 @@ const MovieDetails: React.FC = () => {
                   src={buildImageUrl(movie.poster_path, 'w500')}
                   alt={movie.title}
                   className="w-full rounded-lg shadow-cinema"
+                  loading="lazy"
                 />
               </div>
 

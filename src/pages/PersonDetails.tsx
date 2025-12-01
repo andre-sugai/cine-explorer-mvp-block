@@ -105,6 +105,7 @@ const PersonDetails: React.FC = () => {
                   src={buildImageUrl(person.profile_path, 'w500')}
                   alt={person.name}
                   className="w-full rounded-lg shadow-cinema mb-4"
+                  loading="lazy"
                 />
                 <h1 className="text-2xl font-bold text-primary mb-4">
                   {person.name}
