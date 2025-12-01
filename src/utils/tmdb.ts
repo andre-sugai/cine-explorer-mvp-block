@@ -2,6 +2,7 @@
 // This file contains helper functions for interacting with The Movie Database API
 
 import { filterAdultContent } from './adultContentFilter';
+import { getCacheItem, setCacheItem, CACHE_TTL } from './cache';
 
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p';
@@ -277,6 +278,14 @@ export const searchPeople = async (
 // Detalhes de filme
 export const getMovieDetails = async (id: number) => {
   try {
+    // Check cache first
+    const cacheKey = `movie_details_${id}`;
+    const cached = getCacheItem(cacheKey);
+    if (cached) {
+      console.log(`✅ Cache hit: movie ${id}`);
+      return cached;
+    }
+
     const url = buildApiUrl(`/movie/${id}`, {
       append_to_response: 'credits,videos,recommendations,similar,keywords',
     });
@@ -286,7 +295,13 @@ export const getMovieDetails = async (id: number) => {
       throw new Error(`TMDB API error: ${response.status}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+    
+    // Save to cache
+    setCacheItem(cacheKey, data, CACHE_TTL.MOVIE_DETAILS);
+    console.log(`💾 Cached: movie ${id}`);
+    
+    return data;
   } catch (error) {
     console.error('Error getting movie details:', error);
     throw error;
@@ -296,6 +311,14 @@ export const getMovieDetails = async (id: number) => {
 // Detalhes de série
 export const getTVShowDetails = async (id: number) => {
   try {
+    // Check cache first
+    const cacheKey = `tv_details_${id}`;
+    const cached = getCacheItem(cacheKey);
+    if (cached) {
+      console.log(`✅ Cache hit: TV show ${id}`);
+      return cached;
+    }
+
     const url = buildApiUrl(`/tv/${id}`, {
       append_to_response: 'credits,videos,recommendations',
     });
@@ -305,7 +328,13 @@ export const getTVShowDetails = async (id: number) => {
       throw new Error(`TMDB API error: ${response.status}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+    
+    // Save to cache
+    setCacheItem(cacheKey, data, CACHE_TTL.TV_DETAILS);
+    console.log(`💾 Cached: TV show ${id}`);
+    
+    return data;
   } catch (error) {
     console.error('Error getting TV show details:', error);
     throw error;
@@ -349,6 +378,14 @@ export const getCollectionDetails = async (id: number) => {
 // Detalhes de pessoa
 export const getPersonDetails = async (id: number) => {
   try {
+    // Check cache first
+    const cacheKey = `person_details_${id}`;
+    const cached = getCacheItem(cacheKey);
+    if (cached) {
+      console.log(`✅ Cache hit: person ${id}`);
+      return cached;
+    }
+
     const url = buildApiUrl(`/person/${id}`, {
       append_to_response: 'movie_credits,tv_credits',
     });
@@ -358,7 +395,13 @@ export const getPersonDetails = async (id: number) => {
       throw new Error(`TMDB API error: ${response.status}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+    
+    // Save to cache
+    setCacheItem(cacheKey, data, CACHE_TTL.PERSON_DETAILS);
+    console.log(`💾 Cached: person ${id}`);
+    
+    return data;
   } catch (error) {
     console.error('Error getting person details:', error);
     throw error;
