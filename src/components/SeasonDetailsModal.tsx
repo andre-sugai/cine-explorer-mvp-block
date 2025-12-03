@@ -34,12 +34,19 @@ export const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
     enabled: isOpen && seasonNumber !== null,
   });
 
+  const episodeCount = season?.episodes?.length || 0;
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-0 gap-0 bg-background/95 backdrop-blur-xl border-primary/20">
         <DialogHeader className="p-6 pb-4 border-b border-white/10">
           <DialogTitle className="text-2xl font-bold text-primary">
             {seasonName}
+            {episodeCount > 0 && (
+              <span className="text-sm text-muted-foreground ml-2">
+                ({episodeCount} episódios)
+              </span>
+            )}
           </DialogTitle>
         </DialogHeader>
 
@@ -69,7 +76,7 @@ export const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
               {season?.episodes?.map((episode: any) => (
                 <EpisodeCard key={episode.id} episode={episode} tvId={tvId} />
               ))}
-              {season?.episodes?.length === 0 && (
+              {episodeCount === 0 && (
                 <p className="text-center text-muted-foreground py-8">
                   Nenhum episódio encontrado para esta temporada.
                 </p>

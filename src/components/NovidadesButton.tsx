@@ -18,20 +18,33 @@ export const NovidadesButton: React.FC<NovidadesButtonProps> = ({
     setModalOpen(true);
   };
 
-  // Calcular datas do mês atual
+  // Calcular datas: mês atual e mês anterior
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth(); // 0-11
 
-  // Primeiro dia do mês
-  const startDate = new Date(year, month, 1).toISOString().split('T')[0];
+  // Data de início: Primeiro dia do mês anterior
+  // O construtor Date lida corretamente com underflow de mês (ex: mês -1 vira Dezembro do ano anterior)
+  const startDate = new Date(year, month - 1, 1).toISOString().split('T')[0];
   
-  // Último dia do mês
+  // Data de fim: Último dia do mês atual
   const endDate = new Date(year, month + 1, 0).toISOString().split('T')[0];
 
-  // Nome do mês em português
-  const monthName = new Intl.DateTimeFormat('pt-BR', { month: 'long' }).format(now);
-  const label = `Novidades de ${monthName.charAt(0).toUpperCase() + monthName.slice(1)}/${year}`;
+  // Nomes dos meses
+  const currentMonthName = new Intl.DateTimeFormat('pt-BR', { month: 'long' }).format(now);
+  
+  const prevMonthDate = new Date(year, month - 1, 1);
+  const prevMonthName = new Intl.DateTimeFormat('pt-BR', { month: 'long' }).format(prevMonthDate);
+  const prevYear = prevMonthDate.getFullYear();
+
+  const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+  let label;
+  if (prevYear !== year) {
+    label = `Novidades de ${capitalize(prevMonthName)}/${prevYear} e ${capitalize(currentMonthName)}/${year}`;
+  } else {
+    label = `Novidades de ${capitalize(prevMonthName)} e ${capitalize(currentMonthName)}/${year}`;
+  }
 
   const filters = {
     startDate,
