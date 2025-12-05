@@ -28,7 +28,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       )}
       
       {/* Main content */}
-      <main className="container mx-auto px-4 py-8">
+      <main className={isHomePage ? "" : "container mx-auto px-4 py-8"}>
         {children}
       </main>
 
