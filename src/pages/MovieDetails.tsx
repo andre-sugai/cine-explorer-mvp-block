@@ -9,13 +9,11 @@ import {
   getMovieDetails,
   buildImageUrl,
   getMovieImages,
-  getMovieSequels,
   getSimilarMovies,
 } from '@/utils/tmdb';
 import { translateJob } from '@/utils/translations';
 import ActionButtons from '@/components/ActionButtons';
 import TrailerPlayer from '@/components/TrailerPlayer';
-import { MovieSequels } from '@/components/MovieSequels';
 import { SimilarMovies } from '@/components/SimilarMovies';
 import { Layout } from '@/components/Layout';
 import {
@@ -56,12 +54,7 @@ const MovieDetails: React.FC = () => {
     enabled: !!id,
   });
 
-  // Query para buscar sequências do filme
-  const { data: sequels, isLoading: isLoadingSequels } = useQuery({
-    queryKey: ['movie-sequels', id],
-    queryFn: () => getMovieSequels(Number(id)),
-    enabled: !!id,
-  });
+
 
   // Query para buscar filmes similares
   const { data: similarMovies, isLoading: isLoadingSimilarMovies } = useQuery({
@@ -229,7 +222,7 @@ const MovieDetails: React.FC = () => {
                   {movie.belongs_to_collection && (
                     <div className="mt-6">
                       <div
-                        className="relative rounded-lg overflow-hidden cursor-pointer group"
+                        className="relative rounded-lg overflow-hidden cursor-pointer group border border-primary/20"
                         onClick={() =>
                           navigate(`/colecao/${movie.belongs_to_collection.id}`)
                         }
@@ -253,7 +246,7 @@ const MovieDetails: React.FC = () => {
                               {movie.belongs_to_collection.name}
                             </h3>
                           </div>
-                          <Button variant="secondary" className="shrink-0">
+                          <Button className="bg-gradient-gold text-cinema-dark hover:opacity-90 shrink-0">
                             Ver Coleção
                           </Button>
                         </div>
@@ -471,12 +464,7 @@ const MovieDetails: React.FC = () => {
 
             <TrailerPlayer videos={movie.videos} />
 
-            {/* Seção de Sequências */}
-            <MovieSequels
-              sequels={sequels?.results || []}
-              isLoading={isLoadingSequels}
-              strategy={sequels?.strategy}
-            />
+
 
             {/* Seção de Filmes Similares */}
             <SimilarMovies
