@@ -569,8 +569,385 @@ export const HomePage: React.FC = () => {
           // Se tiver keyword selecionada (texto), buscar o ID primeiro
           if (selectedKeyword && category !== 'cinema') {
             try {
+              // Mapeamento de termos em português para inglês
+              const keywordTranslations: Record<string, string> = {
+                'viagem no tempo': 'time travel',
+                'viagem temporal': 'time travel',
+                'super-herói': 'superhero',
+                'super herói': 'superhero',
+                'super-heróis': 'superhero',
+                'super heróis': 'superhero',
+                zumbi: 'zombie',
+                zumbis: 'zombie',
+                vampiro: 'vampire',
+                vampiros: 'vampire',
+                alienígena: 'alien',
+                alienígenas: 'alien',
+                alien: 'alien',
+                aliens: 'alien',
+                robô: 'robot',
+                robôs: 'robot',
+                'inteligência artificial': 'artificial intelligence',
+                ia: 'artificial intelligence',
+                espaço: 'space',
+                espacial: 'space',
+                guerra: 'war',
+                'segunda guerra': 'world war ii',
+                'segunda guerra mundial': 'world war ii',
+                nazismo: 'nazi',
+                nazista: 'nazi',
+                apocalipse: 'apocalypse',
+                'pós-apocalíptico': 'post apocalyptic',
+                distopia: 'dystopia',
+                distópico: 'dystopia',
+                utopia: 'utopia',
+                utópico: 'utopia',
+                assassino: 'killer',
+                'assassino em série': 'serial killer',
+                'serial killer': 'serial killer',
+                detetive: 'detective',
+                investigação: 'investigation',
+                mistério: 'mystery',
+                suspense: 'suspense',
+                terror: 'horror',
+                medo: 'horror',
+                assombração: 'haunting',
+                fantasma: 'ghost',
+                fantasmas: 'ghost',
+                demônio: 'demon',
+                demônios: 'demon',
+                possessão: 'possession',
+                exorcismo: 'exorcism',
+                magia: 'magic',
+                mágico: 'magic',
+                bruxo: 'wizard',
+                bruxa: 'witch',
+                bruxas: 'witch',
+                feitiço: 'spell',
+                dragão: 'dragon',
+                dragões: 'dragon',
+                medieval: 'medieval',
+                'idade média': 'medieval',
+                cavaleiro: 'knight',
+                cavaleiros: 'knight',
+                rei: 'king',
+                rainha: 'queen',
+                príncipe: 'prince',
+                princesa: 'princess',
+                família: 'family',
+                amizade: 'friendship',
+                amor: 'love',
+                romance: 'romance',
+                casamento: 'marriage',
+                divórcio: 'divorce',
+                traição: 'betrayal',
+                vingança: 'revenge',
+                redenção: 'redemption',
+                sobrevivência: 'survival',
+                ilha: 'island',
+                'ilha deserta': 'desert island',
+                náufrago: 'castaway',
+                naufrágio: 'shipwreck',
+                oceano: 'ocean',
+                mar: 'sea',
+                pirata: 'pirate',
+                piratas: 'pirate',
+                tesouro: 'treasure',
+                aventura: 'adventure',
+                exploração: 'exploration',
+                selva: 'jungle',
+                floresta: 'forest',
+                deserto: 'desert',
+                montanha: 'mountain',
+                neve: 'snow',
+                gelo: 'ice',
+                frio: 'cold',
+                inverno: 'winter',
+                verão: 'summer',
+                escola: 'school',
+                colégio: 'high school',
+                universidade: 'university',
+                faculdade: 'college',
+                professor: 'teacher',
+                estudante: 'student',
+                adolescente: 'teenager',
+                adolescência: 'coming of age',
+                infância: 'childhood',
+                criança: 'child',
+                bebê: 'baby',
+                gravidez: 'pregnancy',
+                parto: 'childbirth',
+                adoção: 'adoption',
+                orfanato: 'orphanage',
+                órfão: 'orphan',
+                hospital: 'hospital',
+                médico: 'doctor',
+                enfermeira: 'nurse',
+                doença: 'disease',
+                câncer: 'cancer',
+                aids: 'aids',
+                pandemia: 'pandemic',
+                vírus: 'virus',
+                epidemia: 'epidemic',
+                quarentena: 'quarantine',
+                isolamento: 'isolation',
+                prisão: 'prison',
+                cadeia: 'jail',
+                prisioneiro: 'prisoner',
+                fuga: 'escape',
+                polícia: 'police',
+                policial: 'cop',
+                crime: 'crime',
+                criminoso: 'criminal',
+                ladrão: 'thief',
+                roubo: 'robbery',
+                assalto: 'heist',
+                sequestro: 'kidnapping',
+                refém: 'hostage',
+                terrorismo: 'terrorism',
+                terrorista: 'terrorist',
+                bomba: 'bomb',
+                explosão: 'explosion',
+                ação: 'action',
+                luta: 'fight',
+                'artes marciais': 'martial arts',
+                'kung fu': 'kung fu',
+                karatê: 'karate',
+                boxe: 'boxing',
+                mma: 'mixed martial arts',
+                esporte: 'sport',
+                futebol: 'soccer',
+                basquete: 'basketball',
+                beisebol: 'baseball',
+                corrida: 'racing',
+                carro: 'car',
+                carros: 'car',
+                velocidade: 'speed',
+                perseguição: 'chase',
+                motocicleta: 'motorcycle',
+                moto: 'motorcycle',
+                avião: 'airplane',
+                helicóptero: 'helicopter',
+                trem: 'train',
+                navio: 'ship',
+                submarino: 'submarine',
+                música: 'music',
+                musical: 'musical',
+                banda: 'band',
+                cantor: 'singer',
+                cantora: 'singer',
+                rock: 'rock music',
+                jazz: 'jazz',
+                'hip hop': 'hip hop',
+                rap: 'rap',
+                dança: 'dance',
+                ballet: 'ballet',
+                teatro: 'theater',
+                circo: 'circus',
+                palhaço: 'clown',
+                mágica: 'magic trick',
+                ilusionismo: 'illusion',
+                casino: 'casino',
+                jogo: 'gambling',
+                apostas: 'betting',
+                poker: 'poker',
+                vício: 'addiction',
+                drogas: 'drugs',
+                narcotráfico: 'drug trafficking',
+                cartel: 'cartel',
+                máfia: 'mafia',
+                gangster: 'gangster',
+                gang: 'gang',
+                favela: 'slum',
+                pobreza: 'poverty',
+                riqueza: 'wealth',
+                dinheiro: 'money',
+                poder: 'power',
+                política: 'politics',
+                político: 'politician',
+                presidente: 'president',
+                eleição: 'election',
+                democracia: 'democracy',
+                ditadura: 'dictatorship',
+                revolução: 'revolution',
+                protesto: 'protest',
+                manifestação: 'demonstration',
+                racismo: 'racism',
+                preconceito: 'prejudice',
+                discriminação: 'discrimination',
+                escravidão: 'slavery',
+                liberdade: 'freedom',
+                justiça: 'justice',
+                injustiça: 'injustice',
+                corrupção: 'corruption',
+                conspiração: 'conspiracy',
+                espionagem: 'espionage',
+                espião: 'spy',
+                'agente secreto': 'secret agent',
+                cia: 'cia',
+                fbi: 'fbi',
+                militar: 'military',
+                soldado: 'soldier',
+                exército: 'army',
+                marinha: 'navy',
+                'força aérea': 'air force',
+                combate: 'combat',
+                batalha: 'battle',
+                invasão: 'invasion',
+                ocupação: 'occupation',
+                resistência: 'resistance',
+                herói: 'hero',
+                heroína: 'heroine',
+                vilão: 'villain',
+                vilã: 'villain',
+                'bem vs mal': 'good versus evil',
+                'luz vs trevas': 'light versus darkness',
+                deus: 'god',
+                religião: 'religion',
+                fé: 'faith',
+                igreja: 'church',
+                padre: 'priest',
+                pastor: 'pastor',
+                bíblia: 'bible',
+                jesus: 'jesus christ',
+                cristianismo: 'christianity',
+                budismo: 'buddhism',
+                islamismo: 'islam',
+                judaísmo: 'judaism',
+                ateísmo: 'atheism',
+                ciência: 'science',
+                cientista: 'scientist',
+                laboratório: 'laboratory',
+                experimento: 'experiment',
+                invenção: 'invention',
+                inventor: 'inventor',
+                tecnologia: 'technology',
+                computador: 'computer',
+                hacker: 'hacker',
+                internet: 'internet',
+                'realidade virtual': 'virtual reality',
+                vr: 'virtual reality',
+                simulação: 'simulation',
+                matrix: 'matrix',
+                futuro: 'future',
+                passado: 'past',
+                presente: 'present',
+                história: 'history',
+                biografia: 'biography',
+                'baseado em fatos reais': 'based on true story',
+                'história real': 'true story',
+                documentário: 'documentary',
+                natureza: 'nature',
+                animal: 'animal',
+                animais: 'animal',
+                cachorro: 'dog',
+                gato: 'cat',
+                cavalo: 'horse',
+                leão: 'lion',
+                tigre: 'tiger',
+                urso: 'bear',
+                lobo: 'wolf',
+                dinossauro: 'dinosaur',
+                dinossauros: 'dinosaur',
+                'pré-história': 'prehistory',
+                extinção: 'extinction',
+                evolução: 'evolution',
+                clone: 'clone',
+                clonagem: 'cloning',
+                genética: 'genetics',
+                dna: 'dna',
+                mutante: 'mutant',
+                mutação: 'mutation',
+                superpoder: 'superpower',
+                superpoderes: 'superpower',
+                telepatia: 'telepathy',
+                telecinese: 'telekinesis',
+                invisibilidade: 'invisibility',
+                voo: 'flight',
+                voar: 'flying',
+                força: 'strength',
+                imortalidade: 'immortality',
+                imortal: 'immortal',
+                morte: 'death',
+                'vida após a morte': 'afterlife',
+                céu: 'heaven',
+                inferno: 'hell',
+                purgatório: 'purgatory',
+                reencarnação: 'reincarnation',
+                alma: 'soul',
+                espírito: 'spirit',
+                sobrenatural: 'supernatural',
+                paranormal: 'paranormal',
+                ovni: 'ufo',
+                'disco voador': 'flying saucer',
+                abdução: 'abduction',
+                'área 51': 'area 51',
+                'conspiração alienígena': 'alien conspiracy',
+                'fim do mundo': 'end of the world',
+                'apocalipse zumbi': 'zombie apocalypse',
+                'invasão alienígena': 'alien invasion',
+                meteoro: 'meteor',
+                asteroide: 'asteroid',
+                cometa: 'comet',
+                'desastre natural': 'natural disaster',
+                terremoto: 'earthquake',
+                tsunami: 'tsunami',
+                furacão: 'hurricane',
+                tornado: 'tornado',
+                vulcão: 'volcano',
+                erupção: 'eruption',
+                incêndio: 'fire',
+                inundação: 'flood',
+                seca: 'drought',
+                fome: 'famine',
+                refugiado: 'refugee',
+                imigração: 'immigration',
+                fronteira: 'border',
+                muro: 'wall',
+                separação: 'separation',
+                reunião: 'reunion',
+                encontro: 'meeting',
+                despedida: 'farewell',
+                partida: 'departure',
+                chegada: 'arrival',
+                jornada: 'journey',
+                viagem: 'travel',
+                turismo: 'tourism',
+                férias: 'vacation',
+                praia: 'beach',
+                cidade: 'city',
+                metrópole: 'metropolis',
+                'nova york': 'new york',
+                'los angeles': 'los angeles',
+                paris: 'paris',
+                londres: 'london',
+                tóquio: 'tokyo',
+                'rio de janeiro': 'rio de janeiro',
+                'são paulo': 'sao paulo',
+                brasil: 'brazil',
+                eua: 'usa',
+                américa: 'america',
+                europa: 'europe',
+                ásia: 'asia',
+                áfrica: 'africa',
+                austrália: 'australia',
+              };
+
+              // Tentar traduzir o termo para inglês
+              const searchTerm =
+                keywordTranslations[selectedKeyword.toLowerCase()] ||
+                selectedKeyword;
+
+              console.log(
+                `🔍 Buscando keyword: "${selectedKeyword}" ${
+                  searchTerm !== selectedKeyword
+                    ? `(traduzido para "${searchTerm}")`
+                    : ''
+                }`
+              );
+
               const keywordSearchUrl = `https://api.themoviedb.org/3/search/keyword?query=${encodeURIComponent(
-                selectedKeyword
+                searchTerm
               )}&page=1&api_key=${localStorage.getItem('tmdb_api_key')}`;
               const keywordRes = await fetch(keywordSearchUrl);
               const keywordData = await keywordRes.json();
@@ -578,11 +955,11 @@ export const HomePage: React.FC = () => {
                 // Pegar o ID da primeira keyword encontrada
                 params.with_keywords = keywordData.results[0].id;
                 console.log(
-                  `🔍 Keyword "${selectedKeyword}" resolvida para ID: ${params.with_keywords}`
+                  `🔍 Keyword "${searchTerm}" resolvida para ID: ${params.with_keywords}`
                 );
               } else {
                 console.warn(
-                  `⚠️ Keyword "${selectedKeyword}" não encontrada. Ignorando filtro.`
+                  `⚠️ Keyword "${searchTerm}" não encontrada. Ignorando filtro.`
                 );
               }
             } catch (e) {
@@ -601,15 +978,18 @@ export const HomePage: React.FC = () => {
             localStorage.getItem('tmdb_api_key') || ''
           );
           apiUrl.searchParams.append('language', 'pt-BR');
-          
+
           // Debug: log da URL completa
           console.log('🔍 API URL:', apiUrl.toString());
           console.log('📊 Params:', params);
-          
+
           const res = await fetch(apiUrl.toString());
           response = await res.json();
-          
-          console.log('📊 Resultados encontrados:', response.results?.length || 0);
+
+          console.log(
+            '📊 Resultados encontrados:',
+            response.results?.length || 0
+          );
         }
       } else {
         // Mantém lógica antiga para atores/diretores
@@ -884,31 +1264,31 @@ export const HomePage: React.FC = () => {
       {/* Filtros avançados para filmes e séries (removidas as props do selectedStreamings) */}
       {(activeCategory === 'movies' || activeCategory === 'tv') && (
         <MovieFilters
-        providers={providerOptions}
-        selectedProvider={selectedProvider}
-        onProviderChange={setSelectedProvider}
-        studios={studioOptions}
-        selectedStudio={selectedStudio}
-        onStudioChange={setSelectedStudio}
-        genres={genreOptions}
-        selectedGenre={selectedGenre}
-        onGenreChange={setSelectedGenre}
-        orderOptions={orderOptions}
-        selectedOrder={selectedOrder}
-        onOrderChange={setSelectedOrder}
-        yearOptions={yearOptions}
-        selectedYear={selectedYear}
-        onYearChange={setSelectedYear}
-        languageOptions={languageOptions}
-        selectedLanguage={selectedLanguage}
-        onLanguageChange={setSelectedLanguage}
-        selectedRuntime={selectedRuntime}
-        onRuntimeChange={setSelectedRuntime}
-        selectedVoteCount={selectedVoteCount}
-        onVoteCountChange={setSelectedVoteCount}
-        selectedKeyword={selectedKeyword}
-        onKeywordChange={setSelectedKeyword}
-      />
+          providers={providerOptions}
+          selectedProvider={selectedProvider}
+          onProviderChange={setSelectedProvider}
+          studios={studioOptions}
+          selectedStudio={selectedStudio}
+          onStudioChange={setSelectedStudio}
+          genres={genreOptions}
+          selectedGenre={selectedGenre}
+          onGenreChange={setSelectedGenre}
+          orderOptions={orderOptions}
+          selectedOrder={selectedOrder}
+          onOrderChange={setSelectedOrder}
+          yearOptions={yearOptions}
+          selectedYear={selectedYear}
+          onYearChange={setSelectedYear}
+          languageOptions={languageOptions}
+          selectedLanguage={selectedLanguage}
+          onLanguageChange={setSelectedLanguage}
+          selectedRuntime={selectedRuntime}
+          onRuntimeChange={setSelectedRuntime}
+          selectedVoteCount={selectedVoteCount}
+          onVoteCountChange={setSelectedVoteCount}
+          selectedKeyword={selectedKeyword}
+          onKeywordChange={setSelectedKeyword}
+        />
       )}
 
       {/* Infinite Content Grid */}
