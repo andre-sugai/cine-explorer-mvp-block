@@ -101,13 +101,19 @@ export const ContentGrid: React.FC<ContentGridProps> = ({
           {filteredContent.map((item, index) => {
             const isLastItem = index === filteredContent.length - 1;
             return (
-              <ContentCard
+              <div
                 key={`${item.id}-${index}`}
-                ref={isLastItem ? lastElementRefCallback : null}
-                item={item}
-                category={category}
-                onItemClick={onItemClick}
-              />
+                style={{
+                  animationDelay: `${index * 50}ms`,
+                }}
+              >
+                <ContentCard
+                  ref={isLastItem ? lastElementRefCallback : null}
+                  item={item}
+                  category={category}
+                  onItemClick={onItemClick}
+                />
+              </div>
             );
           })}
         </div>

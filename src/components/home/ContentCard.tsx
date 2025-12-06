@@ -19,14 +19,25 @@ interface ContentCardProps {
 
 export const ContentCard = forwardRef<HTMLDivElement, ContentCardProps>(
   ({ item, category, onItemClick }, ref) => {
+    const [isLoaded, setIsLoaded] = React.useState(false);
     const navigate = useNavigate();
     const { addToFavorites, removeFromFavorites, isFavorite } =
       useFavoritesContext();
 
+    React.useEffect(() => {
+      // Trigger animation after component mounts
+      const timer = setTimeout(() => setIsLoaded(true), 50);
+      return () => clearTimeout(timer);
+    }, []);
+
     // Fetch streaming provider
     const streamingProvider = useStreamingProvider(
       item.id,
-      'title' in item ? 'movie' : 'name' in item && 'first_air_date' in item ? 'tv' : undefined
+      'title' in item
+        ? 'movie'
+        : 'name' in item && 'first_air_date' in item
+        ? 'tv'
+        : undefined
     );
 
     const handleItemClick = () => {
@@ -98,11 +109,12 @@ export const ContentCard = forwardRef<HTMLDivElement, ContentCardProps>(
     return (
       <Card
         ref={ref}
-        className="
-          group cursor-pointer transition-all duration-300 
+        className={`
+          group cursor-pointer transition-all duration-500
           hover:scale-105 hover:shadow-glow border-primary/20
           bg-gradient-cinema overflow-hidden
-        "
+          ${isLoaded ? 'animate-flip-in' : 'opacity-0'}
+        `}
         onClick={handleItemClick}
       >
         <CardContent className="p-0">
@@ -172,26 +184,28 @@ export const ContentCard = forwardRef<HTMLDivElement, ContentCardProps>(
                 />
               </button>
             )}
-            
+
             {/* Botões AddToList e Blacklist no topo esquerdo */}
             {'title' in item && (
               <div className="absolute top-2 left-2 z-10 flex flex-row gap-2">
-                <AddToListButton 
-                  id={item.id} 
-                  title={item.title} 
-                  poster_path={item.poster_path} 
-                  type="movie" 
+                <AddToListButton
+                  id={item.id}
+                  title={item.title}
+                  poster_path={item.poster_path}
+                  type="movie"
                 />
                 <BlacklistButton title={item.title} type="movie" />
               </div>
             )}
             {'name' in item && 'first_air_date' in item && (
               <div className="absolute top-2 left-2 z-10 flex flex-row gap-2">
-                <AddToListButton 
-                  id={item.id} 
-                  title={item.name} 
-                  poster_path={'poster_path' in item ? item.poster_path : undefined} 
-                  type="tv" 
+                <AddToListButton
+                  id={item.id}
+                  title={item.name}
+                  poster_path={
+                    'poster_path' in item ? item.poster_path : undefined
+                  }
+                  type="tv"
                 />
                 <BlacklistButton title={item.name} type="tv" />
               </div>
@@ -222,18 +236,23 @@ export const ContentCard = forwardRef<HTMLDivElement, ContentCardProps>(
                   )}
 
                   {/* Department para pessoas - só exibe se não for diretor nem ator */}
-                  {'known_for_department' in item && !isDirector && !isActor && (
-                    <div className="flex items-center gap-1">
-                      <Users className="w-3 h-3" />
-                      {item.known_for_department}
-                    </div>
-                  )}
+                  {'known_for_department' in item &&
+                    !isDirector &&
+                    !isActor && (
+                      <div className="flex items-center gap-1">
+                        <Users className="w-3 h-3" />
+                        {item.known_for_department}
+                      </div>
+                    )}
                 </div>
               </div>
 
               {/* Streaming Logo */}
               {streamingProvider.logoPath && (
-                <div className="flex-shrink-0 mb-2" title={`Disponível em ${streamingProvider.providerName}`}>
+                <div
+                  className="flex-shrink-0 mb-2"
+                  title={`Disponível em ${streamingProvider.providerName}`}
+                >
                   <img
                     src={streamingProvider.logoPath}
                     alt={streamingProvider.providerName || 'Streaming Service'}
