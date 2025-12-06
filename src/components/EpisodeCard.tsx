@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, Star, Clock, Eye, EyeOff } from 'lucide-react';
+import { Calendar, Star, Clock, Check, X } from 'lucide-react';
 import { buildImageUrl } from '@/utils/tmdb';
 import { useWatchedContext } from '@/context/WatchedContext';
 import { toast } from 'sonner';
@@ -52,13 +52,21 @@ export const EpisodeCard: React.FC<EpisodeCardProps> = ({ episode, tvId }) => {
   return (
     <Card className="overflow-hidden bg-secondary/30 border-primary/10 hover:bg-secondary/50 transition-colors relative group">
       <div className="flex flex-col md:flex-row gap-4">
-        {/* Image */}
-        <div className="w-full md:w-64 flex-shrink-0 relative aspect-video md:aspect-auto">
+        {/* Image - Clicável para marcar como assistido */}
+        <div
+          className="w-full md:w-64 flex-shrink-0 relative aspect-video md:aspect-auto cursor-pointer group/thumb"
+          onClick={handleToggleWatched}
+          title={
+            watched
+              ? 'Clique para remover dos vistos'
+              : 'Clique para marcar como visto'
+          }
+        >
           <img
             src={buildImageUrl(episode.still_path, 'w500')}
             alt={episode.name}
-            className={`w-full h-full object-cover transition-opacity ${
-              watched ? 'opacity-60 grayscale' : ''
+            className={`w-full h-full object-cover transition-all ${
+              watched ? 'opacity-60 grayscale' : 'group-hover/thumb:opacity-90'
             }`}
             loading="lazy"
             onError={(e) => {
@@ -67,6 +75,8 @@ export const EpisodeCard: React.FC<EpisodeCardProps> = ({ episode, tvId }) => {
                 'https://images.unsplash.com/photo-1594909122845-11baa439b7bf?w=500&h=281&fit=crop';
             }}
           />
+
+          {/* Badge do número do episódio */}
           <div className="absolute top-2 left-2">
             <Badge
               variant="secondary"
@@ -75,11 +85,27 @@ export const EpisodeCard: React.FC<EpisodeCardProps> = ({ episode, tvId }) => {
               EP {episode.episode_number}
             </Badge>
           </div>
-          {watched && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-              <Eye className="w-8 h-8 text-primary drop-shadow-lg" />
-            </div>
-          )}
+
+          {/* Overlay de hover e estado assistido */}
+          <div
+            className={`absolute inset-0 flex items-center justify-center transition-all ${
+              watched
+                ? 'bg-black/20 group-hover/thumb:bg-black/40'
+                : 'bg-black/0 group-hover/thumb:bg-black/40'
+            }`}
+          >
+            {watched ? (
+              <div className="relative">
+                {/* Check verde sempre visível quando assistido */}
+                <Check className="w-16 h-16 text-green-500 drop-shadow-lg stroke-[3]" />
+                {/* X vermelho aparece no hover para remover */}
+                <X className="w-16 h-16 text-red-500 drop-shadow-lg stroke-[3] absolute inset-0 opacity-0 group-hover/thumb:opacity-100 transition-opacity" />
+              </div>
+            ) : (
+              /* Check branco aparece no hover para marcar como assistido */
+              <Check className="w-16 h-16 text-white drop-shadow-lg stroke-[2.5] opacity-0 group-hover/thumb:opacity-100 transition-opacity" />
+            )}
+          </div>
         </div>
 
         {/* Content */}
@@ -100,17 +126,15 @@ export const EpisodeCard: React.FC<EpisodeCardProps> = ({ episode, tvId }) => {
                     size="icon"
                     className={`h-8 w-8 rounded-full ${
                       watched
-                        ? 'text-primary hover:text-primary/80'
-                        : 'text-muted-foreground hover:text-primary'
+                        ? 'text-green-500 hover:text-green-600 bg-green-500/10'
+                        : 'text-muted-foreground hover:text-green-500'
                     }`}
                     onClick={handleToggleWatched}
                     title={watched ? 'Remover dos vistos' : 'Marcar como visto'}
                   >
-                    {watched ? (
-                      <Eye className="h-5 w-5 fill-current" />
-                    ) : (
-                      <EyeOff className="h-5 w-5" />
-                    )}
+                    <Check
+                      className={`h-5 w-5 ${watched ? 'stroke-[3]' : ''}`}
+                    />
                   </Button>
                 </div>
               </div>
