@@ -296,11 +296,11 @@ export const getMovieDetails = async (id: number) => {
     }
 
     const data = await response.json();
-    
+
     // Save to cache
     setCacheItem(cacheKey, data, CACHE_TTL.MOVIE_DETAILS);
     console.log(`💾 Cached: movie ${id}`);
-    
+
     return data;
   } catch (error) {
     console.error('Error getting movie details:', error);
@@ -329,11 +329,11 @@ export const getTVShowDetails = async (id: number) => {
     }
 
     const data = await response.json();
-    
+
     // Save to cache
     setCacheItem(cacheKey, data, CACHE_TTL.TV_DETAILS);
     console.log(`💾 Cached: TV show ${id}`);
-    
+
     return data;
   } catch (error) {
     console.error('Error getting TV show details:', error);
@@ -342,7 +342,10 @@ export const getTVShowDetails = async (id: number) => {
 };
 
 // Detalhes da temporada
-export const getTVSeasonDetails = async (tvId: number, seasonNumber: number) => {
+export const getTVSeasonDetails = async (
+  tvId: number,
+  seasonNumber: number
+) => {
   try {
     const url = buildApiUrl(`/tv/${tvId}/season/${seasonNumber}`);
 
@@ -396,11 +399,11 @@ export const getPersonDetails = async (id: number) => {
     }
 
     const data = await response.json();
-    
+
     // Save to cache
     setCacheItem(cacheKey, data, CACHE_TTL.PERSON_DETAILS);
     console.log(`💾 Cached: person ${id}`);
-    
+
     return data;
   } catch (error) {
     console.error('Error getting person details:', error);
@@ -1436,5 +1439,74 @@ export const searchKeywords = async (query: string) => {
   } catch (error) {
     console.error('Error searching keywords:', error);
     return { results: [] };
+  }
+};
+
+// Helper auxiliar para buscar coleções populares a partir de filmes populares
+export const getPopularCollections = async (page: number = 1) => {
+  try {
+    console.log('🔍 Buscando coleções populares - página:', page);
+
+    // 1. Buscar múltiplas páginas de filmes para ter mais coleções
+    const startPage = (page - 1) * 2 + 1; // Cada página de coleções busca 2 páginas de filmes
+    const endPage = startPage + 1;
+
+    console.log(`📊 Buscando filmes das páginas ${startPage} a ${endPage}`);
+
+    const moviesPromises = [];
+    for (let p = startPage; p <= endPage; p++) {
+      moviesPromises.push(getPopularMovies(p));
+    }
+
+    const moviesResults = await Promise.all(moviesPromises);
+    const allMovies = moviesResults.flatMap((result) => result.results);
+
+    console.log('📊 Total de filmes populares encontrados:', allMovies.length);
+
+    // 2. Extrair IDs de coleções dos filmes que pertencem a uma coleção
+    const potentialMovies = allMovies; // Usar todos os filmes encontrados
+    console.log(
+      '🎬 Verificando',
+      potentialMovies.length,
+      'filmes para coleções...'
+    );
+
+    const collectionsPromises = potentialMovies.map((movie) =>
+      getMovieDetails(movie.id)
+    );
+    const moviesDetails = await Promise.all(collectionsPromises);
+
+    // Filtrar apenas filmes que têm coleção
+    const collectionIds = new Set<number>();
+    const validCollections = [];
+
+    for (const movie of moviesDetails) {
+      if (movie.belongs_to_collection) {
+        console.log('✅ Coleção encontrada:', movie.belongs_to_collection.name);
+        if (!collectionIds.has(movie.belongs_to_collection.id)) {
+          collectionIds.add(movie.belongs_to_collection.id);
+          // Buscar detalhes completos da coleção para ter a lista de partes
+          validCollections.push(
+            getCollectionDetails(movie.belongs_to_collection.id)
+          );
+        }
+      }
+    }
+
+    console.log(
+      '📚 Total de coleções únicas encontradas:',
+      validCollections.length
+    );
+
+    const collectionsResults = await Promise.all(validCollections);
+    console.log(
+      '✅ Coleções carregadas com sucesso:',
+      collectionsResults.length
+    );
+
+    return collectionsResults;
+  } catch (error) {
+    console.error('❌ Error getting popular collections:', error);
+    return []; // Retornar array vazio em vez de throw
   }
 };

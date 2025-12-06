@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { SearchSection } from './home/SearchSection';
 import { CategoryTabs } from './home/CategoryTabs';
 import { ContentGrid } from './home/ContentGrid';
+import { CollectionsGrid } from './home/CollectionsGrid';
 import { MovieFilters } from './home/MovieFilters';
 
 import {
@@ -12,6 +13,7 @@ import {
   getAllGenres,
   getNowPlayingMovies,
   searchKeywords,
+  getPopularCollections,
 } from '@/utils/tmdb';
 
 import { filterAdultContent } from '@/utils/adultContentFilter';
@@ -19,7 +21,13 @@ import { TMDBMovie, TMDBTVShow, TMDBPerson, TMDBGenre } from '@/utils/tmdb';
 import { useFilterPersistence } from '@/hooks/useFilterPersistence';
 import { useScrollManager } from '@/hooks/useScrollManager';
 
-type ContentCategory = 'movies' | 'tv' | 'actors' | 'directors' | 'cinema';
+type ContentCategory =
+  | 'movies'
+  | 'tv'
+  | 'actors'
+  | 'directors'
+  | 'cinema'
+  | 'collections';
 
 export const HomePage: React.FC = () => {
   // Hook de persistência de filtros (removidas as referencias ao selectedStreamings)
@@ -53,6 +61,7 @@ export const HomePage: React.FC = () => {
   const [content, setContent] = useState<
     (TMDBMovie | TMDBTVShow | TMDBPerson)[]
   >([]);
+  const [collections, setCollections] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -475,6 +484,24 @@ export const HomePage: React.FC = () => {
     try {
       setIsLoading(true);
       let response: any;
+
+      // Tratar coleções separadamente
+      if (category === 'collections') {
+        console.log('🔍 HomePage: Carregando coleções, página:', pageNum);
+        const collectionsData = await getPopularCollections(pageNum);
+        console.log('📚 HomePage: Coleções recebidas:', collectionsData.length);
+        if (reset) {
+          setCollections(collectionsData);
+          console.log('✅ HomePage: Coleções definidas (reset)');
+        } else {
+          setCollections((prev) => [...prev, ...collectionsData]);
+          console.log('✅ HomePage: Coleções adicionadas');
+        }
+        setHasMore(collectionsData.length > 0);
+        setIsLoading(false);
+        return;
+      }
+
       if (category === 'movies' || category === 'tv' || category === 'cinema') {
         // Montar parâmetros para discover
         const params: any = {
@@ -1078,16 +1105,32 @@ export const HomePage: React.FC = () => {
         );
       }
 
-      console.log(
-        `📊 FINAL: Definindo ${filteredResults.length} itens para exibição`
-      );
+      if (category === 'actors' || category === 'directors') {
+        // Para atores e diretores, a busca é diferente
+        const results =
+          category === 'actors'
+            ? await getPopularPeople(pageNum)
+            : await fetchDirectors(pageNum);
 
-      if (reset) {
-        setContent(filteredResults);
+        if (reset) {
+          setContent(results.results || results); // fetchDirectors retorna array direto
+        } else {
+          setContent((prev) => [...prev, ...(results.results || results)]);
+        }
+        setHasMore(true); // Assumindo sempre mais por enquanto
       } else {
-        setContent((prev) => [...prev, ...filteredResults]);
+        // Processar resultados de filmes/séries.
+        console.log(
+          `📊 FINAL: Definindo ${filteredResults.length} itens para exibição`
+        );
+
+        if (reset) {
+          setContent(filteredResults);
+        } else {
+          setContent((prev) => [...prev, ...filteredResults]);
+        }
+        setHasMore(pageNum < (response.total_pages || 1));
       }
-      setHasMore(pageNum < (response.total_pages || 1));
     } catch (error) {
       console.error('Error loading content:', error);
     } finally {
@@ -1218,10 +1261,20 @@ export const HomePage: React.FC = () => {
   useEffect(() => {
     if (!isRestored) return;
 
-    if (activeCategory === 'movies' || activeCategory === 'tv') {
-      setPage(1);
-      loadContentComFiltros(activeCategory, 1, true);
+    // Carregar conteúdo quando mudar categoria ou filtros
+    // Para actors, directors e collections, carregar apenas quando mudar a categoria
+    if (
+      activeCategory === 'actors' ||
+      activeCategory === 'directors' ||
+      activeCategory === 'collections'
+    ) {
+      // Não recarregar quando mudar filtros, apenas quando mudar categoria
+      return;
     }
+
+    // Para movies e tv, recarregar quando mudar filtros
+    setPage(1);
+    loadContentComFiltros(activeCategory, 1, true);
     // eslint-disable-next-line
   }, [
     activeCategory,
@@ -1292,14 +1345,23 @@ export const HomePage: React.FC = () => {
       )}
 
       {/* Infinite Content Grid */}
-      <ContentGrid
-        content={content}
-        category={activeCategory}
-        isLoading={isLoading}
-        hasMore={hasMore}
-        onLoadMore={handleLoadMore}
-        onItemClick={saveScrollPosition}
-      />
+      {activeCategory === 'collections' ? (
+        <CollectionsGrid
+          collections={collections}
+          isLoading={isLoading}
+          hasMore={hasMore}
+          onLoadMore={handleLoadMore}
+        />
+      ) : (
+        <ContentGrid
+          content={content}
+          category={activeCategory}
+          isLoading={isLoading}
+          hasMore={hasMore}
+          onLoadMore={handleLoadMore}
+          onItemClick={saveScrollPosition}
+        />
+      )}
     </div>
   );
 };

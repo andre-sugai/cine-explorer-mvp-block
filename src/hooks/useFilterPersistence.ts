@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
-type ContentCategory = 'movies' | 'tv' | 'actors' | 'directors' | 'cinema';
+type ContentCategory = 'movies' | 'tv' | 'actors' | 'directors' | 'cinema' | 'collections';
 
 interface FiltersState {
   activeCategory: ContentCategory;

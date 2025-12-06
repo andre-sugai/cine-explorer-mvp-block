@@ -1,8 +1,14 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Film, Tv, Users, Camera, Calendar } from 'lucide-react';
+import { Film, Tv, Users, Camera, Calendar, Library } from 'lucide-react';
 
-type ContentCategory = 'movies' | 'tv' | 'actors' | 'directors' | 'cinema';
+type ContentCategory =
+  | 'movies'
+  | 'tv'
+  | 'actors'
+  | 'directors'
+  | 'cinema'
+  | 'collections';
 
 interface CategoryTabsProps {
   activeCategory: ContentCategory;
@@ -13,6 +19,12 @@ export const CategoryTabs: React.FC<CategoryTabsProps> = ({
   activeCategory,
   onCategoryChange,
 }) => {
+  const [indicatorStyle, setIndicatorStyle] = React.useState({
+    left: 0,
+    width: 0,
+  });
+  const buttonsRef = React.useRef<(HTMLButtonElement | null)[]>([]);
+
   const categories = [
     {
       id: 'movies' as ContentCategory,
@@ -44,7 +56,30 @@ export const CategoryTabs: React.FC<CategoryTabsProps> = ({
       icon: Camera,
       description: 'Diretores renomados',
     },
+    {
+      id: 'collections' as ContentCategory,
+      label: 'Coleções',
+      icon: Library,
+      description: 'Séries de filmes',
+    },
   ];
+
+  React.useEffect(() => {
+    const activeIndex = categories.findIndex(
+      (cat) => cat.id === activeCategory
+    );
+    const activeButton = buttonsRef.current[activeIndex];
+
+    if (activeButton) {
+      const parent = activeButton.parentElement;
+      if (parent) {
+        setIndicatorStyle({
+          left: activeButton.offsetLeft,
+          width: activeButton.offsetWidth,
+        });
+      }
+    }
+  }, [activeCategory]);
 
   return (
     <section className="px-4">
@@ -59,44 +94,52 @@ export const CategoryTabs: React.FC<CategoryTabsProps> = ({
         </div>
 
         {/* Category Navigation */}
-        <div className="flex justify-center">
-          <div
-            className="
-            flex gap-2 p-2 bg-secondary/30 rounded-lg border border-primary/20
-            overflow-x-auto scrollbar-hide max-w-full
-          "
-          >
-            {categories.map((category) => {
+        <div className="w-full">
+          <div className="relative grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 p-2 bg-secondary/30 rounded-lg border border-primary/20">
+            {/* Indicador deslizante */}
+            <div
+              className="absolute bg-gradient-gold rounded-md shadow-glow transition-all duration-500 ease-in-out pointer-events-none"
+              style={{
+                left: `${indicatorStyle.left}px`,
+                width: `${indicatorStyle.width}px`,
+                top: '8px',
+                bottom: '8px',
+                zIndex: 0,
+              }}
+            />
+
+            {categories.map((category, index) => {
               const Icon = category.icon;
               const isActive = activeCategory === category.id;
 
               return (
                 <Button
                   key={category.id}
+                  ref={(el) => (buttonsRef.current[index] = el)}
                   onClick={() => onCategoryChange(category.id)}
-                  variant={isActive ? 'default' : 'ghost'}
+                  variant="ghost"
                   className={`
-                    flex items-center gap-3 px-6 py-3 rounded-md transition-all duration-200
-                    whitespace-nowrap min-w-fit
+                    relative z-10 flex flex-col items-center justify-center gap-1 p-3 rounded-md 
+                    transition-colors duration-300 ease-in-out
+                    h-auto min-h-[70px]
+                    hover:bg-transparent focus:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0
                     ${
                       isActive
-                        ? 'bg-gradient-gold text-cinema-dark shadow-glow font-semibold'
-                        : 'text-foreground hover:text-primary hover:bg-secondary/50'
+                        ? 'text-cinema-dark font-semibold'
+                        : 'text-foreground hover:text-primary'
                     }
                   `}
                 >
-                  <Icon className="w-5 h-5" />
-                  <div className="text-left">
-                    <div className="font-medium">{category.label}</div>
-                    <div
-                      className={`text-xs ${
-                        isActive
-                          ? 'text-cinema-dark/70'
-                          : 'text-muted-foreground'
-                      }`}
-                    >
-                      {category.description}
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <Icon className="w-5 h-5" />
+                    <div className="font-medium text-sm">{category.label}</div>
+                  </div>
+                  <div
+                    className={`text-xs ${
+                      isActive ? 'text-cinema-dark/70' : 'text-muted-foreground'
+                    }`}
+                  >
+                    {category.description}
                   </div>
                 </Button>
               );

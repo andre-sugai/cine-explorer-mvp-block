@@ -23,6 +23,8 @@ const CollectionDetails: React.FC = () => {
     queryKey: ['collection-details', id],
     queryFn: () => getCollectionDetails(Number(id)),
     enabled: !!id,
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    gcTime: 10 * 60 * 1000, // 10 minutos (anteriormente cacheTime)
   });
 
   useEffect(() => {
@@ -134,6 +136,9 @@ const CollectionDetails: React.FC = () => {
                 key={movie.id}
                 item={movie as TMDBMovie}
                 category="movies"
+                onItemClick={() => {
+                  // Callback vazio para evitar problemas de navegação
+                }}
               />
             ))}
           </div>

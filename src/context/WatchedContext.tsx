@@ -49,6 +49,63 @@ interface WatchedContextData {
 
 const WatchedContext = createContext<WatchedContextData | undefined>(undefined);
 
+// Helper function to safely save to localStorage with quota handling
+const safeLocalStorageSetItem = (key: string, value: string): boolean => {
+  try {
+    safeLocalStorageSetItem(key, value);
+    return true;
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+      console.warn(
+        '⚠️ LocalStorage quota exceeded. Attempting to clean old data...'
+      );
+
+      try {
+        // Try to get current data
+        const currentData = localStorage.getItem(key);
+        if (currentData) {
+          const parsed = JSON.parse(currentData);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            // Keep only the most recent 50% of items
+            const halfLength = Math.floor(parsed.length / 2);
+            const recentItems = parsed.slice(-halfLength);
+
+            console.log(
+              `🧹 Cleaning localStorage: ${parsed.length} → ${recentItems.length} items`
+            );
+
+            safeLocalStorageSetItem(key, JSON.stringify(recentItems));
+
+            // Try to save the new value again
+            const newData = JSON.parse(value);
+            const combined = [...recentItems, ...newData.slice(-10)]; // Keep last 10 new items
+            safeLocalStorageSetItem(key, JSON.stringify(combined));
+
+            console.log('✅ Successfully saved after cleanup');
+            return true;
+          }
+        }
+      } catch (cleanupError) {
+        console.error('❌ Failed to cleanup localStorage:', cleanupError);
+      }
+
+      // If cleanup failed, clear the storage as last resort
+      console.warn('⚠️ Clearing localStorage as last resort...');
+      try {
+        localStorage.removeItem(key);
+        safeLocalStorageSetItem(key, value);
+        return true;
+      } catch (finalError) {
+        console.error('❌ Failed to save even after clearing:', finalError);
+        return false;
+      }
+    }
+
+    console.error('❌ Error saving to localStorage:', error);
+    return false;
+  }
+};
+
 export const WatchedProvider = ({ children }: { children: ReactNode }) => {
   const { user, isAuthenticated } = useAuth();
   const [watched, setWatched] = useState<WatchedItem[]>([]);
@@ -79,7 +136,7 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
 
         // Atualizar localStorage com dados limpos se houve duplicatas
         if (uniqueWatched.length !== parsedWatched.length) {
-          localStorage.setItem(
+          safeLocalStorageSetItem(
             'cine-explorer-watched',
             JSON.stringify(uniqueWatched)
           );
@@ -100,7 +157,8 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return;
 
     // Verificar se a sincronização está ativada
-    const isSyncEnabled = localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
+    const isSyncEnabled =
+      localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
     if (!isSyncEnabled) {
       loadWatchedFromLocalStorage();
       return;
@@ -168,7 +226,7 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
       setWatched(finalWatched);
 
       // Sincronizar com localStorage como backup
-      localStorage.setItem(
+      safeLocalStorageSetItem(
         'cine-explorer-watched',
         JSON.stringify(finalWatched)
       );
@@ -236,7 +294,8 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
       year: releaseYear,
     };
 
-    const isSyncEnabled = localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
+    const isSyncEnabled =
+      localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
 
     if (isAuthenticated && user && isSyncEnabled) {
       // Add to Supabase
@@ -258,7 +317,7 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
         setWatched((prev) => {
           const newWatched = [...prev, watchedItem];
           // Sincronizar com localStorage como backup
-          localStorage.setItem(
+          safeLocalStorageSetItem(
             'cine-explorer-watched',
             JSON.stringify(newWatched)
           );
@@ -269,7 +328,7 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
         // Em caso de erro, ainda salvar no localStorage como fallback
         setWatched((prev) => {
           const newWatched = [...prev, watchedItem];
-          localStorage.setItem(
+          safeLocalStorageSetItem(
             'cine-explorer-watched',
             JSON.stringify(newWatched)
           );
@@ -280,7 +339,7 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
       // Add to localStorage for non-authenticated users
       setWatched((prev) => {
         const newWatched = [...prev, watchedItem];
-        localStorage.setItem(
+        safeLocalStorageSetItem(
           'cine-explorer-watched',
           JSON.stringify(newWatched)
         );
@@ -299,11 +358,12 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
         (item) => !(item.id === id && item.type === type)
       );
       // Atualizar localStorage imediatamente
-      localStorage.setItem('cine-explorer-watched', JSON.stringify(newWatched));
+      safeLocalStorageSetItem('cine-explorer-watched', JSON.stringify(newWatched));
       return newWatched;
     });
 
-    const isSyncEnabled = localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
+    const isSyncEnabled =
+      localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
 
     if (isAuthenticated && user && isSyncEnabled) {
       // Remove from Supabase
@@ -321,7 +381,7 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
           if (itemToRemove) {
             setWatched((prev) => {
               const restoredWatched = [...prev, itemToRemove];
-              localStorage.setItem(
+              safeLocalStorageSetItem(
                 'cine-explorer-watched',
                 JSON.stringify(restoredWatched)
               );
@@ -335,7 +395,7 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
         if (itemToRemove) {
           setWatched((prev) => {
             const restoredWatched = [...prev, itemToRemove];
-            localStorage.setItem(
+            safeLocalStorageSetItem(
               'cine-explorer-watched',
               JSON.stringify(restoredWatched)
             );
@@ -354,7 +414,8 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
     setWatched([]);
     localStorage.removeItem('cine-explorer-watched');
 
-    const isSyncEnabled = localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
+    const isSyncEnabled =
+      localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
 
     if (isAuthenticated && user && isSyncEnabled) {
       // Clear from Supabase
@@ -368,7 +429,7 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
           console.error('Error clearing watched list in Supabase:', error);
           // Se falhar, restaurar dados
           setWatched(watchedBackup);
-          localStorage.setItem(
+          safeLocalStorageSetItem(
             'cine-explorer-watched',
             JSON.stringify(watchedBackup)
           );
@@ -377,7 +438,7 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
         console.error('Error clearing watched list in Supabase:', error);
         // Se falhar, restaurar dados
         setWatched(watchedBackup);
-        localStorage.setItem(
+        safeLocalStorageSetItem(
           'cine-explorer-watched',
           JSON.stringify(watchedBackup)
         );
@@ -389,7 +450,7 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
     setWatched((prev) => {
       const validWatched = prev.filter((item) => item.poster_path);
       if (validWatched.length !== prev.length) {
-        localStorage.setItem(
+        safeLocalStorageSetItem(
           'cine-explorer-watched',
           JSON.stringify(validWatched)
         );

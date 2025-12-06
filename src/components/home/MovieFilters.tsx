@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 interface Provider {
@@ -66,165 +65,169 @@ export const MovieFilters: React.FC<MovieFiltersProps> = ({
   onKeywordChange,
 }) => {
   return (
-    <div className="flex flex-wrap gap-4 items-center justify-center my-6">
-      {/* Dropdown de Streaming */}
-      <div className="min-w-[200px]">
-        <label className="block text-sm mb-1 font-medium text-primary">
-          Streaming
-        </label>
-        <select
-          value={selectedProvider}
-          onChange={(e) => onProviderChange(e.target.value)}
-          className="w-full rounded px-3 py-2 bg-secondary/50 border border-primary/20"
-        >
-          {providers.map((provider) => (
-            <option
-              key={provider.provider_id || 'all'}
-              value={provider.provider_id}
+    <div className="px-4 my-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          {/* Dropdown de Streaming */}
+          <div className="w-full">
+            <label className="block text-sm mb-1 font-medium text-primary">
+              Streaming
+            </label>
+            <select
+              value={selectedProvider}
+              onChange={(e) => onProviderChange(e.target.value)}
+              className="w-full rounded px-3 py-2 bg-secondary/50 border border-primary/20"
             >
-              {provider.provider_name}
-            </option>
-          ))}
-        </select>
-      </div>
-      
-      {/* Dropdown de Estúdios */}
-      <div className="min-w-[200px]">
-        <label className="block text-sm mb-1 font-medium text-primary">
-          Estúdios
-        </label>
-        <select
-          value={selectedStudio}
-          onChange={(e) => onStudioChange(e.target.value)}
-          className="w-full rounded px-3 py-2 bg-secondary/50 border border-primary/20"
-        >
-          {studios.map((studio) => (
-            <option key={studio.value} value={studio.value}>
-              {studio.label}
-            </option>
-          ))}
-        </select>
-      </div>
-      
-      {/* Dropdown de Gêneros */}
-      <div className="min-w-[180px]">
-        <label className="block text-sm mb-1 font-medium text-primary">
-          Gêneros
-        </label>
-        <select
-          value={selectedGenre}
-          onChange={(e) => onGenreChange(e.target.value)}
-          className="w-full rounded px-3 py-2 bg-secondary/50 border border-primary/20"
-        >
-          <option value="">Todos os gêneros</option>
-          {genres.map((genre) => (
-            <option key={genre.id} value={genre.id.toString()}>
-              {genre.name}
-            </option>
-          ))}
-        </select>
-      </div>
-      
-      {/* Dropdown de Ordenação */}
-      <div className="min-w-[180px]">
-        <label className="block text-sm mb-1 font-medium text-primary">
-          Ordenação
-        </label>
-        <select
-          value={selectedOrder}
-          onChange={(e) => onOrderChange(e.target.value)}
-          className="w-full rounded px-3 py-2 bg-secondary/50 border border-primary/20"
-        >
-          {orderOptions.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-      </div>
-      
-      {/* Dropdown de Ano/Década */}
-      <div className="min-w-[140px]">
-        <label className="block text-sm mb-1 font-medium text-primary">
-          Ano/Década
-        </label>
-        <select
-          value={selectedYear}
-          onChange={(e) => onYearChange(e.target.value)}
-          className="w-full rounded px-3 py-2 bg-secondary/50 border border-primary/20"
-        >
-          {yearOptions.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-      </div>
-      
-      {/* Dropdown de Idioma */}
-      <div className="min-w-[140px]">
-        <label className="block text-sm mb-1 font-medium text-primary">
-          Idioma
-        </label>
-        <select
-          value={selectedLanguage}
-          onChange={(e) => onLanguageChange(e.target.value)}
-          className="w-full rounded px-3 py-2 bg-secondary/50 border border-primary/20"
-        >
-          {languageOptions.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-      </div>
+              {providers.map((provider) => (
+                <option
+                  key={provider.provider_id || 'all'}
+                  value={provider.provider_id}
+                >
+                  {provider.provider_name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-      {/* Dropdown de Duração */}
-      <div className="min-w-[140px]">
-        <label className="block text-sm mb-1 font-medium text-primary">
-          Duração
-        </label>
-        <select
-          value={selectedRuntime}
-          onChange={(e) => onRuntimeChange(e.target.value)}
-          className="w-full rounded px-3 py-2 bg-secondary/50 border border-primary/20"
-        >
-          <option value="">Qualquer</option>
-          <option value="90">Menos de 90 min</option>
-          <option value="120">Menos de 2h</option>
-          <option value="180">Menos de 3h</option>
-        </select>
-      </div>
+          {/* Dropdown de Estúdios */}
+          <div className="w-full">
+            <label className="block text-sm mb-1 font-medium text-primary">
+              Estúdios
+            </label>
+            <select
+              value={selectedStudio}
+              onChange={(e) => onStudioChange(e.target.value)}
+              className="w-full rounded px-3 py-2 bg-secondary/50 border border-primary/20"
+            >
+              {studios.map((studio) => (
+                <option key={studio.value} value={studio.value}>
+                  {studio.label}
+                </option>
+              ))}
+            </select>
+          </div>
 
-      {/* Dropdown de Votos */}
-      <div className="min-w-[140px]">
-        <label className="block text-sm mb-1 font-medium text-primary">
-          Avaliações
-        </label>
-        <select
-          value={selectedVoteCount}
-          onChange={(e) => onVoteCountChange(e.target.value)}
-          className="w-full rounded px-3 py-2 bg-secondary/50 border border-primary/20"
-        >
-          <option value="">Qualquer</option>
-          <option value="100">Mais de 100</option>
-          <option value="500">Mais de 500</option>
-          <option value="1000">Mais de 1000</option>
-        </select>
-      </div>
+          {/* Dropdown de Gêneros */}
+          <div className="w-full">
+            <label className="block text-sm mb-1 font-medium text-primary">
+              Gêneros
+            </label>
+            <select
+              value={selectedGenre}
+              onChange={(e) => onGenreChange(e.target.value)}
+              className="w-full rounded px-3 py-2 bg-secondary/50 border border-primary/20"
+            >
+              <option value="">Todos os gêneros</option>
+              {genres.map((genre) => (
+                <option key={genre.id} value={genre.id.toString()}>
+                  {genre.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-      {/* Input de Palavras-chave (Tema) */}
-      <div className="min-w-[200px]">
-        <label className="block text-sm mb-1 font-medium text-primary">
-          Tema (Palavra-chave)
-        </label>
-        <input
-          type="text"
-          value={selectedKeyword}
-          onChange={(e) => onKeywordChange(e.target.value)}
-          placeholder="Ex: viagem no tempo..."
-          className="w-full rounded px-3 py-2 bg-secondary/50 border border-primary/20 text-foreground placeholder:text-muted-foreground"
-        />
+          {/* Dropdown de Ordenação */}
+          <div className="w-full">
+            <label className="block text-sm mb-1 font-medium text-primary">
+              Ordenação
+            </label>
+            <select
+              value={selectedOrder}
+              onChange={(e) => onOrderChange(e.target.value)}
+              className="w-full rounded px-3 py-2 bg-secondary/50 border border-primary/20"
+            >
+              {orderOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Dropdown de Ano/Década */}
+          <div className="w-full">
+            <label className="block text-sm mb-1 font-medium text-primary">
+              Ano/Década
+            </label>
+            <select
+              value={selectedYear}
+              onChange={(e) => onYearChange(e.target.value)}
+              className="w-full rounded px-3 py-2 bg-secondary/50 border border-primary/20"
+            >
+              {yearOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Dropdown de Idioma */}
+          <div className="w-full">
+            <label className="block text-sm mb-1 font-medium text-primary">
+              Idioma
+            </label>
+            <select
+              value={selectedLanguage}
+              onChange={(e) => onLanguageChange(e.target.value)}
+              className="w-full rounded px-3 py-2 bg-secondary/50 border border-primary/20"
+            >
+              {languageOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Dropdown de Duração */}
+          <div className="w-full">
+            <label className="block text-sm mb-1 font-medium text-primary">
+              Duração
+            </label>
+            <select
+              value={selectedRuntime}
+              onChange={(e) => onRuntimeChange(e.target.value)}
+              className="w-full rounded px-3 py-2 bg-secondary/50 border border-primary/20"
+            >
+              <option value="">Qualquer</option>
+              <option value="90">Menos de 90 min</option>
+              <option value="120">Menos de 2h</option>
+              <option value="180">Menos de 3h</option>
+            </select>
+          </div>
+
+          {/* Dropdown de Votos */}
+          <div className="w-full">
+            <label className="block text-sm mb-1 font-medium text-primary">
+              Avaliações
+            </label>
+            <select
+              value={selectedVoteCount}
+              onChange={(e) => onVoteCountChange(e.target.value)}
+              className="w-full rounded px-3 py-2 bg-secondary/50 border border-primary/20"
+            >
+              <option value="">Qualquer</option>
+              <option value="100">Mais de 100</option>
+              <option value="500">Mais de 500</option>
+              <option value="1000">Mais de 1000</option>
+            </select>
+          </div>
+
+          {/* Input de Palavras-chave (Tema) */}
+          <div className="w-full">
+            <label className="block text-sm mb-1 font-medium text-primary">
+              Tema (Palavra-chave)
+            </label>
+            <input
+              type="text"
+              value={selectedKeyword}
+              onChange={(e) => onKeywordChange(e.target.value)}
+              placeholder="Ex: viagem no tempo..."
+              className="w-full rounded px-3 py-2 bg-secondary/50 border border-primary/20 text-foreground placeholder:text-muted-foreground"
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
