@@ -6,6 +6,7 @@ import { buildImageUrl } from '@/utils/tmdb';
 import { Play, Image as ImageIcon } from 'lucide-react';
 import { TrailerCardModal } from '@/components/TrailerCardModal';
 import { ImageGalleryModal } from '@/components/ImageGalleryModal';
+import { useStreamingProvider } from '@/hooks/useStreamingProvider';
 
 interface PersonalListCardItem {
   id: number;
@@ -45,6 +46,10 @@ export const PersonalListCard: React.FC<PersonalListCardProps> = ({
 }) => {
   const [trailerModalOpen, setTrailerModalOpen] = React.useState(false);
   const [galleryModalOpen, setGalleryModalOpen] = React.useState(false);
+  const streamingProvider = useStreamingProvider(
+    item.id,
+    item.type as 'movie' | 'tv'
+  );
 
   const getYear = () => {
     if (item.release_date) return new Date(item.release_date).getFullYear();
@@ -95,12 +100,26 @@ export const PersonalListCard: React.FC<PersonalListCardProps> = ({
       </div>
 
       <CardContent className="p-4 space-y-3">
-        <h3
-          className="font-semibold text-foreground text-base mb-1 line-clamp-2 min-h-[2.5rem] cursor-pointer hover:text-primary transition-colors"
-          onClick={onDetailsClick}
-        >
-          {item.title}
-        </h3>
+        <div className="flex justify-between items-start gap-2">
+          <h3
+            className="font-semibold text-foreground text-base mb-1 line-clamp-2 min-h-[2.5rem] cursor-pointer hover:text-primary transition-colors flex-1"
+            onClick={onDetailsClick}
+          >
+            {item.title}
+          </h3>
+          {streamingProvider.logoPath && (
+            <div
+              className="flex-shrink-0"
+              title={`Disponível em ${streamingProvider.providerName}`}
+            >
+              <img
+                src={streamingProvider.logoPath}
+                alt={streamingProvider.providerName || 'Streaming Service'}
+                className="w-14 h-14 rounded-md object-cover shadow-sm"
+              />
+            </div>
+          )}
+        </div>
 
         <div className="flex flex-wrap gap-2 mb-1">
           {(item.vote_average ?? item.rating) !== undefined && (
