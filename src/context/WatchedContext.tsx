@@ -165,29 +165,54 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      // Carregar dados do localStorage primeiro (backup local)
+      // Fetch all data from Supabase with pagination
+      let allRemoteWatched: any[] = [];
+      let page = 0;
+      const PAGE_SIZE = 1000;
+      let hasMore = true;
+
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from('user_watched')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('watched_date', { ascending: false })
+          .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+
+        if (error) {
+          console.error('Error loading watched list page', page, error);
+          
+          // CRITICAL: Read localStorage HERE, in case of error, to ensure we have the latest local state
+          const currentLocalData = localStorage.getItem('cine-explorer-watched');
+          if (currentLocalData) {
+            setWatched(JSON.parse(currentLocalData));
+            return;
+          }
+          break;
+        }
+
+        if (data && data.length > 0) {
+          allRemoteWatched = [...allRemoteWatched, ...data];
+          if (data.length < PAGE_SIZE) {
+            hasMore = false;
+          } else {
+            page++;
+          }
+        } else {
+          hasMore = false;
+        }
+      }
+
+      // CRITICAL FIX: Read localStorage AFTER the network fetch completes.
+      // This ensures that any optimistic updates (addToWatched) that happened
+      // WHILE the fetch was running are captured here and preserved.
       const localData = localStorage.getItem('cine-explorer-watched');
       const localWatched: WatchedItem[] = localData
         ? JSON.parse(localData)
         : [];
 
-      const { data, error } = await supabase
-        .from('user_watched')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('watched_date', { ascending: false });
-
-      if (error) {
-        console.error('Error loading watched list:', error);
-        // Em caso de erro, usar dados do localStorage
-        if (localWatched.length > 0) {
-          setWatched(localWatched);
-        }
-        return;
-      }
-
       const formattedWatched =
-        data?.map((item) => ({
+        allRemoteWatched.map((item) => ({
           ...(item.item_data as any),
           watchedAt: item.watched_date,
         })) || [];
@@ -294,11 +319,21 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
       year: releaseYear,
     };
 
+    // OPTIMISTIC UPDATE: Update local state and localStorage immediately
+    setWatched((prev) => {
+      const newWatched = [...prev, watchedItem];
+      safeLocalStorageSetItem(
+        'cine-explorer-watched',
+        JSON.stringify(newWatched)
+      );
+      return newWatched;
+    });
+
     const isSyncEnabled =
       localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
 
     if (isAuthenticated && user && isSyncEnabled) {
-      // Add to Supabase
+      // Sync with Supabase in the background
       try {
         const { error } = await supabase.from('user_watched').insert({
           user_id: user.id,
@@ -310,41 +345,12 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
 
         if (error) {
           console.error('Error adding to watched list in Supabase:', error);
-          throw error;
+          // Silent fail for user, but log error. State is already updated locally.
+          // Consider a toast or retry mechanism if critical sync is needed.
         }
-
-        // Update local state only after successful Supabase insert
-        setWatched((prev) => {
-          const newWatched = [...prev, watchedItem];
-          // Sincronizar com localStorage como backup
-          safeLocalStorageSetItem(
-            'cine-explorer-watched',
-            JSON.stringify(newWatched)
-          );
-          return newWatched;
-        });
       } catch (error) {
         console.error('Error adding to watched list in Supabase:', error);
-        // Em caso de erro, ainda salvar no localStorage como fallback
-        setWatched((prev) => {
-          const newWatched = [...prev, watchedItem];
-          safeLocalStorageSetItem(
-            'cine-explorer-watched',
-            JSON.stringify(newWatched)
-          );
-          return newWatched;
-        });
       }
-    } else {
-      // Add to localStorage for non-authenticated users
-      setWatched((prev) => {
-        const newWatched = [...prev, watchedItem];
-        safeLocalStorageSetItem(
-          'cine-explorer-watched',
-          JSON.stringify(newWatched)
-        );
-        return newWatched;
-      });
     }
   };
 
@@ -448,14 +454,17 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
 
   const cleanInvalidWatched = () => {
     setWatched((prev) => {
-      const validWatched = prev.filter((item) => item.poster_path);
+      // Removido filtro de poster_path que deletava episódios sem imagem
+      // Mantendo apenas validação básica de ID e Type
+      const validWatched = prev.filter((item) => item.id && item.type);
+      
       if (validWatched.length !== prev.length) {
         safeLocalStorageSetItem(
           'cine-explorer-watched',
           JSON.stringify(validWatched)
         );
         console.log(
-          `Removidos ${prev.length - validWatched.length} itens sem poster`
+          `Removidos ${prev.length - validWatched.length} itens inválidos (sem ID/Type)`
         );
       }
       return validWatched;
