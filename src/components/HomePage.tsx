@@ -14,14 +14,17 @@ import {
   getNowPlayingMovies,
   searchKeywords,
   getPopularCollections,
+  getTVShowDetails, // NEW
 } from '@/utils/tmdb';
 
 import { filterAdultContent } from '@/utils/adultContentFilter';
 import { TMDBMovie, TMDBTVShow, TMDBPerson, TMDBGenre } from '@/utils/tmdb';
 import { useFilterPersistence } from '@/hooks/useFilterPersistence';
 import { useScrollManager } from '@/hooks/useScrollManager';
+import { useWatchedContext } from '@/context/WatchedContext'; // NEW
 
 type ContentCategory =
+  | 'watching'
   | 'movies'
   | 'tv'
   | 'actors'
@@ -57,6 +60,8 @@ export const HomePage: React.FC = () => {
     saveScrollPosition,
     isRestored,
   } = useFilterPersistence();
+  
+  const { watched } = useWatchedContext(); // NEW
 
   const [content, setContent] = useState<
     (TMDBMovie | TMDBTVShow | TMDBPerson)[]
@@ -484,6 +489,82 @@ export const HomePage: React.FC = () => {
     try {
       setIsLoading(true);
       let response: any;
+
+      // Tratar categoria 'watching' separadamente
+      if (category === 'watching') {
+        const watchedShows = watched
+          .filter((item) => item.type === 'episode' && item.tvId)
+          .map((item) => item.tvId)
+          .filter((value, index, self) => self.indexOf(value) === index); // Unique IDs
+
+        // Sort by most recently watched (using checked item's watchedAt if available, otherwise order in list)
+        // Simplification: Reverse order of 'watched' list gives rough approximation if we assume appends
+        // Better: sort unique IDs by looking up latest watchedAt for that tvId
+        const sortedShowIds = watchedShows.sort((a, b) => {
+          const lastWatchedA = watched
+            .filter((w) => w.tvId === a)
+            .sort(
+              (x, y) =>
+                new Date(y.watchedAt).getTime() -
+                new Date(x.watchedAt).getTime()
+            )[0];
+          const lastWatchedB = watched
+            .filter((w) => w.tvId === b)
+            .sort(
+              (x, y) =>
+                new Date(y.watchedAt).getTime() -
+                new Date(x.watchedAt).getTime()
+            )[0];
+          return (
+            new Date(lastWatchedB?.watchedAt || 0).getTime() -
+            new Date(lastWatchedA?.watchedAt || 0).getTime()
+          );
+        });
+
+        // Pagination for local items (client-side)
+        const pageSize = 20;
+        const startIndex = (pageNum - 1) * pageSize;
+        const endIndex = startIndex + pageSize;
+        const pageIds = sortedShowIds.slice(startIndex, endIndex);
+
+        if (pageIds.length === 0) {
+          if (reset) setContent([]);
+          setHasMore(false);
+          setIsLoading(false);
+          return;
+        }
+
+        const showDetailsPromises = pageIds.map((id) =>
+          getTVShowDetails(Number(id))
+        );
+        const shows = await Promise.all(showDetailsPromises);
+        
+        // Filter out nulls/errors
+        const validShows = shows.filter((s) => !!s);
+
+        // Filter out completed shows
+        const inProgressShows = validShows.filter((show) => {
+          if (!show) return false;
+          const watchedEpisodeCount = watched.filter(
+            (w) => w.type === 'episode' && w.tvId === show.id
+          ).length;
+          // Keep if not fully watched (and has episodes)
+          return (
+            show.number_of_episodes &&
+            watchedEpisodeCount < show.number_of_episodes
+          );
+        });
+
+        if (reset) {
+          setContent(inProgressShows);
+        } else {
+          setContent((prev) => [...prev, ...inProgressShows]);
+        }
+        
+        setHasMore(endIndex < sortedShowIds.length);
+        setIsLoading(false);
+        return;
+      }
 
       // Tratar coleções separadamente
       if (category === 'collections') {

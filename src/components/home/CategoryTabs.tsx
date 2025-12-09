@@ -1,8 +1,9 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Film, Tv, Users, Camera, Calendar, Library } from 'lucide-react';
+import { Film, Tv, Users, Camera, Calendar, Library, PlayCircle } from 'lucide-react';
 
 type ContentCategory =
+  | 'watching'
   | 'movies'
   | 'tv'
   | 'actors'
@@ -62,6 +63,12 @@ export const CategoryTabs: React.FC<CategoryTabsProps> = ({
       icon: Library,
       description: 'Séries de filmes',
     },
+    {
+      id: 'watching' as ContentCategory,
+      label: 'Continuar',
+      icon: PlayCircle,
+      description: 'Séries que estou vendo',
+    },
   ];
 
   React.useEffect(() => {
@@ -83,7 +90,7 @@ export const CategoryTabs: React.FC<CategoryTabsProps> = ({
 
   return (
     <section className="px-4">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-primary mb-2">
             Explore por Categoria
@@ -95,7 +102,7 @@ export const CategoryTabs: React.FC<CategoryTabsProps> = ({
 
         {/* Category Navigation */}
         <div className="w-full">
-          <div className="relative grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 p-2 bg-secondary/30 rounded-lg border border-primary/20">
+          <div className="relative grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 p-2 bg-secondary/30 rounded-lg border border-primary/20">
             {/* Indicador deslizante */}
             <div
               className="absolute bg-gradient-gold rounded-md shadow-glow transition-all duration-500 ease-in-out pointer-events-none"

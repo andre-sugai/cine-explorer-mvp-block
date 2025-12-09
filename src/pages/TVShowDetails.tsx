@@ -9,7 +9,7 @@ import { getTVShowDetails, buildImageUrl, getTVShowImages } from '@/utils/tmdb';
 import ActionButtons from '@/components/ActionButtons';
 import TrailerPlayer from '@/components/TrailerPlayer';
 import { Layout } from '@/components/Layout';
-import { ChevronLeft, Calendar, Tv, Star, Users, Globe, CheckCircle } from 'lucide-react';
+import { ChevronLeft, Calendar, Tv, Star, Users, Globe, CheckCircle, Eye } from 'lucide-react';
 import { useDetailNameContext } from '@/context/DetailNameContext';
 import { ImageGallery } from '@/components/ImageGallery';
 import { ImageGalleryModal } from '@/components/ImageGalleryModal';
@@ -209,6 +209,10 @@ const TVShowDetails: React.FC = () => {
                   const isSeasonWatched =
                     season.episode_count > 0 &&
                     seasonEpisodes.length === season.episode_count;
+                  
+                  const isWatching = 
+                    seasonEpisodes.length > 0 && 
+                    seasonEpisodes.length < season.episode_count;
 
                   return (
                     <Card
@@ -233,6 +237,11 @@ const TVShowDetails: React.FC = () => {
                               <CheckCircle className="w-5 h-5 text-white" />
                             </div>
                           )}
+                          {isWatching && (
+                            <div className="absolute top-2 right-2 bg-yellow-500 rounded-full p-1.5 shadow-lg">
+                              <Eye className="w-5 h-5 text-black" />
+                            </div>
+                          )}
                         </div>
                         {/* Progress Bar */}
                         {season.episode_count > 0 && (
@@ -255,6 +264,9 @@ const TVShowDetails: React.FC = () => {
                             </h3>
                             {isSeasonWatched && (
                               <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                            )}
+                            {isWatching && (
+                              <Eye className="w-4 h-4 text-yellow-500 flex-shrink-0" />
                             )}
                           </div>
                           <p className="text-muted-foreground text-xs mb-2">
