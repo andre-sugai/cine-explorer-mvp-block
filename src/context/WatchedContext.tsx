@@ -52,7 +52,7 @@ const WatchedContext = createContext<WatchedContextData | undefined>(undefined);
 // Helper function to safely save to localStorage with quota handling
 const safeLocalStorageSetItem = (key: string, value: string): boolean => {
   try {
-    safeLocalStorageSetItem(key, value);
+    localStorage.setItem(key, value);
     return true;
   } catch (error) {
     if (error instanceof DOMException && error.name === 'QuotaExceededError') {
