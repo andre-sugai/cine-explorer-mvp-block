@@ -234,6 +234,20 @@ const TVShowDetails: React.FC = () => {
                             </div>
                           )}
                         </div>
+                        {/* Progress Bar */}
+                        {season.episode_count > 0 && (
+                          <div className="h-1 w-full bg-gray-800">
+                            <div
+                              className="h-full bg-primary transition-all duration-300 ease-in-out"
+                              style={{
+                                width: `${
+                                  (seasonEpisodes.length / season.episode_count) *
+                                  100
+                                }%`,
+                              }}
+                            />
+                          </div>
+                        )}
                         <div className="p-4">
                           <div className="flex items-center gap-2 mb-1">
                             <h3 className="font-semibold text-foreground text-sm line-clamp-1">
