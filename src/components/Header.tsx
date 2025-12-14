@@ -17,6 +17,7 @@ import {
   Mic,
   MicOff,
   List,
+  Cloud,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
@@ -26,6 +27,10 @@ import { AuthModal } from '@/components/auth/AuthModal';
 import { DataMigrationModal } from '@/components/auth/DataMigrationModal';
 import { useVoiceSearch } from '@/hooks/useVoiceSearch';
 import { toast } from '@/hooks/use-toast';
+import { useWatchedContext } from '@/context/WatchedContext';
+import { useFavoritesContext } from '@/context/FavoritesContext';
+import { useWantToWatchContext } from '@/context/WantToWatchContext';
+import { useCustomListsContext } from '@/context/CustomListsContext';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -66,9 +71,16 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
     profileImage?: string;
     nickname?: string;
   }>({});
+  const [isSyncing, setIsSyncing] = useState(false);
   const navigate = useNavigate();
   const { user, isAuthenticated, logout } = useAuth();
   const isMobile = useIsMobile();
+
+  // Context hooks for sync functionality
+  const watchedContext = useWatchedContext();
+  const favoritesContext = useFavoritesContext();
+  const wantToWatchContext = useWantToWatchContext();
+  const customListsContext = useCustomListsContext();
 
   // Hook para busca por voz
   const {
@@ -214,6 +226,66 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
   const handleQuickSearchSubmit = (value: string) => {
     navigate(`/busca/${encodeURIComponent(value)}`);
     setShowQuickSearch(false);
+  };
+
+  /**
+   * Sincroniza todos os dados locais com a nuvem
+   */
+  const handleCloudSync = async () => {
+    if (!isAuthenticated || !user) {
+      toast({
+        title: 'Erro de sincronização',
+        description: 'Você precisa estar logado para sincronizar com a nuvem.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSyncing(true);
+
+    try {
+      toast({
+        title: 'Sincronizando...',
+        description:
+          'Atualizando dados com a nuvem. Isso pode levar alguns segundos.',
+      });
+
+      // Force reload all data from Supabase by temporarily enabling sync
+      const wasSyncEnabled =
+        localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
+      localStorage.setItem('cine-explorer-sync-enabled', 'true');
+
+      // Trigger reload of all contexts by calling their load methods
+      // Since the contexts don't expose reload methods, we'll use a workaround
+      // by temporarily clearing localStorage and letting the contexts reload
+
+      // Create backups
+      const watchedBackup = localStorage.getItem('cine-explorer-watched');
+      const favoritesBackup = localStorage.getItem('cine-explorer-favorites');
+      const wantToWatchBackup = localStorage.getItem('queroAssistir');
+      const customListsBackup = localStorage.getItem(
+        'cine-explorer-custom-lists'
+      );
+
+      // Clear localStorage to force reload from Supabase
+      localStorage.removeItem('cine-explorer-watched');
+      localStorage.removeItem('cine-explorer-favorites');
+      localStorage.removeItem('queroAssistir');
+      localStorage.removeItem('cine-explorer-custom-lists');
+
+      // Reload the page to trigger fresh data loading from all contexts
+      window.location.reload();
+    } catch (error) {
+      console.error('Erro durante sincronização:', error);
+      toast({
+        title: 'Erro na sincronização',
+        description:
+          'Ocorreu um erro ao sincronizar com a nuvem. Tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   const navItems = [
@@ -408,6 +480,13 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
                         Estatísticas
                       </Link>
                     </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={handleCloudSync}
+                      disabled={isSyncing}
+                    >
+                      <Cloud className="mr-2 h-4 w-4" />
+                      {isSyncing ? 'Sincronizando...' : 'Sincronizar com Nuvem'}
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={logout}>
                       <LogOut className="mr-2 h-4 w-4" />
@@ -530,6 +609,20 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
                             <Settings className="w-5 h-5 mr-3" />
                             Configurações
                           </Link>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-start"
+                          onClick={() => {
+                            handleCloudSync();
+                            setIsMobileMenuOpen(false);
+                          }}
+                          disabled={isSyncing}
+                        >
+                          <Cloud className="w-5 h-5 mr-3" />
+                          {isSyncing
+                            ? 'Sincronizando...'
+                            : 'Sincronizar com Nuvem'}
                         </Button>
                         <Button
                           variant="ghost"
