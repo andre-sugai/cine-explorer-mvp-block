@@ -46,6 +46,7 @@ export const HomePage: React.FC = () => {
     selectedRuntime,
     selectedVoteCount,
     selectedKeyword,
+    selectedRating,
     setActiveCategory,
     setSelectedProvider,
     setSelectedGenre,
@@ -57,10 +58,11 @@ export const HomePage: React.FC = () => {
     setSelectedRuntime,
     setSelectedVoteCount,
     setSelectedKeyword,
+    setSelectedRating,
     saveScrollPosition,
     isRestored,
   } = useFilterPersistence();
-  
+
   const { watched } = useWatchedContext(); // NEW
 
   const [content, setContent] = useState<
@@ -538,7 +540,7 @@ export const HomePage: React.FC = () => {
           getTVShowDetails(Number(id))
         );
         const shows = await Promise.all(showDetailsPromises);
-        
+
         // Filter out nulls/errors
         const validShows = shows.filter((s) => !!s);
 
@@ -560,7 +562,7 @@ export const HomePage: React.FC = () => {
         } else {
           setContent((prev) => [...prev, ...inProgressShows]);
         }
-        
+
         setHasMore(endIndex < sortedShowIds.length);
         setIsLoading(false);
         return;
@@ -658,6 +660,9 @@ export const HomePage: React.FC = () => {
         }
         if (selectedVoteCount && category !== 'cinema') {
           params['vote_count.gte'] = selectedVoteCount;
+        }
+        if (selectedRating && category !== 'cinema') {
+          params['vote_average.gte'] = selectedRating;
         }
         if (selectedKeyword && category !== 'cinema') {
           params.with_keywords = selectedKeyword; // Isso assume que o usuário digitou IDs. Para texto livre, precisaria buscar IDs primeiro.
@@ -1368,6 +1373,7 @@ export const HomePage: React.FC = () => {
     selectedRuntime,
     selectedVoteCount,
     selectedKeyword,
+    selectedRating,
     isRestored,
   ]);
 
@@ -1422,6 +1428,8 @@ export const HomePage: React.FC = () => {
           onVoteCountChange={setSelectedVoteCount}
           selectedKeyword={selectedKeyword}
           onKeywordChange={setSelectedKeyword}
+          selectedRating={selectedRating}
+          onRatingChange={setSelectedRating}
         />
       )}
 

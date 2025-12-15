@@ -36,6 +36,8 @@ interface MovieFiltersProps {
   onVoteCountChange: (value: string) => void;
   selectedKeyword: string;
   onKeywordChange: (value: string) => void;
+  selectedRating: string;
+  onRatingChange: (value: string) => void;
 }
 
 export const MovieFilters: React.FC<MovieFiltersProps> = ({
@@ -63,6 +65,8 @@ export const MovieFilters: React.FC<MovieFiltersProps> = ({
   onVoteCountChange,
   selectedKeyword,
   onKeywordChange,
+  selectedRating,
+  onRatingChange,
 }) => {
   return (
     <div className="px-4 my-6">
@@ -211,6 +215,29 @@ export const MovieFilters: React.FC<MovieFiltersProps> = ({
               <option value="100">Mais de 100</option>
               <option value="500">Mais de 500</option>
               <option value="1000">Mais de 1000</option>
+            </select>
+          </div>
+
+          {/* Dropdown de Notas */}
+          <div className="w-full">
+            <label className="block text-sm mb-1 font-medium text-primary">
+              Nota Mínima
+            </label>
+            <select
+              value={selectedRating}
+              onChange={(e) => onRatingChange(e.target.value)}
+              className="w-full rounded px-3 py-2 bg-secondary/50 border border-primary/20"
+            >
+              <option value="">Qualquer nota</option>
+              <option value="9">Acima de 9.0</option>
+              <option value="8">Acima de 8.0</option>
+              <option value="7">Acima de 7.0</option>
+              <option value="6">Acima de 6.0</option>
+              <option value="5">Acima de 5.0</option>
+              <option value="4">Acima de 4.0</option>
+              <option value="3">Acima de 3.0</option>
+              <option value="2">Acima de 2.0</option>
+              <option value="1">Acima de 1.0</option>
             </select>
           </div>
 

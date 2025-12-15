@@ -1,6 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 
-type ContentCategory = 'movies' | 'tv' | 'actors' | 'directors' | 'cinema' | 'collections';
+type ContentCategory =
+  | 'movies'
+  | 'tv'
+  | 'actors'
+  | 'directors'
+  | 'cinema'
+  | 'collections';
 
 interface FiltersState {
   activeCategory: ContentCategory;
@@ -15,6 +21,7 @@ interface FiltersState {
   selectedRuntime: string;
   selectedVoteCount: string;
   selectedKeyword: string;
+  selectedRating: string;
   scrollPosition: number;
 }
 
@@ -65,6 +72,7 @@ export const useFilterPersistence = () => {
   const [selectedRuntime, setSelectedRuntime] = useState('');
   const [selectedVoteCount, setSelectedVoteCount] = useState('');
   const [selectedKeyword, setSelectedKeyword] = useState('');
+  const [selectedRating, setSelectedRating] = useState('');
 
   // Carregar filtros salvos ao montar componente
   useEffect(() => {
@@ -82,6 +90,7 @@ export const useFilterPersistence = () => {
       setSelectedRuntime(savedFilters.selectedRuntime || '');
       setSelectedVoteCount(savedFilters.selectedVoteCount || '');
       setSelectedKeyword(savedFilters.selectedKeyword || '');
+      setSelectedRating(savedFilters.selectedRating || '');
 
       // Restaurar scroll position após um pequeno delay
       setTimeout(() => {
@@ -113,6 +122,7 @@ export const useFilterPersistence = () => {
       selectedRuntime,
       selectedVoteCount,
       selectedKeyword,
+      selectedRating,
       scrollPosition: window.scrollY || 0,
     };
 
@@ -130,6 +140,7 @@ export const useFilterPersistence = () => {
     selectedRuntime,
     selectedVoteCount,
     selectedKeyword,
+    selectedRating,
     isRestored,
   ]);
 
@@ -150,6 +161,7 @@ export const useFilterPersistence = () => {
       selectedRuntime,
       selectedVoteCount,
       selectedKeyword,
+      selectedRating,
       scrollPosition: window.scrollY || 0,
     };
 
@@ -167,6 +179,7 @@ export const useFilterPersistence = () => {
     selectedRuntime,
     selectedVoteCount,
     selectedKeyword,
+    selectedRating,
     isRestored,
   ]);
 
@@ -184,6 +197,7 @@ export const useFilterPersistence = () => {
     setSelectedRuntime('');
     setSelectedVoteCount('');
     setSelectedKeyword('');
+    setSelectedRating('');
     clearFiltersFromStorage();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
@@ -202,6 +216,7 @@ export const useFilterPersistence = () => {
     selectedRuntime,
     selectedVoteCount,
     selectedKeyword,
+    selectedRating,
 
     // Setters
     setActiveCategory,
@@ -216,6 +231,7 @@ export const useFilterPersistence = () => {
     setSelectedRuntime,
     setSelectedVoteCount,
     setSelectedKeyword,
+    setSelectedRating,
 
     // Utilitários
     saveScrollPosition,
