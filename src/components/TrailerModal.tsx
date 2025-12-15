@@ -16,6 +16,7 @@ import {
   ExternalLink,
   Film,
   Tv,
+  Star,
 } from 'lucide-react';
 import { useTrailers } from '@/hooks/useTrailers';
 import { useYouTubePlayer } from '@/hooks/useYouTubePlayer';
@@ -483,6 +484,12 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
               {currentCategory && (
                 <Badge variant="secondary" className="text-xs">
                   {currentCategory}
+                </Badge>
+              )}
+              {currentTrailer?.vote_average !== undefined && currentTrailer.vote_average > 0 && (
+                <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                  <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
+                  {currentTrailer.vote_average.toFixed(1)}
                 </Badge>
               )}
             </div>

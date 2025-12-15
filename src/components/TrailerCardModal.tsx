@@ -7,7 +7,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Play, Pause, Loader, ExternalLink, Film, Tv } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Play, Pause, Loader, ExternalLink, Film, Tv, Star } from 'lucide-react';
 import { toast } from 'sonner';
 import { TrailerActionButtons } from '@/components/TrailerActionButtons';
 import { useYouTubePlayer } from '@/hooks/useYouTubePlayer';
@@ -399,6 +400,12 @@ export const TrailerCardModal: React.FC<TrailerCardModalProps> = ({
                 <Tv className="w-5 h-5 text-blue-400" />
               ) : (
                 <Film className="w-5 h-5 text-orange-400" />
+              )}
+              {vote_average !== undefined && vote_average > 0 && (
+                <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                  <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
+                  {vote_average.toFixed(1)}
+                </Badge>
               )}
               <Button
                 onClick={(e) => {
