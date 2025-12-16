@@ -30,6 +30,7 @@ import { useDetailNameContext } from '@/context/DetailNameContext';
 import { ImageGallery } from '@/components/ImageGallery';
 import { ImageGalleryModal } from '@/components/ImageGalleryModal';
 import WatchProvidersSection from '@/components/WatchProvidersSection';
+import ReviewsList from '@/components/reviews/ReviewsList';
 
 const MovieDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -464,7 +465,8 @@ const MovieDetails: React.FC = () => {
 
             <TrailerPlayer videos={movie.videos} />
 
-
+            {/* Reviews Section */}
+            <ReviewsList id={Number(id)} type="movie" />
 
             {/* Seção de Filmes Similares */}
             <SimilarMovies

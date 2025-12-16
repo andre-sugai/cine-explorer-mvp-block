@@ -16,6 +16,7 @@ import { ImageGalleryModal } from '@/components/ImageGalleryModal';
 import TVWatchProvidersSection from '@/components/TVWatchProvidersSection';
 import { SeasonDetailsModal } from '@/components/SeasonDetailsModal';
 import { useWatchedContext } from '@/context/WatchedContext';
+import ReviewsList from '@/components/reviews/ReviewsList';
 
 const TVShowDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -439,6 +440,9 @@ const TVShowDetails: React.FC = () => {
             )}
 
             <TrailerPlayer videos={show.videos} />
+
+            {/* Reviews Section */}
+            <ReviewsList id={Number(id)} type="tv" />
           </div>
         </div>
 

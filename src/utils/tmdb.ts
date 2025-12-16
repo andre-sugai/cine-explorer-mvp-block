@@ -27,7 +27,11 @@ export const buildApiUrl = (
 
   const url = new URL(`${TMDB_BASE_URL}${endpoint}`);
   url.searchParams.append('api_key', apiKey);
-  url.searchParams.append('language', 'pt-BR');
+  
+  // Set default language only if not provided in params
+  if (!params.language) {
+    url.searchParams.append('language', 'pt-BR');
+  }
 
   Object.entries(params).forEach(([key, value]) => {
     url.searchParams.append(key, value);
@@ -155,6 +159,29 @@ export interface TMDBPerson {
 export interface TMDBSearchResponse<T> {
   page: number;
   results: T[];
+  total_pages: number;
+  total_results: number;
+}
+
+export interface TMDBReview {
+  id: string;
+  author: string;
+  author_details: {
+    name: string;
+    username: string;
+    avatar_path: string | null;
+    rating: number | null;
+  };
+  content: string;
+  created_at: string;
+  updated_at: string;
+  url: string;
+}
+
+export interface TMDBReviewResponse {
+  id: number;
+  page: number;
+  results: TMDBReview[];
   total_pages: number;
   total_results: number;
 }
@@ -1510,3 +1537,96 @@ export const getPopularCollections = async (page: number = 1) => {
     return []; // Retornar array vazio em vez de throw
   }
 };
+
+/**
+ * Busca resenhas de um filme
+ * Busca em Português e Inglês para aumentar o volume de resenhas
+ * @param id ID do filme
+ * @param page Página de resultados
+ */
+export const getMovieReviews = async (id: number, page: number = 1): Promise<TMDBReviewResponse> => {
+  try {
+    // Buscar em PT-BR e EN-US em paralelo
+    const [ptResponse, enResponse] = await Promise.all([
+      fetchWithQuota(buildApiUrl(`/movie/${id}/reviews`, { page: page.toString(), language: 'pt-BR' })),
+      fetchWithQuota(buildApiUrl(`/movie/${id}/reviews`, { page: page.toString(), language: 'en-US' }))
+    ]);
+
+    const ptData = ptResponse.ok ? await ptResponse.json() : { results: [] };
+    const enData = enResponse.ok ? await enResponse.json() : { results: [] };
+
+    // Combinar resultados
+    const allReviews = [...ptData.results, ...enData.results];
+    
+    // Sort by creation date (newest first) to ensure we keep the latest review when deduping
+    allReviews.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    // Deduplicate by Author - keep only the first (latest) occurrence per author
+    const uniqueReviewsMap = new Map();
+    allReviews.forEach(review => {
+      if (!uniqueReviewsMap.has(review.author)) {
+        uniqueReviewsMap.set(review.author, review);
+      }
+    });
+    
+    const uniqueReviews = Array.from(uniqueReviewsMap.values());
+
+    return {
+      id: ptData.id || enData.id || id,
+      page: page,
+      results: uniqueReviews,
+      total_pages: Math.max(ptData.total_pages || 0, enData.total_pages || 0),
+      total_results: uniqueReviews.length
+    };
+  } catch (error) {
+    console.error('Error getting movie reviews:', error);
+    throw error;
+  }
+};
+
+/**
+ * Busca resenhas de uma série
+ * Busca em Português e Inglês para aumentar o volume de resenhas
+ * @param id ID da série
+ * @param page Página de resultados
+ */
+export const getTVShowReviews = async (id: number, page: number = 1): Promise<TMDBReviewResponse> => {
+  try {
+    // Buscar em PT-BR e EN-US em paralelo
+    const [ptResponse, enResponse] = await Promise.all([
+      fetchWithQuota(buildApiUrl(`/tv/${id}/reviews`, { page: page.toString(), language: 'pt-BR' })),
+      fetchWithQuota(buildApiUrl(`/tv/${id}/reviews`, { page: page.toString(), language: 'en-US' }))
+    ]);
+
+    const ptData = ptResponse.ok ? await ptResponse.json() : { results: [] };
+    const enData = enResponse.ok ? await enResponse.json() : { results: [] };
+
+    // Combinar resultados
+    const allReviews = [...ptData.results, ...enData.results];
+    
+    // Sort by creation date (newest first) to ensure we keep the latest review when deduping
+    allReviews.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    // Deduplicate by Author - keep only the first (latest) occurrence per author
+    const uniqueReviewsMap = new Map();
+    allReviews.forEach(review => {
+      if (!uniqueReviewsMap.has(review.author)) {
+        uniqueReviewsMap.set(review.author, review);
+      }
+    });
+
+    const uniqueReviews = Array.from(uniqueReviewsMap.values());
+
+    return {
+      id: ptData.id || enData.id || id,
+      page: page,
+      results: uniqueReviews,
+      total_pages: Math.max(ptData.total_pages || 0, enData.total_pages || 0),
+      total_results: uniqueReviews.length
+    };
+  } catch (error) {
+    console.error('Error getting TV show reviews:', error);
+    throw error;
+  }
+};
+// Dummy append to trigger file change for next tool if needed, but I will use replace_file_content next.
