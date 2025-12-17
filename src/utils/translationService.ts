@@ -31,7 +31,8 @@ export const translateText = async (text: string, targetLang: string = 'pt'): Pr
     const response = await fetch(`/api/translate?${params.toString()}`);
     
     if (!response.ok) {
-      throw new Error('Translation request failed');
+      console.error(`Translation request failed: ${response.status} ${response.statusText}`);
+      throw new Error(`Translation request failed with status ${response.status}`);
     }
 
     const data = await response.json();

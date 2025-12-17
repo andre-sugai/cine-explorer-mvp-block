@@ -5,8 +5,15 @@
 [functions]
   directory = "netlify/functions"
 
+# API Proxy must come BEFORE catch-all
 [[redirects]]
   from = "/api/translate"
   to = "/.netlify/functions/translate"
   status = 200
   force = true
+
+# SPA Catch-all
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

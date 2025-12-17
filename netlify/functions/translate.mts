@@ -6,7 +6,8 @@ export default async (req: Request, context: Context) => {
     return new Response("Method Not Allowed", { status: 405 });
   }
 
-  const url = new URL(req.url);
+  // Usar uma URL base dummy para garantir que o parsing funcione mesmo se req.url for relativo
+  const url = new URL(req.url, "http://localhost");
   const searchParams = url.searchParams;
 
   // Parâmetros esperados pelo Google Translate
@@ -34,6 +35,8 @@ export default async (req: Request, context: Context) => {
     });
 
     if (!response.ok) {
+      const text = await response.text();
+      console.error(`Upstream Error (${response.status}):`, text);
       return new Response(`Upstream Error: ${response.status}`, { status: 502 });
     }
 
@@ -47,7 +50,7 @@ export default async (req: Request, context: Context) => {
     });
   } catch (error) {
     console.error("Translation proxy error:", error);
-    return new Response(JSON.stringify({ error: "Internal Server Error" }), {
+    return new Response(JSON.stringify({ error: String(error) }), {
       status: 500,
       headers: { "Content-Type": "application/json" }
     });
