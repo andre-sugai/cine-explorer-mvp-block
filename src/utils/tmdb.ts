@@ -114,6 +114,54 @@ export const fetchWithQuota = async (url: string): Promise<Response> => {
 };
 
 // Types
+export interface TMDBContent extends TMDBMovie {
+  media_type?: 'movie' | 'tv';
+  name?: string; // For TV compatibility
+  first_air_date?: string; // For TV compatibility
+}
+
+/**
+ * Busca conteúdo (Filmes e Séries) lançados em um intervalo de datas.
+ */
+export const getReleasedContent = async (startDate: string, endDate: string): Promise<TMDBContent[]> => {
+  try {
+    const [moviesData, tvData] = await Promise.all([
+      // Fetch Movies
+      fetchWithQuota(buildApiUrl('/discover/movie', {
+        'primary_release_date.gte': startDate,
+        'primary_release_date.lte': endDate,
+        sort_by: 'popularity.desc',
+        include_adult: 'false',
+        page: '1' // Get top popular only for calendar overview
+      })).then(r => r.json()),
+      
+      // Fetch TV Shows
+      fetchWithQuota(buildApiUrl('/discover/tv', {
+        'first_air_date.gte': startDate,
+        'first_air_date.lte': endDate,
+        sort_by: 'popularity.desc',
+        include_adult: 'false',
+        page: '1'
+      })).then(r => r.json())
+    ]);
+
+    const movies = (moviesData.results || []).map((m: any) => ({ ...m, media_type: 'movie' }));
+    const shows = (tvData.results || []).map((s: any) => ({ ...s, media_type: 'tv' }));
+    
+    // Merge and sort by date
+    const allContent = [...movies, ...shows].sort((a, b) => {
+        const dateA = new Date(a.release_date || a.first_air_date || 0);
+        const dateB = new Date(b.release_date || b.first_air_date || 0);
+        return dateA.getTime() - dateB.getTime();
+    });
+
+    return allContent;
+  } catch (error) {
+    console.error('Error getting released content:', error);
+    return [];
+  }
+};
+
 export interface TMDBMovie {
   id: number;
   title: string;

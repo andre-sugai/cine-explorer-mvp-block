@@ -14,6 +14,7 @@ import WantToWatchPage from './pages/WantToWatchPage';
 import WatchedPage from './pages/WatchedPage';
 import SettingsPage from './pages/SettingsPage';
 import RecommendationsPage from './pages/RecommendationsPage';
+import CalendarPage from './pages/CalendarPage';
 import StatisticsPage from './pages/StatisticsPage';
 import NotFound from './pages/NotFound';
 import { FavoritesProvider } from '@/context/FavoritesContext';
@@ -58,6 +59,7 @@ const App = () => (
                           path="/recomendacoes"
                           element={<RecommendationsPage />}
                         />
+                        <Route path="/calendario" element={<CalendarPage />} />
                         <Route path="/configuracoes" element={<SettingsPage />} />
                         <Route path="/estatisticas" element={<StatisticsPage />} />
                         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

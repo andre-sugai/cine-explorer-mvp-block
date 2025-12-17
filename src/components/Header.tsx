@@ -18,6 +18,7 @@ import {
   MicOff,
   List,
   Cloud,
+  CalendarDays,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
@@ -299,6 +300,12 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
     },
     { id: 'watched', label: 'Vistos', icon: CheckCircle, path: '/vistos' },
     { id: 'lists', label: 'Listas', icon: List, path: '/listas' },
+    {
+      id: 'calendar',
+      label: 'Calendário',
+      icon: CalendarDays,
+      path: '/calendario',
+    },
     {
       id: 'recommendations',
       label: 'Recomendações',
