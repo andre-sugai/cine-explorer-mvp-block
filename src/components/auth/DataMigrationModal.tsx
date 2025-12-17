@@ -62,74 +62,56 @@ export const DataMigrationModal: React.FC<DataMigrationModalProps> = ({
       const totalItems = getTotalItems();
       let processedItems = 0;
 
+      // Helper para processar em chunks
+      const processInChunks = async (tableName: string, items: any[], mapFn: (item: any) => any) => {
+         const CHUNK_SIZE = 50;
+         for (let i = 0; i < items.length; i += CHUNK_SIZE) {
+            const chunk = items.slice(i, i + CHUNK_SIZE);
+            const rows = chunk.map(mapFn);
+            
+            const { error } = await supabase.from(tableName).insert(rows);
+            
+            if (error) {
+                console.error(`Erro ao migrar chunk para ${tableName}:`, error);
+            } else {
+                processedItems += chunk.length;
+                setProgress((processedItems / totalItems) * 100);
+            }
+         }
+      };
+
       // Migrar favoritos
       if (localData.favorites.length > 0) {
         setCurrentStep(`Migrando ${localData.favorites.length} favoritos...`);
-        
-        for (const favorite of localData.favorites) {
-          try {
-            await supabase
-              .from('user_favorites')
-              .insert({
-                user_id: user.id,
-                item_id: favorite.id,
-                item_type: favorite.type,
-                item_data: favorite,
-              });
-            
-            processedItems++;
-            setProgress((processedItems / totalItems) * 100);
-          } catch (error) {
-            console.error('Error migrating favorite:', error);
-          }
-        }
+        await processInChunks('user_favorites', localData.favorites, (favorite) => ({
+            user_id: user.id,
+            item_id: favorite.id,
+            item_type: favorite.type,
+            item_data: favorite,
+        }));
       }
 
       // Migrar lista de desejos
       if (localData.watchlist.length > 0) {
         setCurrentStep(`Migrando ${localData.watchlist.length} itens da lista de desejos...`);
-        
-        for (const item of localData.watchlist) {
-          try {
-            await supabase
-              .from('user_watchlist')
-              .insert({
-                user_id: user.id,
-                item_id: item.id,
-                item_type: item.type,
-                item_data: item,
-              });
-            
-            processedItems++;
-            setProgress((processedItems / totalItems) * 100);
-          } catch (error) {
-            console.error('Error migrating watchlist item:', error);
-          }
-        }
+        await processInChunks('user_watchlist', localData.watchlist, (item) => ({
+            user_id: user.id,
+            item_id: item.id,
+            item_type: item.type,
+            item_data: item,
+        }));
       }
 
       // Migrar assistidos
       if (localData.watched.length > 0) {
         setCurrentStep(`Migrando ${localData.watched.length} itens assistidos...`);
-        
-        for (const item of localData.watched) {
-          try {
-            await supabase
-              .from('user_watched')
-              .insert({
-                user_id: user.id,
-                item_id: item.id,
-                item_type: item.type,
-                item_data: item,
-                watched_date: item.watchedAt,
-              });
-            
-            processedItems++;
-            setProgress((processedItems / totalItems) * 100);
-          } catch (error) {
-            console.error('Error migrating watched item:', error);
-          }
-        }
+        await processInChunks('user_watched', localData.watched, (item) => ({
+            user_id: user.id,
+            item_id: item.id,
+            item_type: item.type,
+            item_data: item,
+            watched_date: item.watchedAt,
+        }));
       }
 
       setCurrentStep('Migração concluída com sucesso!');

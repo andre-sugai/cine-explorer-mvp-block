@@ -145,23 +145,23 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
           )
         );
         // Sincronizar itens locais com Supabase em background
-        Promise.all(
-          itemsToSync.map(async (item) => {
+        // Sincronizar itens locais com Supabase em background - BULK INSERT
+        if (itemsToSync.length > 0) {
+            const rowsToInsert = itemsToSync.map(item => ({
+              user_id: user.id,
+              item_id: item.id,
+              item_type: item.type,
+              item_data: item as any,
+            }));
+
             try {
-              await supabase.from('user_watchlist').insert({
-                user_id: user.id,
-                item_id: item.id,
-                item_type: item.type,
-                item_data: item as any,
-              });
+              const { error } = await supabase.from('user_watchlist').insert(rowsToInsert);
+              if (error) throw error;
+              console.log(`Sincronizados ${itemsToSync.length} itens do watchlist em background.`);
             } catch (error) {
-              // Ignorar erros de duplicata (item já existe)
-              console.log('Item já sincronizado ou erro ao sincronizar:', item.title);
+              console.error('Erro ao sincronizar watchlist em massa:', error);
             }
-          })
-        ).catch((error) => {
-          console.error('Erro ao sincronizar itens em background:', error);
-        });
+        }
       }
     } catch (error) {
       console.error('Error loading watchlist:', error);

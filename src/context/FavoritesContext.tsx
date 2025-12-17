@@ -152,23 +152,23 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
           )
         );
         // Sincronizar itens locais com Supabase em background
-        Promise.all(
-          itemsToSync.map(async (item) => {
-            try {
-              await supabase.from('user_favorites').insert({
-                user_id: user.id,
-                item_id: item.id,
-                item_type: item.type,
-                item_data: item as any,
-              });
-            } catch (error) {
-              // Ignorar erros de duplicata (item já existe)
-              console.log('Item já sincronizado ou erro ao sincronizar:', item.title);
-            }
-          })
-        ).catch((error) => {
-          console.error('Erro ao sincronizar itens em background:', error);
-        });
+        // Sincronizar itens locais com Supabase em background - BULK INSERT
+        if (itemsToSync.length > 0) {
+          const rowsToInsert = itemsToSync.map(item => ({
+            user_id: user.id,
+            item_id: item.id,
+            item_type: item.type,
+            item_data: item as any,
+          }));
+
+          try {
+            const { error } = await supabase.from('user_favorites').insert(rowsToInsert);
+            if (error) throw error;
+            console.log(`Sincronizados ${itemsToSync.length} favoritos em background.`);
+          } catch (error) {
+            console.error('Erro ao sincronizar favoritos em massa:', error);
+          }
+        }
       }
     } catch (error) {
       console.error('Error loading favorites:', error);
