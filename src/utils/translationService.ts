@@ -28,7 +28,11 @@ export const translateText = async (text: string, targetLang: string = 'pt'): Pr
       q: text
     });
 
-    const response = await fetch(`/api/translate?${params.toString()}`);
+    // Determine endpoint based on environment
+    // Local: use Vite proxy at /api/translate
+    // Production: use Netlify Function directly to avoid rewrite issues
+    const baseUrl = import.meta.env.DEV ? '/api/translate' : '/.netlify/functions/translate';
+    const response = await fetch(`${baseUrl}?${params.toString()}`);
     
     if (!response.ok) {
       console.error(`Translation request failed: ${response.status} ${response.statusText}`);
