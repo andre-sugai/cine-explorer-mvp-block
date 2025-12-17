@@ -27,8 +27,8 @@ export const NovidadesButton: React.FC<NovidadesButtonProps> = ({
   // O construtor Date lida corretamente com underflow de mês (ex: mês -1 vira Dezembro do ano anterior)
   const startDate = new Date(year, month - 1, 1).toISOString().split('T')[0];
   
-  // Data de fim: Último dia do mês atual
-  const endDate = new Date(year, month + 1, 0).toISOString().split('T')[0];
+  // Data de fim: Último dia do mês atual + 1 ano
+  const endDate = new Date(year + 1, month + 1, 0).toISOString().split('T')[0];
 
   // Nomes dos meses
   const currentMonthName = new Intl.DateTimeFormat('pt-BR', { month: 'long' }).format(now);
@@ -37,14 +37,12 @@ export const NovidadesButton: React.FC<NovidadesButtonProps> = ({
   const prevMonthName = new Intl.DateTimeFormat('pt-BR', { month: 'long' }).format(prevMonthDate);
   const prevYear = prevMonthDate.getFullYear();
 
+  const nextYearDate = new Date(year + 1, month, 1);
+  const nextYear = nextYearDate.getFullYear();
+
   const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-  let label;
-  if (prevYear !== year) {
-    label = `Novidades de ${capitalize(prevMonthName)}/${prevYear} e ${capitalize(currentMonthName)}/${year}`;
-  } else {
-    label = `Novidades de ${capitalize(prevMonthName)} e ${capitalize(currentMonthName)}/${year}`;
-  }
+  const label = `Novidades e Lançamentos até ${capitalize(currentMonthName)}/${nextYear}`;
 
   const filters = {
     startDate,
