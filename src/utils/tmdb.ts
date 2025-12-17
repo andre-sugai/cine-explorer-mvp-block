@@ -136,24 +136,45 @@ export const getReleasedContent = async (
   endDate: string,
   filters?: CalendarFilters
 ): Promise<TMDBContent[]> => {
-  try {
+    // CACHE LOGIC
+    const CACHE_KEY = `calendar_v3_${startDate}_${endDate}_${filters ? JSON.stringify(filters) : 'default'}`;
+    const CACHE_TTL = 60 * 60 * 1000; // 1 hour
+
+    try {
+        try {
+            const cached = localStorage.getItem(CACHE_KEY);
+        if (cached) {
+            const parsed = JSON.parse(cached);
+            const now = Date.now();
+            if (now - parsed.timestamp < CACHE_TTL) {
+                // console.log('Returning cached calendar data');
+                return parsed.data;
+            }
+        }
+    } catch (e) {
+        console.warn('Cache parse error', e);
+        localStorage.removeItem(CACHE_KEY);
+    }
+
     const fetchMovies = !filters?.type || filters.type === 'all' || filters.type === 'movie';
     const fetchTV = !filters?.type || filters.type === 'all' || filters.type === 'tv';
+    const PAGES_TO_FETCH = 5;
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
 
     const movieParams: Record<string, string> = {
       'primary_release_date.gte': startDate,
       'primary_release_date.lte': endDate,
       sort_by: 'popularity.desc',
       include_adult: 'false',
-      page: '1'
     };
 
     const tvParams: Record<string, string> = {
-      'first_air_date.gte': startDate,
-      'first_air_date.lte': endDate,
+      'air_date.gte': startDate,
+      'air_date.lte': endDate,
       sort_by: 'popularity.desc',
       include_adult: 'false',
-      page: '1'
     };
 
     if (filters?.watchProviders) {
@@ -164,31 +185,157 @@ export const getReleasedContent = async (
     }
 
     const promises = [];
+
     if (fetchMovies) {
-      promises.push(fetchWithQuota(buildApiUrl('/discover/movie', movieParams)).then(r => r.json()));
-    } else {
-      promises.push(Promise.resolve({ results: [] }));
+      for (let page = 1; page <= PAGES_TO_FETCH; page++) {
+        promises.push(
+            fetchWithQuota(buildApiUrl('/discover/movie', { ...movieParams, page: page.toString() }))
+                .then(r => r.json())
+                .then(data => (data.results || []).map((m: any) => ({ ...m, media_type: 'movie' })))
+        );
+      }
     }
 
     if (fetchTV) {
-      promises.push(fetchWithQuota(buildApiUrl('/discover/tv', tvParams)).then(r => r.json()));
-    } else {
-      promises.push(Promise.resolve({ results: [] }));
+      for (let page = 1; page <= PAGES_TO_FETCH; page++) {
+        promises.push(
+            fetchWithQuota(buildApiUrl('/discover/tv', { ...tvParams, page: page.toString() }))
+                .then(r => r.json())
+                .then(data => (data.results || []).map((s: any) => ({ ...s, media_type: 'tv' })))
+        );
+      }
     }
 
-    const [moviesData, tvData] = await Promise.all(promises);
+    const results = await Promise.all(promises);
+    let allContent = results.flat();
 
-    const movies = (moviesData.results || []).map((m: any) => ({ ...m, media_type: 'movie' }));
-    const shows = (tvData.results || []).map((s: any) => ({ ...s, media_type: 'tv' }));
-    
-    // Merge and sort by date
-    const allContent = [...movies, ...shows].sort((a, b) => {
+    // Process TV Shows for correct dates
+    if (fetchTV) {
+        // Filter out movies to identifying TV shows that might need detail fetching
+        const tvShows = allContent.filter(item => item.media_type === 'tv');
+        const movies = allContent.filter(item => item.media_type !== 'tv');
+
+        // Batched processing for TV shows to avoid rate limits
+        // Process in chunks of 3 and wait between chunks
+        const CHUNK_SIZE = 3;
+        const tvResults: TMDBContent[] = [];
+        
+        for (let i = 0; i < tvShows.length; i += CHUNK_SIZE) {
+            const chunk = tvShows.slice(i, i + CHUNK_SIZE);
+            
+            // Add small delay between chunks to be nice to API
+            if (i > 0) await new Promise(resolve => setTimeout(resolve, 300));
+            
+            const chunkResults = await Promise.all(chunk.map(async (show) => {
+                // If it's a new show (first_air_date in range), keep as is
+                if (show.first_air_date >= startDate && show.first_air_date <= endDate) {
+                    return [show];
+                }
+
+                // For returning shows, we need to find WHY it matched (which season/episode)
+                try {
+                    const details = await getTVShowDetails(show.id);
+                    
+                    // Identify potential season number to fetch
+                    // Usually next_episode_to_air gives us the current season
+                    let seasonNumber = details.next_episode_to_air?.season_number;
+                    
+                    if (!seasonNumber && details.last_episode_to_air) {
+                        seasonNumber = details.last_episode_to_air.season_number;
+                    }
+                    
+                    if (details.seasons) {
+                        // Find the most recent seasons that started on or before the end date
+                        // Check up to 3 seasons to ensure we don't miss split seasons or specials
+                        const relevantSeasons = details.seasons
+                            .filter((s: any) => s.air_date && s.air_date <= endDate)
+                            .sort((a: any, b: any) => {
+                                return new Date(b.air_date).getTime() - new Date(a.air_date).getTime();
+                            })
+                            .slice(0, 3);
+                        
+                        // Iterate through seasons until we find matching episodes
+                        for (const season of relevantSeasons) {
+                             const seasonNumber = season.season_number;
+                             try {
+                                 // --- DEBUG STRANGER THINGS ---
+                                 if (show.name?.includes('Stranger Things')) {
+                                    console.log(`🔍 Checking Stranger Things Season ${seasonNumber} for range ${startDate} to ${endDate}`);
+                                 }
+                                 
+                                 const seasonDetails = await getTVSeasonDetails(show.id, seasonNumber);
+                                 
+                                 if (seasonDetails && seasonDetails.episodes) {
+                                      // Find ALL episodes in this season that match the date range
+                                      const validEpisodes = seasonDetails.episodes.filter((ep: any) => {
+                                          return ep.air_date >= startDate && ep.air_date <= endDate;
+                                      });
+
+                                      if (show.name?.includes('Stranger Things')) {
+                                          console.log(`🔍 Found ${validEpisodes.length} episodes for S${seasonNumber} in range`);
+                                      }
+
+                                      if (validEpisodes.length > 0) {
+                                          return validEpisodes.map((ep: any) => ({
+                                              ...show,
+                                              id: show.id, // Keep show ID for linking
+                                              first_air_date: ep.air_date,
+                                              original_name: show.name,
+                                              name: `${show.name} - S${ep.season_number}E${ep.episode_number}: ${ep.name}`,
+                                              overview: ep.overview || show.overview,
+                                              still_path: ep.still_path
+                                          }));
+                                      }
+                                 }
+                             } catch (err) {
+                                 console.warn(`Failed to fetch season ${seasonNumber} for show ${show.id}`, err);
+                             }
+                        }
+                    }
+                    
+                    // Fallback: if we couldn't find specific episodes, check if the "season premiere" logic helps
+                    // or just return the show itself if it has a valid date (which it might not if it's returning)
+                    return [show];
+
+                } catch (e) {
+                    console.warn(`Failed to fetch details for TV show ${show.id}`, e);
+                    return [show];
+                }
+            }));
+            
+            tvResults.push(...chunkResults.flat());
+        }
+        
+        allContent = [...movies, ...tvResults];
+    }
+
+
+    const sortedContent = allContent.sort((a, b) => {
         const dateA = new Date(a.release_date || a.first_air_date || 0);
         const dateB = new Date(b.release_date || b.first_air_date || 0);
         return dateA.getTime() - dateB.getTime();
     });
 
-    return allContent;
+    // Deduplicate by ID and Type just in case
+    const seen = new Set();
+    const uniqueContent = sortedContent.filter(item => {
+        const key = `${item.media_type}-${item.id}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+
+    // Save to cache
+    try {
+       localStorage.setItem(CACHE_KEY, JSON.stringify({
+           timestamp: Date.now(),
+           data: uniqueContent
+       }));
+    } catch (e) {
+       console.warn('Failed to save to cache (quota?)', e);
+    }
+
+    return uniqueContent;
   } catch (error) {
     console.error('Error getting released content:', error);
     return [];

@@ -6,6 +6,7 @@ import { getReleasedContent, TMDBContent } from '@/utils/tmdb';
 import { CalendarItem } from '@/components/calendar/CalendarItem';
 import { CalendarFilters } from '@/components/calendar/CalendarFilters';
 import { useWatchProviders } from '@/hooks/useWatchProviders';
+import { CalendarDayModal } from '@/components/calendar/CalendarDayModal';
 
 const CalendarPage = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -15,6 +16,8 @@ const CalendarPage = () => {
   // Filter States
   const [selectedProvider, setSelectedProvider] = useState('0');
   const [selectedType, setSelectedType] = useState('all');
+
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   
   const { availableStreamings, loadingProviders } = useWatchProviders();
 
@@ -59,9 +62,16 @@ const CalendarPage = () => {
       }
     }
 
+    const formatDate = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
     const content = await getReleasedContent(
-      startOfMonth.toISOString().split('T')[0],
-      endOfMonth.toISOString().split('T')[0],
+      formatDate(startOfMonth),
+      formatDate(endOfMonth),
       {
         watchProviders,
         type: selectedType as 'all' | 'movie' | 'tv'
@@ -108,19 +118,32 @@ const CalendarPage = () => {
     // Days of month
     for (let day = 1; day <= totalDays; day++) {
         const dayContent = getContentByDay(day);
-        const isToday = new Date().toDateString() === new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toDateString();
+        const currentDayDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+        const isToday = new Date().toDateString() === currentDayDate.toDateString();
         
+        const MAX_ITEMS = 2;
+        const visibleItems = dayContent.slice(0, MAX_ITEMS);
+        const remainingCount = dayContent.length - MAX_ITEMS;
+
         days.push(
-            <div key={day} className={`min-h-[120px] bg-black/20 border border-white/5 p-2 relative group hover:bg-white/5 transition-colors ${isToday ? 'ring-1 ring-primary/50 bg-primary/5' : ''}`}>
-                <span className={`absolute top-2 right-2 text-sm font-medium ${isToday ? 'text-primary bg-primary/10 px-2 py-0.5 rounded-full' : 'text-gray-400'}`}>
+            <div key={day} className={`min-h-[160px] bg-black/20 border border-white/5 p-3 relative group hover:bg-white/5 transition-colors flex flex-col ${isToday ? 'ring-1 ring-primary/50 bg-primary/5' : ''}`}>
+                <span className={`absolute top-2 right-2 text-sm font-medium z-10 ${isToday ? 'text-primary bg-primary/10 px-2 py-0.5 rounded-full' : 'text-gray-400'}`}>
                     {day}
                 </span>
                 
-                <div className="mt-8 space-y-1">
-                    {dayContent.map(item => (
+                <div className="mt-6 space-y-2 flex-1">
+                    {visibleItems.map(item => (
                         <CalendarItem key={item.id} item={item} />
                     ))}
-
+                    
+                    {remainingCount > 0 && (
+                        <button 
+                            onClick={() => setSelectedDay(currentDayDate)}
+                            className="w-full text-xs text-left text-gray-400 hover:text-primary hover:bg-white/5 p-1.5 rounded transition-colors mt-1 font-medium bg-black/20"
+                        >
+                            + {remainingCount} outros...
+                        </button>
+                    )}
                 </div>
             </div>
         );
@@ -167,6 +190,13 @@ const CalendarPage = () => {
               selectedType={selectedType}
               onTypeChange={setSelectedType}
               loadingProviders={loadingProviders}
+            />
+            
+            <CalendarDayModal 
+                isOpen={!!selectedDay}
+                onClose={() => setSelectedDay(null)}
+                date={selectedDay}
+                items={selectedDay ? getContentByDay(selectedDay.getDate()) : []}
             />
 
             {isLoading ? (

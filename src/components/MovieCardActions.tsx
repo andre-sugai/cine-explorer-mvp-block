@@ -32,6 +32,13 @@ interface MovieCardActionsProps {
   type?: 'movie' | 'tv' | 'person';
   runtime?: number;
   showBlacklist?: boolean;
+  showFavorites?: boolean;
+  showWantToWatch?: boolean;
+  showWatched?: boolean;
+  showTrailer?: boolean;
+  showGallery?: boolean;
+  className?: string;
+  size?: 'default' | 'compact';
 }
 
 export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
@@ -44,6 +51,13 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
   type = 'movie',
   runtime,
   showBlacklist = true,
+  showFavorites = true,
+  showWantToWatch = true,
+  showWatched = true,
+  showTrailer = true,
+  showGallery = true,
+  className,
+  size = 'default',
 }) => {
   const { addToFavorites, removeFromFavorites, isFavorite } =
     useFavoritesContext();
@@ -64,6 +78,12 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
   const [inviteOpen, setInviteOpen] = React.useState(false);
   const [trailerModalOpen, setTrailerModalOpen] = React.useState(false);
   const [galleryModalOpen, setGalleryModalOpen] = React.useState(false);
+
+  const buttonClass = size === 'compact' 
+    ? 'p-1 rounded-full transition-colors min-w-[24px] min-h-[24px] flex items-center justify-center'
+    : 'p-1.5 rounded-full transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center';
+    
+  const iconClass = size === 'compact' ? 'w-3 h-3' : 'w-3.5 h-3.5';
 
   const requireAuth = (e?: React.MouseEvent) => {
     if (!isAuthenticated) {
@@ -189,78 +209,88 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
   };
 
   return (
-    <div className="flex justify-center items-center gap-2 mt-2 pt-2 border-t border-border/20">
-      <button
-        onClick={handleFavorite}
-        className={`p-1.5 rounded-full transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center ${
-          favorite
-            ? 'text-red-500 hover:text-red-600'
-            : 'text-muted-foreground hover:text-red-500'
-        }`}
-        title={favorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
-      >
-        <Heart className={`w-3.5 h-3.5 ${favorite ? 'fill-current' : ''}`} />
-      </button>
+    <div className={className || "flex justify-center items-center gap-2 mt-2 pt-2 border-t border-border/20"}>
+      {showFavorites && (
+        <button
+          onClick={handleFavorite}
+          className={`${buttonClass} ${
+            favorite
+              ? 'text-red-500 hover:text-red-600'
+              : 'text-muted-foreground hover:text-red-500'
+          }`}
+          title={favorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+        >
+          <Heart className={`${iconClass} ${favorite ? 'fill-current' : ''}`} />
+        </button>
+      )}
 
       {type !== 'person' && (
         <>
-          <button
-            onClick={handleWantToWatch}
-            className={`p-1.5 rounded-full transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center ${
-              wantToWatch
-                ? 'text-blue-500 hover:text-blue-600'
-                : 'text-muted-foreground hover:text-blue-500'
-            }`}
-            title={wantToWatch ? 'Remover da lista' : 'Quero assistir'}
-          >
-            <Bookmark
-              className={`w-3.5 h-3.5 ${wantToWatch ? 'fill-current' : ''}`}
-            />
-          </button>
+          {showWantToWatch && (
+            <button
+              onClick={handleWantToWatch}
+              className={`${buttonClass} ${
+                wantToWatch
+                  ? 'text-blue-500 hover:text-blue-600'
+                  : 'text-muted-foreground hover:text-blue-500'
+              }`}
+              title={wantToWatch ? 'Remover da lista' : 'Quero assistir'}
+            >
+              <Bookmark
+                className={`${iconClass} ${wantToWatch ? 'fill-current' : ''}`}
+              />
+            </button>
+          )}
 
-          <button
-            onClick={handleWatched}
-            className={`p-1.5 rounded-full transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center ${
-              watched
-                ? 'bg-green-500 text-white hover:bg-green-600'
-                : 'border border-muted-foreground/30 text-muted-foreground hover:text-green-500 hover:border-green-500'
-            }`}
-            title={watched ? 'Remover dos assistidos' : 'Marcar como assistido'}
-          >
-            <Check className="w-3.5 h-3.5" />
-          </button>
+          {showWatched && (
+            <button
+              onClick={handleWatched}
+              className={`${buttonClass} ${
+                watched
+                  ? 'bg-green-500 text-white hover:bg-green-600'
+                  : 'border border-muted-foreground/30 text-muted-foreground hover:text-green-500 hover:border-green-500'
+              }`}
+              title={watched ? 'Remover dos assistidos' : 'Marcar como assistido'}
+            >
+              <Check className={iconClass} />
+            </button>
+          )}
 
           {/* Botão Trailer */}
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setTrailerModalOpen(true);
-            }}
-            className="p-1.5 rounded-full transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10"
-            title="Ver trailer"
-          >
-            <Play className="w-3.5 h-3.5" />
-          </button>
+          {showTrailer && (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setTrailerModalOpen(true);
+              }}
+              className={`${buttonClass} text-muted-foreground hover:text-primary hover:bg-primary/10`}
+              title="Ver trailer"
+            >
+              <Play className={iconClass} />
+            </button>
+          )}
 
           {/* Botão Galeria */}
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setGalleryModalOpen(true);
-            }}
-            className="p-1.5 rounded-full transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10"
-            title="Ver galeria de imagens"
-          >
-            <ImageIcon className="w-3.5 h-3.5" />
-          </button>
+          {showGallery && (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setGalleryModalOpen(true);
+              }}
+              className={`${buttonClass} text-muted-foreground hover:text-primary hover:bg-primary/10`}
+              title="Ver galeria de imagens"
+            >
+              <ImageIcon className={iconClass} />
+            </button>
+          )}
 
           {/* Botão Blacklist - apenas para administrador André Sugai */}
           {isAdmin && showBlacklist && (
             <button
               onClick={handleAddToBlacklist}
-              className={`p-1.5 rounded-full transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center ${
+              className={`${buttonClass} ${
                 isBlacklisted
                   ? 'text-red-500 hover:text-red-600'
                   : 'text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20'
@@ -271,7 +301,7 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
                   : 'Adicionar à blacklist (admin)'
               }
             >
-              <TriangleAlert className="w-3.5 h-3.5" />
+              <TriangleAlert className={iconClass} />
             </button>
           )}
         </>
