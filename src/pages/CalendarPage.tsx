@@ -1,17 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, CalendarDays, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Loader2 } from 'lucide-react';
 import { getReleasedContent, TMDBContent } from '@/utils/tmdb';
-import { Link } from 'react-router-dom';
-import { buildImageUrl } from '@/utils/tmdb';
+import { CalendarItem } from '@/components/calendar/CalendarItem';
+import { CalendarFilters } from '@/components/calendar/CalendarFilters';
+import { useWatchProviders } from '@/hooks/useWatchProviders';
 
 const CalendarPage = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [content, setContent] = useState<TMDBContent[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [calendarData, setCalendarData] = useState<{[key: string]: TMDBContent[]}>({});
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Filter States
+  const [selectedProvider, setSelectedProvider] = useState('0');
+  const [selectedType, setSelectedType] = useState('all');
+  
+  const { availableStreamings, loadingProviders } = useWatchProviders();
 
-  // Helper para obter nome do mês
   const getMonthName = (date: Date) => {
     return date.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
   };
@@ -30,45 +36,63 @@ const CalendarPage = () => {
     setCurrentDate(newDate);
   };
 
-  useEffect(() => {
-    const fetchContent = async () => {
-      setLoading(true);
-      try {
-        const year = currentDate.getFullYear();
-        const month = currentDate.getMonth() + 1; // 1-12
-        
-        // Formatar datas para a API (YYYY-MM-DD)
-        const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
-        const lastDay = daysInMonth(currentDate);
-        const endDate = `${year}-${month.toString().padStart(2, '0')}-${lastDay}`;
-        
-        console.log(`Fetching calendar data: ${startDate} to ${endDate}`);
-        const results = await getReleasedContent(startDate, endDate);
-        setContent(results);
-      } catch (error) {
-        console.error('Error fetching calendar content:', error);
-      } finally {
-        setLoading(false);
+  const fetchContent = async () => {
+    setIsLoading(true);
+    const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+
+    // Prepare filters
+    let watchProviders = undefined;
+    if (selectedProvider !== '0') {
+      if (selectedProvider === 'my-streamings') {
+         const savedStreamings = localStorage.getItem('my_streamings');
+         if (savedStreamings) {
+           try {
+             const list = JSON.parse(savedStreamings);
+             if (list.length > 0) watchProviders = list.join('|');
+           } catch (e) {
+             console.error('Error parsing my_streamings', e);
+           }
+         }
+      } else {
+        watchProviders = selectedProvider;
       }
-    };
+    }
 
-    fetchContent();
-  }, [currentDate]);
+    const content = await getReleasedContent(
+      startOfMonth.toISOString().split('T')[0],
+      endOfMonth.toISOString().split('T')[0],
+      {
+        watchProviders,
+        type: selectedType as 'all' | 'movie' | 'tv'
+      }
+    );
 
-  // Agrupar conteúdo por dia
-  const getContentByDay = (day: number) => {
-    return content.filter(item => {
-      const dateStr = item.release_date || item.first_air_date;
-      if (!dateStr) return false;
-      const date = new Date(dateStr);
-      // Ajuste de fuso horário simples (considerando apenas o dia UTC/Local)
-      // A API retorna YYYY-MM-DD, new Date() assume UTC as 00:00 se não der horas
-      // Vamos comparar apenas os componentes de dia
-      return date.getDate() + 1 === day; // Bug comum de timezone JS, YYYY-MM-DD interpreta como UTC-0, brasil é -3, então dia anterior
-      // Correção robusta:
-      const parts = dateStr.split('-');
-      return parseInt(parts[2]) === day;
+    const data: {[key: string]: TMDBContent[]} = {};
+    content.forEach(item => {
+        const date = item.release_date || item.first_air_date;
+        if (date) {
+            // Ensure we key by local YYYY-MM-DD
+            if (!data[date]) data[date] = [];
+            data[date].push(item);
+        }
     });
+
+    setCalendarData(data);
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    fetchContent();
+  }, [currentDate, selectedProvider, selectedType]);
+
+  const getContentByDay = (day: number) => {
+    // Construct keys that match the YYYY-MM-DD format from API
+    // Need to be careful with padding
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth() + 1;
+    const dateKey = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+    return calendarData[dateKey] || [];
   };
 
   const renderCalendarDays = () => {
@@ -94,25 +118,7 @@ const CalendarPage = () => {
                 
                 <div className="mt-8 space-y-1">
                     {dayContent.map(item => (
-                        <Link 
-                            key={item.id} 
-                            to={`/${item.media_type === 'tv' ? 'serie' : 'filme'}/${item.id}`}
-                            className="block"
-                        >
-                            <div className="flex items-center gap-2 p-1 rounded hover:bg-white/10 transition-colors tooltip-trigger" title={item.title || item.name}>
-                                <div className="w-8 h-10 flex-shrink-0 bg-gray-800 rounded overflow-hidden">
-                                     <img 
-                                        src={buildImageUrl(item.poster_path, 'w92')} 
-                                        alt="" 
-                                        className="w-full h-full object-cover"
-                                     />
-                                </div>
-                                <div className="min-w-0">
-                                    <p className="text-xs font-medium text-gray-200 truncate">{item.title || item.name}</p>
-                                    <p className="text-[10px] text-gray-500 uppercase">{item.media_type === 'tv' ? 'Série' : 'Filme'}</p>
-                                </div>
-                            </div>
-                        </Link>
+                        <CalendarItem key={item.id} item={item} />
                     ))}
 
                 </div>
@@ -133,7 +139,7 @@ const CalendarPage = () => {
             <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
                 <div>
                     <h1 className="text-3xl font-bold flex items-center gap-3">
-                        <CalendarDays className="w-8 h-8 text-primary" />
+                        <CalendarIcon className="w-8 h-8 text-primary" />
                         Calendário de Lançamentos
                     </h1>
                     <p className="text-gray-400 mt-2">
@@ -154,7 +160,16 @@ const CalendarPage = () => {
                 </div>
             </div>
 
-            {loading ? (
+            <CalendarFilters
+              providers={availableStreamings}
+              selectedProvider={selectedProvider}
+              onProviderChange={setSelectedProvider}
+              selectedType={selectedType}
+              onTypeChange={setSelectedType}
+              loadingProviders={loadingProviders}
+            />
+
+            {isLoading ? (
                 <div className="h-[600px] flex items-center justify-center">
                     <Loader2 className="w-10 h-10 animate-spin text-primary" />
                 </div>

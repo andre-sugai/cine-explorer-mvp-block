@@ -123,27 +123,60 @@ export interface TMDBContent extends TMDBMovie {
 /**
  * Busca conteúdo (Filmes e Séries) lançados em um intervalo de datas.
  */
-export const getReleasedContent = async (startDate: string, endDate: string): Promise<TMDBContent[]> => {
+/**
+ * Busca conteúdo (Filmes e Séries) lançados em um intervalo de datas.
+ */
+interface CalendarFilters {
+  watchProviders?: string;
+  type?: 'all' | 'movie' | 'tv';
+}
+
+export const getReleasedContent = async (
+  startDate: string,
+  endDate: string,
+  filters?: CalendarFilters
+): Promise<TMDBContent[]> => {
   try {
-    const [moviesData, tvData] = await Promise.all([
-      // Fetch Movies
-      fetchWithQuota(buildApiUrl('/discover/movie', {
-        'primary_release_date.gte': startDate,
-        'primary_release_date.lte': endDate,
-        sort_by: 'popularity.desc',
-        include_adult: 'false',
-        page: '1' // Get top popular only for calendar overview
-      })).then(r => r.json()),
-      
-      // Fetch TV Shows
-      fetchWithQuota(buildApiUrl('/discover/tv', {
-        'first_air_date.gte': startDate,
-        'first_air_date.lte': endDate,
-        sort_by: 'popularity.desc',
-        include_adult: 'false',
-        page: '1'
-      })).then(r => r.json())
-    ]);
+    const fetchMovies = !filters?.type || filters.type === 'all' || filters.type === 'movie';
+    const fetchTV = !filters?.type || filters.type === 'all' || filters.type === 'tv';
+
+    const movieParams: Record<string, string> = {
+      'primary_release_date.gte': startDate,
+      'primary_release_date.lte': endDate,
+      sort_by: 'popularity.desc',
+      include_adult: 'false',
+      page: '1'
+    };
+
+    const tvParams: Record<string, string> = {
+      'first_air_date.gte': startDate,
+      'first_air_date.lte': endDate,
+      sort_by: 'popularity.desc',
+      include_adult: 'false',
+      page: '1'
+    };
+
+    if (filters?.watchProviders) {
+      movieParams.with_watch_providers = filters.watchProviders;
+      movieParams.watch_region = 'BR';
+      tvParams.with_watch_providers = filters.watchProviders;
+      tvParams.watch_region = 'BR';
+    }
+
+    const promises = [];
+    if (fetchMovies) {
+      promises.push(fetchWithQuota(buildApiUrl('/discover/movie', movieParams)).then(r => r.json()));
+    } else {
+      promises.push(Promise.resolve({ results: [] }));
+    }
+
+    if (fetchTV) {
+      promises.push(fetchWithQuota(buildApiUrl('/discover/tv', tvParams)).then(r => r.json()));
+    } else {
+      promises.push(Promise.resolve({ results: [] }));
+    }
+
+    const [moviesData, tvData] = await Promise.all(promises);
 
     const movies = (moviesData.results || []).map((m: any) => ({ ...m, media_type: 'movie' }));
     const shows = (tvData.results || []).map((s: any) => ({ ...s, media_type: 'tv' }));
