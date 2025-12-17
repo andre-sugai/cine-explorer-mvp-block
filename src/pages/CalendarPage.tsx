@@ -114,11 +114,7 @@ const CalendarPage = () => {
                             </div>
                         </Link>
                     ))}
-                    {dayContent.length > 3 && (
-                        <div className="text-[10px] text-center text-gray-500 pt-1">
-                            + {dayContent.length - 3} outros
-                        </div>
-                    )}
+
                 </div>
             </div>
         );
