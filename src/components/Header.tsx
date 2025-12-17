@@ -299,18 +299,11 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
       path: '/quero-assistir',
     },
     { id: 'watched', label: 'Vistos', icon: CheckCircle, path: '/vistos' },
-    { id: 'lists', label: 'Listas', icon: List, path: '/listas' },
     {
       id: 'calendar',
       label: 'Calendário',
       icon: CalendarDays,
       path: '/calendario',
-    },
-    {
-      id: 'recommendations',
-      label: 'Recomendações',
-      icon: Sparkles,
-      path: '/recomendacoes',
     },
   ];
 
@@ -475,6 +468,18 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
                   <DropdownMenuContent className="w-56" align="end">
                     <DropdownMenuItem disabled>{user?.email}</DropdownMenuItem>
                     <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link to="/listas">
+                        <List className="mr-2 h-4 w-4" />
+                        Listas
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/recomendacoes">
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        Recomendações
+                      </Link>
+                    </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link to="/configuracoes">
                         <Settings className="mr-2 h-4 w-4" />
