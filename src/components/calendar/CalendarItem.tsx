@@ -9,7 +9,8 @@ interface CalendarItemProps {
   item: TMDBContent;
 }
 
-export const CalendarItem: React.FC<CalendarItemProps> = ({ item }) => {
+// Memoize to prevent unnecessary re-renders during parent updates
+export const CalendarItem = React.memo(({ item }: CalendarItemProps) => {
   const type = item.media_type === 'tv' ? 'tv' : 'movie';
   const provider = useStreamingProvider(item.id, type);
 
@@ -84,4 +85,6 @@ export const CalendarItem: React.FC<CalendarItemProps> = ({ item }) => {
       </div>
     </div>
   );
-};
+});
+
+CalendarItem.displayName = 'CalendarItem';

@@ -216,15 +216,15 @@ export const getReleasedContent = async (
         const movies = allContent.filter(item => item.media_type !== 'tv');
 
         // Batched processing for TV shows to avoid rate limits
-        // Process in chunks of 3 and wait between chunks
-        const CHUNK_SIZE = 3;
+        // Process in chunks of 10 (increased from 3)
+        const CHUNK_SIZE = 10;
         const tvResults: TMDBContent[] = [];
         
         for (let i = 0; i < tvShows.length; i += CHUNK_SIZE) {
             const chunk = tvShows.slice(i, i + CHUNK_SIZE);
             
-            // Add small delay between chunks to be nice to API
-            if (i > 0) await new Promise(resolve => setTimeout(resolve, 300));
+            // Minimal delay to allow other priority requests to slip in if needed, but keeping it fast
+            if (i > 0) await new Promise(resolve => setTimeout(resolve, 50));
             
             const chunkResults = await Promise.all(chunk.map(async (show) => {
                 // If it's a new show (first_air_date in range), keep as is
@@ -602,6 +602,14 @@ export const getTVSeasonDetails = async (
   seasonNumber: number
 ) => {
   try {
+    // Check cache first
+    const cacheKey = `season_details_${tvId}_${seasonNumber}`;
+    const cached = getCacheItem(cacheKey);
+    if (cached) {
+      // console.log(`✅ Cache hit: season ${seasonNumber} of show ${tvId}`);
+      return cached;
+    }
+
     const url = buildApiUrl(`/tv/${tvId}/season/${seasonNumber}`);
 
     const response = await fetchWithQuota(url);
@@ -609,7 +617,13 @@ export const getTVSeasonDetails = async (
       throw new Error(`TMDB API error: ${response.status}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+
+    // Save to cache (using same TTL as TV details for now)
+    setCacheItem(cacheKey, data, CACHE_TTL.TV_DETAILS);
+    // console.log(`💾 Cached: season ${seasonNumber} of show ${tvId}`);
+
+    return data;
   } catch (error) {
     console.error('Error getting TV season details:', error);
     throw error;
@@ -1035,11 +1049,23 @@ export const getPersonImages = async (id: number) => {
  */
 export const getMovieWatchProviders = async (id: number, region = 'BR') => {
   try {
+    // Check cache first
+    const cacheKey = `movie_providers_${id}_${region}`;
+    const cached = getCacheItem(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const url = buildApiUrl(`/movie/${id}/watch/providers`);
     const response = await fetchWithQuota(url);
     if (!response.ok) return { flatrate: [], rent: [], buy: [] };
     const data = await response.json();
-    return data.results?.[region] || { flatrate: [], rent: [], buy: [] };
+    const result = data.results?.[region] || { flatrate: [], rent: [], buy: [] };
+    
+    // Save to cache
+    setCacheItem(cacheKey, result, CACHE_TTL.PROVIDERS);
+    
+    return result;
   } catch (error) {
     console.error('Error getting movie watch providers:', error);
     return { flatrate: [], rent: [], buy: [] };
@@ -1067,11 +1093,23 @@ export const getWatchProviders = async (region = 'BR') => {
  */
 export const getTVWatchProviders = async (id: number, region = 'BR') => {
   try {
+    // Check cache first
+    const cacheKey = `tv_providers_${id}_${region}`;
+    const cached = getCacheItem(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const url = buildApiUrl(`/tv/${id}/watch/providers`);
     const response = await fetchWithQuota(url);
     if (!response.ok) return { flatrate: [], rent: [], buy: [] };
     const data = await response.json();
-    return data.results?.[region] || { flatrate: [], rent: [], buy: [] };
+    const result = data.results?.[region] || { flatrate: [], rent: [], buy: [] };
+
+    // Save to cache
+    setCacheItem(cacheKey, result, CACHE_TTL.PROVIDERS);
+
+    return result;
   } catch (error) {
     console.error('Error getting TV watch providers:', error);
     return { flatrate: [], rent: [], buy: [] };
