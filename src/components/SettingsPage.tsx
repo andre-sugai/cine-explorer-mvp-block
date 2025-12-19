@@ -50,6 +50,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useProfileImage } from '@/hooks/useProfileImage';
 import { ProfileImageUpload } from '@/components/profile/ProfileImageUpload';
 import { useSettingsContext } from '@/context/SettingsContext';
+import { useSyncContext } from '@/context/SyncContext';
 
 import { toast } from '@/hooks/use-toast';
 
@@ -128,6 +129,7 @@ export const SettingsPage: React.FC = () => {
   const { user, logout } = useAuth();
   const { deleteProfileImage, extractFileNameFromUrl } = useProfileImage();
   const { settings, updateSetting, updateSettings } = useSettingsContext();
+  const { isSyncEnabled, setSyncMode } = useSyncContext();
 
   const favoritesStats = getFavoritesStats();
   const watchedStats = getWatchedStats();
@@ -835,28 +837,14 @@ export const SettingsPage: React.FC = () => {
                         type="checkbox"
                         id="cloud-sync-toggle"
                         className="rounded border-primary/20"
-                        defaultChecked={
-                          localStorage.getItem('cine-explorer-sync-enabled') !== 'false'
-                        }
+                        checked={isSyncEnabled}
                         onChange={(e) => {
-                          localStorage.setItem(
-                            'cine-explorer-sync-enabled',
-                            e.target.checked.toString()
-                          );
-                          toast({
-                            title: e.target.checked
-                              ? 'Sincronização ativada'
-                              : 'Sincronização desativada',
-                            description: e.target.checked
-                              ? 'Suas listas serão sincronizadas com a nuvem.'
-                              : 'Suas listas serão mantidas apenas localmente.',
-                          });
-                          // Recarregar para aplicar mudanças nos contextos
-                          setTimeout(() => window.location.reload(), 1000);
+                          const newMode = e.target.checked ? 'persistence' : 'suspended';
+                          setSyncMode(newMode);
                         }}
                       />
                       <Label htmlFor="cloud-sync-toggle" className="text-sm">
-                        Ativar
+                        {isSyncEnabled ? 'Ativado' : 'Desativado'}
                       </Label>
                     </div>
                   </div>

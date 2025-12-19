@@ -38,7 +38,7 @@ const WANT_TO_WATCH_KEY = 'queroAssistir';
 
 export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
   const { user, isAuthenticated } = useAuth();
-  const { reportSyncStart, reportSyncSuccess, reportSyncError, registerSyncService } = useSyncContext();
+  const { reportSyncStart, reportSyncSuccess, reportSyncError, registerSyncService, isSyncEnabled } = useSyncContext();
   const [wantToWatchList, setWantToWatchList] = useState<WantToWatchItem[]>([]);
 
   // Register sync service for auto-retry
@@ -76,7 +76,7 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return;
 
     // Verificar se a sincronização está ativada
-    const isSyncEnabled = localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
+
     if (!isSyncEnabled) {
       loadWantToWatchFromLocalStorage();
       return;
@@ -161,7 +161,10 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
         // Sincronizar itens locais com Supabase em background
         // Sincronizar itens locais com Supabase em background - BULK INSERT
         if (itemsToSync.length > 0) {
-            const rowsToInsert = itemsToSync.map(item => ({
+          const BATCH_SIZE = 5;
+          for (let i = 0; i < itemsToSync.length; i += BATCH_SIZE) {
+            const batch = itemsToSync.slice(i, i + BATCH_SIZE);
+            const rowsToInsert = batch.map(item => ({
               user_id: user.id,
               item_id: item.id,
               item_type: item.type,
@@ -171,10 +174,11 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
             try {
               const { error } = await supabase.from('user_watchlist').insert(rowsToInsert);
               if (error) throw error;
-              console.log(`Sincronizados ${itemsToSync.length} itens do watchlist em background.`);
+              console.log(`Sincronizados ${batch.length} itens da watchlist em background (lote ${i / BATCH_SIZE + 1}).`);
             } catch (error) {
-              console.error('Erro ao sincronizar watchlist em massa:', error);
+              console.error('Erro ao sincronizar lote da watchlist:', error);
             }
+          }
         }
       }
     } catch (error) {
@@ -202,7 +206,7 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
       added_date: new Date().toISOString(),
     };
 
-    const isSyncEnabled = localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
+
 
     if (isAuthenticated && user && isSyncEnabled) {
       reportSyncStart('watchlist_add');
@@ -265,7 +269,7 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
       return updatedList;
     });
 
-    const isSyncEnabled = localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
+
 
     if (isAuthenticated && user && isSyncEnabled) {
       // Remove from Supabase

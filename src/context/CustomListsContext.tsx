@@ -29,7 +29,6 @@ interface CustomListsContextData {
   createList: (name: string, description?: string) => Promise<void>;
   deleteList: (id: string) => Promise<void>;
   addItemToList: (listId: string, item: CustomListItem) => Promise<void>;
-  addItemToList: (listId: string, item: CustomListItem) => Promise<void>;
   removeItemFromList: (listId: string, itemId: number) => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -40,7 +39,7 @@ const CUSTOM_LISTS_KEY = 'cine-explorer-custom-lists';
 
 export const CustomListsProvider = ({ children }: { children: ReactNode }) => {
   const { user, isAuthenticated } = useAuth();
-  const { reportSyncStart, reportSyncSuccess, reportSyncError, registerSyncService } = useSyncContext();
+  const { reportSyncStart, reportSyncSuccess, reportSyncError, registerSyncService, isSyncEnabled } = useSyncContext();
   const [lists, setLists] = useState<CustomList[]>([]);
 
   // Register sync service for auto-retry
@@ -73,7 +72,7 @@ export const CustomListsProvider = ({ children }: { children: ReactNode }) => {
   const loadListsFromSupabase = async () => {
     if (!user) return;
 
-    const isSyncEnabled = localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
+
     if (!isSyncEnabled) {
       loadListsFromLocalStorage();
       return;
@@ -131,26 +130,31 @@ export const CustomListsProvider = ({ children }: { children: ReactNode }) => {
       safeLocalStorageSetItem(CUSTOM_LISTS_KEY, JSON.stringify(mergedLists));
 
       // Sync local-only lists to Supabase
-      if (listsToSync.length > 0) {
-        Promise.all(listsToSync.map(async (list) => {
-          try {
-            // Remove ID to let Supabase generate a new one, or use the local UUID?
-            // Let's try to use the local UUID if it's a valid UUID, otherwise let Supabase generate
-            // Ideally we should respect the local ID to avoid duplicates if we sync back
-            
-            await supabase.from('user_custom_lists').insert({
-              id: list.id, // Try to keep the ID
-              user_id: user.id,
-              name: list.name,
-              description: list.description,
-              items: list.items as any
-            });
-          } catch (e) {
-            console.error('Error syncing list:', list.name, e);
-          }
-        }));
-      }
+        if (listsToSync.length > 0) {
+            const BATCH_SIZE = 5;
+            for (let i = 0; i < listsToSync.length; i += BATCH_SIZE) {
+                const batch = listsToSync.slice(i, i + BATCH_SIZE);
+                
+                const rowsToInsert = batch.map(list => ({
+                    id: list.id,
+                    user_id: user.id,
+                    name: list.name,
+                    description: list.description || '',
+                    items: list.items as any,
+                    created_at: list.createdAt || new Date().toISOString()
+                }));
 
+                try {
+                    const { error } = await supabase.from('user_custom_lists').upsert(rowsToInsert);
+                    if (error) throw error;
+                    
+                    console.log(`Sincronizadas ${batch.length} listas em background (lote ${i / BATCH_SIZE + 1}).`);
+
+                } catch (error) {
+                    console.error('Erro ao sincronizar lote de listas personalizadas:', error);
+                }
+            }
+        }
     } catch (error) {
       console.error('Error loading custom lists:', error);
       loadListsFromLocalStorage();
@@ -176,7 +180,7 @@ export const CustomListsProvider = ({ children }: { children: ReactNode }) => {
     saveListsLocally(updatedLists);
     toast.success(`Lista "${name}" criada com sucesso!`);
 
-    const isSyncEnabled = localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
+
     if (isAuthenticated && user && isSyncEnabled) {
       try {
         const { error } = await supabase.from('user_custom_lists').insert({
@@ -201,7 +205,7 @@ export const CustomListsProvider = ({ children }: { children: ReactNode }) => {
     saveListsLocally(updatedLists);
     toast.success('Lista removida com sucesso');
 
-    const isSyncEnabled = localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
+
     if (isAuthenticated && user && isSyncEnabled) {
       try {
         const { error } = await supabase
@@ -236,7 +240,7 @@ export const CustomListsProvider = ({ children }: { children: ReactNode }) => {
     saveListsLocally(newLists);
     toast.success(`Adicionado à lista "${list.name}"`);
 
-    const isSyncEnabled = localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
+
     if (isAuthenticated && user && isSyncEnabled) {
       try {
         const { error } = await supabase
@@ -266,7 +270,7 @@ export const CustomListsProvider = ({ children }: { children: ReactNode }) => {
     saveListsLocally(newLists);
     toast.success('Item removido da lista');
 
-    const isSyncEnabled = localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
+
     if (isAuthenticated && user && isSyncEnabled) {
       try {
         const { error } = await supabase

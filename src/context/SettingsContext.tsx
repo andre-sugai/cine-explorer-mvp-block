@@ -7,6 +7,7 @@ import React, {
 } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
+import { useSyncContext } from '@/context/SyncContext';
 import { toast } from '@/hooks/use-toast';
 
 // Define the shape of our settings
@@ -42,6 +43,7 @@ const SettingsContext = createContext<SettingsContextData | undefined>(undefined
 
 export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const { user, isAuthenticated } = useAuth();
+  const { isSyncEnabled } = useSyncContext();
   const [settings, setSettings] = useState<UserSettings>({});
   const [isLoading, setIsLoading] = useState(true);
 
@@ -58,7 +60,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setSettings(localSettings);
 
     // 2. If logged in and sync enabled, load from Supabase
-    const isSyncEnabled = localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
+
     
     if (isAuthenticated && user && isSyncEnabled) {
       try {
@@ -176,7 +178,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     saveToLocalStorage(newSettings);
 
     // 2. Sync to Supabase
-    const isSyncEnabled = localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
+
     if (isAuthenticated && user && isSyncEnabled) {
       await saveToSupabase(newSettings);
     }
@@ -190,7 +192,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     saveToLocalStorage(newSettings);
 
     // 2. Sync to Supabase
-    const isSyncEnabled = localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
+
     if (isAuthenticated && user && isSyncEnabled) {
       await saveToSupabase(newSettings);
     }

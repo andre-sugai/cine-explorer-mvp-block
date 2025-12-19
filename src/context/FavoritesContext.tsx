@@ -46,7 +46,7 @@ const FavoritesContext = createContext<FavoritesContextData | undefined>(
 
 export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
   const { user, isAuthenticated } = useAuth();
-  const { reportSyncStart, reportSyncSuccess, reportSyncError, registerSyncService } = useSyncContext();
+  const { reportSyncStart, reportSyncSuccess, reportSyncError, registerSyncService, isSyncEnabled } = useSyncContext();
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -77,7 +77,6 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return;
 
     // Verificar se a sincronização está ativada
-    const isSyncEnabled = localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
     if (!isSyncEnabled) {
       loadFavoritesFromLocalStorage();
       return;
@@ -168,19 +167,23 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
         // Sincronizar itens locais com Supabase em background
         // Sincronizar itens locais com Supabase em background - BULK INSERT
         if (itemsToSync.length > 0) {
-          const rowsToInsert = itemsToSync.map(item => ({
-            user_id: user.id,
-            item_id: item.id,
-            item_type: item.type,
-            item_data: item as any,
-          }));
+          const BATCH_SIZE = 5;
+          for (let i = 0; i < itemsToSync.length; i += BATCH_SIZE) {
+            const batch = itemsToSync.slice(i, i + BATCH_SIZE);
+            const rowsToInsert = batch.map(item => ({
+              user_id: user.id,
+              item_id: item.id,
+              item_type: item.type,
+              item_data: item as any,
+            }));
 
-          try {
-            const { error } = await supabase.from('user_favorites').insert(rowsToInsert);
-            if (error) throw error;
-            console.log(`Sincronizados ${itemsToSync.length} favoritos em background.`);
-          } catch (error) {
-            console.error('Erro ao sincronizar favoritos em massa:', error);
+            try {
+              const { error } = await supabase.from('user_favorites').insert(rowsToInsert);
+              if (error) throw error;
+              console.log(`Sincronizados ${batch.length} favoritos em background (lote ${i / BATCH_SIZE + 1}).`);
+            } catch (error) {
+              console.error('Erro ao sincronizar lote de favoritos:', error);
+            }
           }
         }
       }
@@ -203,7 +206,7 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
     // Atualizar estado local otimisticamente
     setFavorites((prev) => [...prev, favoriteItem]);
 
-    const isSyncEnabled = localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
+
 
     if (isAuthenticated && user && isSyncEnabled) {
       reportSyncStart('favorites_add');
@@ -268,7 +271,7 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
       prev.filter((fav) => !(fav.id === id && fav.type === type))
     );
 
-    const isSyncEnabled = localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
+
 
     if (isAuthenticated && user && isSyncEnabled) {
       // Tentar remover do Supabase
@@ -323,7 +326,7 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
     // Limpar estado local otimisticamente
     setFavorites([]);
 
-    const isSyncEnabled = localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
+
 
     if (isAuthenticated && user && isSyncEnabled) {
       // Tentar limpar do Supabase

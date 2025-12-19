@@ -25,6 +25,7 @@ import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { SyncIndicator } from './SyncIndicator';
+import { useSyncContext } from '@/context/SyncContext';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { DataMigrationModal } from '@/components/auth/DataMigrationModal';
 import { useVoiceSearch } from '@/hooks/useVoiceSearch';
@@ -83,6 +84,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
   const favoritesContext = useFavoritesContext();
   const wantToWatchContext = useWantToWatchContext();
   const customListsContext = useCustomListsContext();
+  const { syncMode, setSyncMode } = useSyncContext();
 
   // Hook para busca por voz
   const {
@@ -243,6 +245,21 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
       return;
     }
 
+    // Se estiver suspenso, mudar para modo persistência para permitir a sincronização
+    if (syncMode === 'suspended') {
+      try {
+        setSyncMode('persistence');
+        toast({
+          title: 'Modo Online Ativado',
+          description: 'A sincronização foi ativada para realizar esta operação.',
+        });
+        // Pequeno delay para garantir que o estado propagou
+        await new Promise(resolve => setTimeout(resolve, 100));
+      } catch (error) {
+        console.error('Erro ao ativar modo persistência:', error);
+      }
+    }
+
     setIsSyncing(true);
 
     try {
@@ -251,11 +268,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
         description:
           'Atualizando dados com a nuvem. Isso pode levar alguns segundos.',
       });
-
-      // Force enable sync flag
-      localStorage.setItem('cine-explorer-sync-enabled', 'true');
-
-      // Trigger parallel refresh of all data contexts
+      
       await Promise.all([
         watchedContext.refresh(),
         favoritesContext.refresh(),

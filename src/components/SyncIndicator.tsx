@@ -1,6 +1,6 @@
 import React from 'react';
-import { Cloud, CloudOff, RefreshCw, AlertCircle } from 'lucide-react';
-import { useSyncContext } from '@/context/SyncContext';
+import { Cloud, CloudOff, RefreshCw, AlertCircle, Repeat } from 'lucide-react';
+import { useSyncContext, SyncMode } from '@/context/SyncContext';
 import {
   Tooltip,
   TooltipContent,
@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/tooltip';
 
 export const SyncIndicator: React.FC = () => {
-  const { status, lastSyncTime, activeSyncs, errors } = useSyncContext();
+  const { status, lastSyncTime, activeSyncs, errors, syncMode, cycleSyncMode } = useSyncContext();
 
   const getIcon = () => {
     switch (status) {
@@ -21,32 +21,36 @@ export const SyncIndicator: React.FC = () => {
         return <CloudOff className="w-4 h-4 text-muted-foreground" />;
       case 'idle':
       default:
+        // Icon depends on Mode
+        if (syncMode === 'suspended') {
+            return <CloudOff className="w-4 h-4 text-muted-foreground/50" />;
+        }
+        // Persistence (Default On)
         return <Cloud className="w-4 h-4 text-green-500" />;
     }
   };
 
   const getLabel = () => {
-    switch (status) {
-      case 'syncing':
+    // Override label for special statuses
+    if (status === 'syncing') {
         const translateService = (s: string) => {
-          const map: Record<string, string> = {
-            'watched': 'Vistos',
-            'favorites': 'Favoritos',
-            'favorites_add': 'Adicionando aos Favoritos',
-            'watchlist': 'Quero Assistir',
-            'watchlist_add': 'Adicionando a Quero Assistir',
-            'custom_lists': 'Listas',
-            'custom_lists_add': 'Atualizando Listas'
-          };
-          return map[s] || s;
+            const map: Record<string, string> = {
+              'watched': 'histórico',
+              'favorites': 'favoritos',
+              'watchlist': 'quero assistir',
+              'custom_lists': 'listas'
+            };
+            return map[s] || s;
         };
-        const services = Array.from(activeSyncs).map(translateService).join(', ');
-        return `Sincronizando: ${services}...`;
-      case 'error':
+        const syncingServices = Array.from(activeSyncs).map(translateService).join(', ');
+        return `Sincronizando ${syncingServices}...`;
+    }
+
+    if (status === 'error') {
         if (errors.size > 0) {
           const translateServiceError = (s: string) => {
-             const map: Record<string, string> = {
-              'watched': 'vistos',
+            const map: Record<string, string> = {
+              'watched': 'histórico',
               'favorites': 'favoritos',
               'favorites_add': 'adição aos favoritos',
               'watchlist': 'quero assistir',
@@ -57,14 +61,26 @@ export const SyncIndicator: React.FC = () => {
             return map[s] || s;
           };
           const failedServices = Array.from(errors.keys()).map(translateServiceError).join(', ');
+          
+          if (syncMode === 'persistence') {
+              return `Erro ao sincronizar (${failedServices}). Tentando novamente em 1 min...`;
+          }
           return `Erro ao sincronizar: ${failedServices}`;
         }
         return 'Erro na sincronização';
-      case 'offline':
+    }
+
+    if (status === 'offline') {
         return 'Modo offline - Alterações salvas localmente';
-      case 'idle':
-      default:
-        return 'Tudo sincronizado e salvo na nuvem';
+    }
+
+    // Idle status labels based on mode
+    switch (syncMode) {
+        case 'suspended':
+            return 'Sincronização suspensa. Clique para ativar.';
+        case 'persistence':
+        default:
+            return 'Sincronização Ativa (Modo Persistência)';
     }
   };
 
@@ -104,26 +120,44 @@ export const SyncIndicator: React.FC = () => {
     return `Última sincronização: ${lastSyncTime.toLocaleTimeString()}`;
   };
 
+  const getModeColor = () => {
+      if (status === 'syncing') return 'bg-primary/10';
+      if (status === 'error') return 'bg-destructive/10 hover:bg-destructive/20';
+      
+      switch (syncMode) {
+          case 'suspended': return 'hover:bg-accent opacity-70';
+          case 'persistence': return 'bg-orange-500/10 hover:bg-orange-500/20';
+          default: return 'hover:bg-accent';
+      }
+  };
+
   return (
     <TooltipProvider>
       <Tooltip delayDuration={0}>
         <TooltipTrigger asChild>
-          <div className={`
-            flex items-center justify-center w-8 h-8 rounded-full 
-            transition-all duration-300 cursor-help
-            ${status === 'error' ? 'bg-destructive/10 hover:bg-destructive/20' : 'hover:bg-accent'}
-            ${status === 'syncing' ? 'bg-primary/5' : ''}
-          `}>
+          <button 
+            onClick={cycleSyncMode}
+            className={`
+              flex items-center justify-center w-8 h-8 rounded-full 
+              transition-all duration-300 cursor-pointer
+              ${getModeColor()}
+            `}
+          >
             {getIcon()}
-          </div>
+          </button>
         </TooltipTrigger>
         <TooltipContent side="bottom" className="max-w-[300px]">
           <div className="flex flex-col gap-1">
-            <span className="font-semibold">{getLabel()}</span>
-            {status === 'error' && getErrorDetails()}
-            <span className="text-xs text-muted-foreground border-t pt-1 mt-1 border-border">
-              {formatLastSync()}
+            <span className="font-semibold text-sm">{getLabel()}</span>
+            <span className="text-xs text-muted-foreground">
+                Basta clicar para alternar entre os modos: Normal, Persistência e Suspenso.
             </span>
+            {status === 'error' && getErrorDetails()}
+            {lastSyncTime && (
+                <span className="text-xs text-muted-foreground border-t pt-1 mt-1 border-border">
+                {formatLastSync()}
+                </span>
+            )}
           </div>
         </TooltipContent>
       </Tooltip>

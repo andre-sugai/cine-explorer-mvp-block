@@ -54,7 +54,7 @@ const WatchedContext = createContext<WatchedContextData | undefined>(undefined);
 
 export const WatchedProvider = ({ children }: { children: ReactNode }) => {
   const { user, isAuthenticated } = useAuth();
-  const { reportSyncStart, reportSyncSuccess, reportSyncError, registerSyncService } = useSyncContext();
+  const { reportSyncStart, reportSyncSuccess, reportSyncError, registerSyncService, isSyncEnabled } = useSyncContext();
   const [watched, setWatched] = useState<WatchedItem[]>([]);
 
   // Register sync service for auto-retry
@@ -111,8 +111,6 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return;
 
     // Verificar se a sincronização está ativada
-    const isSyncEnabled =
-      localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
     if (!isSyncEnabled) {
       loadWatchedFromLocalStorage();
       return;
@@ -230,20 +228,24 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
         // Sincronizar itens locais com Supabase em background
         // Sincronizar itens locais com Supabase em background - BULK INSERT
         if (itemsToSync.length > 0) {
-            const rowsToInsert = itemsToSync.map(item => ({
-              user_id: user.id,
-              item_id: Number(item.id),
-              item_type: item.type,
-              item_data: item as any,
-              watched_date: item.watchedAt,
-            }));
+            const BATCH_SIZE = 5;
+            for (let i = 0; i < itemsToSync.length; i += BATCH_SIZE) {
+                const batch = itemsToSync.slice(i, i + BATCH_SIZE);
+                const rowsToInsert = batch.map(item => ({
+                  user_id: user.id,
+                  item_id: Number(item.id),
+                  item_type: item.type,
+                  item_data: item as any,
+                  watched_date: item.watchedAt,
+                }));
 
-            try {
-              const { error } = await supabase.from('user_watched').insert(rowsToInsert);
-              if (error) throw error;
-              console.log(`Sincronizados ${itemsToSync.length} itens assistidos em background.`);
-            } catch (error) {
-              console.error('Erro ao sincronizar itens assistidos em massa:', error);
+                try {
+                  const { error } = await supabase.from('user_watched').insert(rowsToInsert);
+                  if (error) throw error;
+                  console.log(`Sincronizados ${batch.length} itens assistidos em background (lote ${i / BATCH_SIZE + 1}).`);
+                } catch (error) {
+                  console.error('Erro ao sincronizar lote de itens assistidos:', error);
+                }
             }
         }
       }
@@ -292,8 +294,7 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
       return newWatched;
     });
 
-    const isSyncEnabled =
-      localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
+
 
     if (isAuthenticated && user && isSyncEnabled) {
       // Sync with Supabase in the background
@@ -331,8 +332,7 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
       return newWatched;
     });
 
-    const isSyncEnabled =
-      localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
+
 
     if (isAuthenticated && user && isSyncEnabled) {
       // Remove from Supabase
@@ -383,8 +383,7 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
     setWatched([]);
     localStorage.removeItem('cine-explorer-watched');
 
-    const isSyncEnabled =
-      localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
+
 
     if (isAuthenticated && user && isSyncEnabled) {
       // Clear from Supabase

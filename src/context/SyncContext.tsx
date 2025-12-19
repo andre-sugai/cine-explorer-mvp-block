@@ -1,12 +1,18 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { toast } from '@/hooks/use-toast';
 
+export type SyncMode = 'persistence' | 'suspended';
 type SyncStatus = 'idle' | 'syncing' | 'error' | 'offline';
 
 interface SyncContextData {
   status: SyncStatus;
+  syncMode: SyncMode;
   lastSyncTime: Date | null;
   activeSyncs: Set<string>;
   errors: Map<string, any>;
+  isSyncEnabled: boolean;
+  cycleSyncMode: () => void;
+  setSyncMode: (mode: SyncMode) => void;
   reportSyncStart: (service: string) => void;
   reportSyncSuccess: (service: string) => void;
   reportSyncError: (service: string, error: any) => void;
@@ -20,6 +26,24 @@ export const SyncProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [errors, setErrors] = useState<Map<string, any>>(new Map());
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  
+  // Initialize sync mode from localStorage
+  // Default to 'persistence' (ON)
+  const [syncMode, setSyncModeState] = useState<SyncMode>(() => {
+    const savedMode = localStorage.getItem('cine-explorer-sync-mode');
+    if (savedMode === 'persistence' || savedMode === 'suspended') {
+      return savedMode;
+    }
+    // Legacy support: 'normal' becomes 'persistence'
+    if (savedMode === 'normal') return 'persistence';
+    
+    // Legacy boolean flag support
+    const legacyEnabled = localStorage.getItem('cine-explorer-sync-enabled');
+    if (legacyEnabled === 'false') return 'suspended';
+    
+    // Default to persistence
+    return 'persistence';
+  });
 
   useEffect(() => {
     // Debug helper and safety timeout
@@ -46,11 +70,46 @@ export const SyncProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, []);
 
+  // Update localStorage when mode changes
+  const setSyncMode = (mode: SyncMode) => {
+    setSyncModeState(mode);
+    localStorage.setItem('cine-explorer-sync-mode', mode);
+    // Update legacy flag for compatibility
+    localStorage.setItem('cine-explorer-sync-enabled', mode !== 'suspended' ? 'true' : 'false');
+    
+    // Toast feedback
+    const modeLabels = {
+      persistence: 'Sincronização Ativada',
+      suspended: 'Sincronização Suspensa'
+    };
+    
+    toast({
+      title: 'Modo de Sincronização Alterado',
+      description: `${modeLabels[mode]}.`,
+    });
+
+    // If switching FROM persistence (to suspended), clear any pending retries
+    if (mode !== 'persistence') {
+      retryTimeouts.current.forEach((timeout) => clearTimeout(timeout));
+      retryTimeouts.current.clear();
+    }
+  };
+
+  const cycleSyncMode = () => {
+    // Toggle between persistence and suspended
+    setSyncMode(syncMode === 'persistence' ? 'suspended' : 'persistence');
+  };
+
   const registerSyncService = (service: string, syncFn: () => Promise<void>) => {
     registry.current.set(service, syncFn);
   };
 
   const reportSyncStart = (service: string) => {
+    if (syncMode === 'suspended') {
+        console.log(`🚫 Sync blocked for ${service} (Suspended Mode)`);
+        return;
+    }
+
     console.log(`📡 Sync started: ${service}`);
     
     // Clear any pending retry for this service
@@ -94,15 +153,20 @@ export const SyncProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return next;
     });
 
-    // Schedule auto-retry if service is registered
-    const syncFn = registry.current.get(service);
-    if (syncFn) {
-      console.log(`🔄 Scheduling retry for ${service} in 10s...`);
-      const timeout = setTimeout(() => {
-        console.log(`🔄 Auto-retrying specific service: ${service}`);
-        syncFn().catch(e => console.error(`Retry failed for ${service}`, e));
-      }, 10000); // Retry after 10 seconds
-      retryTimeouts.current.set(service, timeout);
+    // Schedule auto-retry ONLY if in Persistence Mode
+    if (syncMode === 'persistence') {
+      const syncFn = registry.current.get(service);
+      if (syncFn) {
+        console.log(`🔄 [Persistence Mode] Scheduling retry for ${service} in 1 minute...`);
+        const timeout = setTimeout(() => {
+          console.log(`🔄 [Persistence Mode] Auto-retrying service: ${service}`);
+          // Re-trigger sync
+          syncFn().catch(e => console.error(`Retry failed for ${service}`, e));
+        }, 60000); // Retry after 60 seconds
+        retryTimeouts.current.set(service, timeout);
+      }
+    } else {
+        console.log(`ℹ️ Retry skipped (Current mode: ${syncMode})`);
     }
   };
 
@@ -117,9 +181,13 @@ export const SyncProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     <SyncContext.Provider
       value={{
         status: getStatus(),
+        syncMode,
         lastSyncTime,
         activeSyncs,
         errors,
+        isSyncEnabled: syncMode !== 'suspended',
+        cycleSyncMode,
+        setSyncMode,
         reportSyncStart,
         reportSyncSuccess,
         reportSyncError,
