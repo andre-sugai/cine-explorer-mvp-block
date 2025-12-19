@@ -24,6 +24,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { SyncIndicator } from './SyncIndicator';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { DataMigrationModal } from '@/components/auth/DataMigrationModal';
 import { useVoiceSearch } from '@/hooks/useVoiceSearch';
@@ -251,31 +252,21 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
           'Atualizando dados com a nuvem. Isso pode levar alguns segundos.',
       });
 
-      // Force reload all data from Supabase by temporarily enabling sync
-      const wasSyncEnabled =
-        localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
+      // Force enable sync flag
       localStorage.setItem('cine-explorer-sync-enabled', 'true');
 
-      // Trigger reload of all contexts by calling their load methods
-      // Since the contexts don't expose reload methods, we'll use a workaround
-      // by temporarily clearing localStorage and letting the contexts reload
+      // Trigger parallel refresh of all data contexts
+      await Promise.all([
+        watchedContext.refresh(),
+        favoritesContext.refresh(),
+        wantToWatchContext.refresh(),
+        customListsContext.refresh(),
+      ]);
 
-      // Create backups
-      const watchedBackup = localStorage.getItem('cine-explorer-watched');
-      const favoritesBackup = localStorage.getItem('cine-explorer-favorites');
-      const wantToWatchBackup = localStorage.getItem('queroAssistir');
-      const customListsBackup = localStorage.getItem(
-        'cine-explorer-custom-lists'
-      );
-
-      // Clear localStorage to force reload from Supabase
-      localStorage.removeItem('cine-explorer-watched');
-      localStorage.removeItem('cine-explorer-favorites');
-      localStorage.removeItem('queroAssistir');
-      localStorage.removeItem('cine-explorer-custom-lists');
-
-      // Reload the page to trigger fresh data loading from all contexts
-      window.location.reload();
+      toast({
+        title: 'Sincronização concluída',
+        description: 'Seus dados foram atualizados com sucesso.',
+      });
     } catch (error) {
       console.error('Erro durante sincronização:', error);
       toast({
@@ -441,7 +432,9 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
             </form>
 
             {/* Auth Section */}
-            <div className="flex items-center gap-2 ml-2">
+            <div className="flex items-center gap-4 ml-4">
+              <SyncIndicator />
+              
               {isAuthenticated ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>

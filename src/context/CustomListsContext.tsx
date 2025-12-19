@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
+import { useSyncContext } from '@/context/SyncContext';
 import { safeLocalStorageSetItem } from '@/utils/storage';
 
 export interface CustomListItem {
@@ -28,7 +29,9 @@ interface CustomListsContextData {
   createList: (name: string, description?: string) => Promise<void>;
   deleteList: (id: string) => Promise<void>;
   addItemToList: (listId: string, item: CustomListItem) => Promise<void>;
+  addItemToList: (listId: string, item: CustomListItem) => Promise<void>;
   removeItemFromList: (listId: string, itemId: number) => Promise<void>;
+  refresh: () => Promise<void>;
 }
 
 const CustomListsContext = createContext<CustomListsContextData | undefined>(undefined);
@@ -37,6 +40,7 @@ const CUSTOM_LISTS_KEY = 'cine-explorer-custom-lists';
 
 export const CustomListsProvider = ({ children }: { children: ReactNode }) => {
   const { user, isAuthenticated } = useAuth();
+  const { reportSyncStart, reportSyncSuccess, reportSyncError } = useSyncContext();
   const [lists, setLists] = useState<CustomList[]>([]);
 
   // Load data when user changes
@@ -68,6 +72,7 @@ export const CustomListsProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
+    reportSyncStart('custom_lists');
     try {
       // Load local data first
       const localData = localStorage.getItem(CUSTOM_LISTS_KEY);
@@ -81,6 +86,7 @@ export const CustomListsProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) {
         console.error('Error loading custom lists from Supabase:', error);
+        reportSyncError('custom_lists', error);
         if (localLists.length > 0) setLists(localLists);
         return;
       }
@@ -269,6 +275,15 @@ export const CustomListsProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Expose load function for manual sync
+  const refresh = async () => {
+    if (isAuthenticated && user) {
+      await loadListsFromSupabase();
+    } else {
+      loadListsFromLocalStorage();
+    }
+  };
+
   return (
     <CustomListsContext.Provider
       value={{
@@ -277,6 +292,7 @@ export const CustomListsProvider = ({ children }: { children: ReactNode }) => {
         deleteList,
         addItemToList,
         removeItemFromList,
+        refresh,
       }}
     >
       {children}

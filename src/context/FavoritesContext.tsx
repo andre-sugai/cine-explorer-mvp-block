@@ -7,6 +7,7 @@ import React, {
 } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
+import { useSyncContext } from '@/context/SyncContext';
 import { safeLocalStorageSetItem } from '@/utils/storage';
 
 interface FavoriteItem {
@@ -36,6 +37,7 @@ interface FavoritesContextData {
     people: number;
   };
   isFavorite: (id: number, type: string) => boolean;
+  refresh: () => Promise<void>;
 }
 
 const FavoritesContext = createContext<FavoritesContextData | undefined>(
@@ -44,6 +46,7 @@ const FavoritesContext = createContext<FavoritesContextData | undefined>(
 
 export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
   const { user, isAuthenticated } = useAuth();
+  const { reportSyncStart, reportSyncSuccess, reportSyncError } = useSyncContext();
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -73,6 +76,7 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
+    reportSyncStart('favorites');
     setIsLoading(true);
     try {
       // Carregar dados do localStorage primeiro (backup local)
@@ -89,6 +93,7 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) {
         console.error('Error loading favorites:', error);
+        reportSyncError('favorites', error);
         // Em caso de erro, usar dados do localStorage
         if (localFavorites.length > 0) {
           setFavorites(localFavorites);
@@ -136,6 +141,7 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
       );
 
       setFavorites(finalFavorites);
+      reportSyncSuccess('favorites');
 
       // Sincronizar com localStorage como backup
       safeLocalStorageSetItem(
@@ -173,6 +179,7 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
       }
     } catch (error) {
       console.error('Error loading favorites:', error);
+      reportSyncError('favorites', error);
       // Fallback para localStorage em caso de erro
       loadFavoritesFromLocalStorage();
     } finally {
@@ -192,6 +199,7 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
     const isSyncEnabled = localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
 
     if (isAuthenticated && user && isSyncEnabled) {
+      reportSyncStart('favorites_add');
       // Tentar adicionar ao Supabase
       try {
         const { error } = await supabase.from('user_favorites').insert({
@@ -202,6 +210,7 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
         });
 
         if (error) {
+          reportSyncError('favorites_add', error);
           // Se falhar, reverter estado local
           setFavorites((prev) =>
             prev.filter(
@@ -220,7 +229,9 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
           );
           return current;
         });
+        reportSyncSuccess('favorites_add');
       } catch (error) {
+        reportSyncError('favorites_add', error);
         // Reverter estado local em caso de erro
         setFavorites((prev) =>
           prev.filter((fav) => !(fav.id === item.id && fav.type === item.type))
@@ -359,6 +370,15 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
     return favorites.some((fav) => fav.id === id && fav.type === type);
   };
 
+  // Expose load function for manual sync
+  const refresh = async () => {
+    if (isAuthenticated && user) {
+      await loadFavoritesFromSupabase();
+    } else {
+      loadFavoritesFromLocalStorage();
+    }
+  };
+
   return (
     <FavoritesContext.Provider
       value={{
@@ -369,6 +389,7 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
         getFavoritesByType,
         getStats,
         isFavorite,
+        refresh,
       }}
     >
       {children}

@@ -7,6 +7,7 @@ import React, {
 } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
+import { useSyncContext } from '@/context/SyncContext';
 import { safeLocalStorageSetItem } from '@/utils/storage';
 
 export interface WantToWatchItem {
@@ -26,6 +27,7 @@ interface WantToWatchContextData {
   removeFromWantToWatch: (id: number, type?: 'movie' | 'tv') => void;
   isInWantToWatch: (id: number, type?: 'movie' | 'tv') => boolean;
   getWantToWatchCount: () => number;
+  refresh: () => Promise<void>;
 }
 
 const WantToWatchContext = createContext<WantToWatchContextData | undefined>(
@@ -36,6 +38,7 @@ const WANT_TO_WATCH_KEY = 'queroAssistir';
 
 export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
   const { user, isAuthenticated } = useAuth();
+  const { reportSyncStart, reportSyncSuccess, reportSyncError } = useSyncContext();
   const [wantToWatchList, setWantToWatchList] = useState<WantToWatchItem[]>([]);
 
   // Load data when user changes
@@ -72,6 +75,7 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
+    reportSyncStart('watchlist');
     try {
       // Carregar dados do localStorage primeiro (backup local)
       const localData = localStorage.getItem(WANT_TO_WATCH_KEY);
@@ -87,6 +91,7 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) {
         console.error('Error loading watchlist:', error);
+        reportSyncError('watchlist', error);
         // Em caso de erro, usar dados do localStorage
         if (localWatchlist.length > 0) {
           setWantToWatchList(localWatchlist);
@@ -132,6 +137,7 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
       );
 
       setWantToWatchList(finalWatchlist);
+      reportSyncSuccess('watchlist');
 
       // Sincronizar com localStorage como backup
       safeLocalStorageSetItem(WANT_TO_WATCH_KEY, JSON.stringify(finalWatchlist));
@@ -166,6 +172,7 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
       }
     } catch (error) {
       console.error('Error loading watchlist:', error);
+      reportSyncError('watchlist', error);
       // Fallback para localStorage em caso de erro
       loadWantToWatchFromLocalStorage();
     }
@@ -191,6 +198,7 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
     const isSyncEnabled = localStorage.getItem('cine-explorer-sync-enabled') !== 'false';
 
     if (isAuthenticated && user && isSyncEnabled) {
+      reportSyncStart('watchlist_add');
       // Add to Supabase
       try {
         const { error } = await supabase.from('user_watchlist').insert({
@@ -202,6 +210,7 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
 
         if (error) {
           console.error('Error adding to watchlist in Supabase:', error);
+          reportSyncError('watchlist_add', error);
           throw error;
         }
 
@@ -212,8 +221,10 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
           safeLocalStorageSetItem(WANT_TO_WATCH_KEY, JSON.stringify(updatedList));
           return updatedList;
         });
+        reportSyncSuccess('watchlist_add');
       } catch (error) {
         console.error('Error adding to watchlist in Supabase:', error);
+        reportSyncError('watchlist_add', error);
         // Em caso de erro, ainda salvar no localStorage como fallback
         setWantToWatchList((prev) => {
           const updatedList = [...prev, newItem];
@@ -305,6 +316,15 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
     return wantToWatchList.length;
   };
 
+  // Expose load function for manual sync
+  const refresh = async () => {
+    if (isAuthenticated && user) {
+      await loadWantToWatchFromSupabase();
+    } else {
+      loadWantToWatchFromLocalStorage();
+    }
+  };
+
   return (
     <WantToWatchContext.Provider
       value={{
@@ -313,6 +333,7 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
         removeFromWantToWatch,
         isInWantToWatch,
         getWantToWatchCount,
+        refresh,
       }}
     >
       {children}

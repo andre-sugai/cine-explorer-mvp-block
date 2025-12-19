@@ -7,6 +7,7 @@ import React, {
 } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
+import { useSyncContext } from '@/context/SyncContext';
 import { safeLocalStorageSetItem } from '@/utils/storage';
 
 interface WatchedItem {
@@ -46,12 +47,14 @@ interface WatchedContextData {
   ) => WatchedItem[];
   isWatched: (id: number, type: string) => boolean;
   exportWatchedList: () => void;
+  refresh: () => Promise<void>;
 }
 
 const WatchedContext = createContext<WatchedContextData | undefined>(undefined);
 
 export const WatchedProvider = ({ children }: { children: ReactNode }) => {
   const { user, isAuthenticated } = useAuth();
+  const { reportSyncStart, reportSyncSuccess, reportSyncError } = useSyncContext();
   const [watched, setWatched] = useState<WatchedItem[]>([]);
 
   // Load data when user changes
@@ -108,11 +111,12 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
+    reportSyncStart('watched');
     try {
       // Fetch all data from Supabase with pagination
       let allRemoteWatched: any[] = [];
       let page = 0;
-      const PAGE_SIZE = 1000;
+      const PAGE_SIZE = 100; // Reduced from 1000 to prevent statement timeouts
       let hasMore = true;
 
       while (hasMore) {
@@ -125,6 +129,7 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
 
         if (error) {
           console.error('Error loading watched list page', page, error);
+          reportSyncError('watched', error);
           
           // CRITICAL: Read localStorage HERE, in case of error, to ensure we have the latest local state
           const currentLocalData = localStorage.getItem('cine-explorer-watched');
@@ -197,6 +202,7 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
       );
 
       setWatched(finalWatched);
+      reportSyncSuccess('watched');
 
       // Sincronizar com localStorage como backup
       safeLocalStorageSetItem(
@@ -236,6 +242,7 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
       }
     } catch (error) {
       console.error('Error loading watched list:', error);
+      reportSyncError('watched', error);
       // Fallback para localStorage em caso de erro
       loadWatchedFromLocalStorage();
     }
@@ -487,6 +494,15 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
     linkElement.click();
   };
 
+  // Expose load function for manual sync
+  const refresh = async () => {
+    if (isAuthenticated && user) {
+      await loadWatchedFromSupabase();
+    } else {
+      loadWatchedFromLocalStorage();
+    }
+  };
+
   return (
     <WatchedContext.Provider
       value={{
@@ -499,6 +515,7 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
         getFilteredWatched,
         isWatched,
         exportWatchedList,
+        refresh,
       }}
     >
       {children}
