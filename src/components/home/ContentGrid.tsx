@@ -27,8 +27,8 @@ export const ContentGrid: React.FC<ContentGridProps> = ({
 
   // Filtra apenas diretores quando a categoria for 'directors'
   const filteredContent = React.useMemo(() => {
-    console.log('🔍 ContentGrid - Categoria:', category);
-    console.log('🔍 ContentGrid - Conteúdo recebido:', content.length, 'itens');
+    // console.log('🔍 ContentGrid - Categoria:', category);
+    // console.log('🔍 ContentGrid - Conteúdo recebido:', content.length, 'itens');
 
     if (category === 'directors') {
       const filtered = content.filter(
@@ -37,14 +37,14 @@ export const ContentGrid: React.FC<ContentGridProps> = ({
           (item.known_for_department === 'Directing' ||
             item.known_for_department === 'Direção')
       );
-      console.log(
+      /* console.log(
         '🔍 ContentGrid - Diretores filtrados:',
         filtered.length,
         'itens'
       );
       if (filtered.length > 0) {
         console.log('🔍 ContentGrid - Primeiro diretor filtrado:', filtered[0]);
-      }
+      } */
       return filtered;
     }
     return content;

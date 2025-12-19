@@ -15,59 +15,22 @@ export const safeLocalStorageSetItem = (key: string, value: string): boolean => 
     if (error instanceof DOMException && error.name === 'QuotaExceededError') {
       console.warn(`⚠️ LocalStorage quota exceeded while saving "${key}". Attempting cleanup...`);
 
-      // Stage 1: Clear expired TMDB cache
-      // We'll import these from cache.ts indirectly by using the prefix
-      let clearedAny = false;
       try {
         const keys = Object.keys(localStorage);
-        const now = Date.now();
         
-        // 1. Clear clearly expired entries
+        // 1. Clear ALL legacy TMDB cache to free space for critical data
         keys.filter(k => k.startsWith(CACHE_PREFIX)).forEach(k => {
-          try {
-            const cached = localStorage.getItem(k);
-            if (cached) {
-              const entry = JSON.parse(cached);
-              if (entry.timestamp && entry.ttl && (now - entry.timestamp > entry.ttl)) {
-                localStorage.removeItem(k);
-                clearedAny = true;
-              }
-            }
-          } catch (e) {
-            localStorage.removeItem(k); // Remove corrupted
-            clearedAny = true;
-          }
+          localStorage.removeItem(k);
         });
 
-        // 2. If still full, clear 30% of oldest cache entries regardless of TTL
-        if (!clearedAny || isStillFull(key, value)) {
-          const cacheEntries = keys
-            .filter(k => k.startsWith(CACHE_PREFIX))
-            .map(k => {
-              try {
-                const item = localStorage.getItem(k);
-                return { key: k, timestamp: item ? JSON.parse(item).timestamp : 0 };
-              } catch (e) {
-                return { key: k, timestamp: 0 };
-              }
-            })
-            .sort((a, b) => a.timestamp - b.timestamp);
-
-          const toClear = Math.ceil(cacheEntries.length * 0.3);
-          cacheEntries.slice(0, toClear).forEach(entry => {
-            localStorage.removeItem(entry.key);
-          });
-          console.log(`🧹 Cleared ${toClear} oldest cache entries to free space.`);
-        }
-
-        // 3. Final attempt to save
+        // 2. Final attempt to save
         localStorage.setItem(key, value);
-        console.log(`✅ Successfully saved "${key}" after cleanup.`);
+        console.log(`✅ Successfully saved "${key}" after removing legacy cache.`);
         return true;
       } catch (retryError) {
         console.error(`❌ Still failed to save "${key}" after cleanup:`, retryError);
         
-        // Special case for arrays (favorites, watched): keep only recent if it's too big
+        // Final fallback: keep only recent items if it's an array
         try {
           const parsed = JSON.parse(value);
           if (Array.isArray(parsed) && parsed.length > 50) {

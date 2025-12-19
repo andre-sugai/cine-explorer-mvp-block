@@ -90,24 +90,43 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
         ? JSON.parse(localData)
         : [];
 
-      const { data, error } = await supabase
-        .from('user_watchlist')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+      let allRemoteWatchlist: any[] = [];
+      let page = 0;
+      const PAGE_SIZE = 50;
+      let hasMore = true;
 
-      if (error) {
-        console.error('Error loading watchlist:', error);
-        reportSyncError('watchlist', error);
-        // Em caso de erro, usar dados do localStorage
-        if (localWatchlist.length > 0) {
-          setWantToWatchList(localWatchlist);
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from('user_watchlist')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+
+        if (error) {
+          console.error('Error loading watchlist page', page, error);
+          reportSyncError('watchlist', error);
+          if (localWatchlist.length > 0) {
+            setWantToWatchList(localWatchlist);
+          }
+          return;
         }
-        return;
+
+        if (data && data.length > 0) {
+          allRemoteWatchlist = [...allRemoteWatchlist, ...data];
+          if (data.length < PAGE_SIZE) {
+            hasMore = false;
+          } else {
+            page++;
+            await new Promise((resolve) => setTimeout(resolve, 150));
+          }
+        } else {
+          hasMore = false;
+        }
       }
 
       const formattedWatchlist =
-        data?.map((item) => ({
+        allRemoteWatchlist.map((item) => ({
           ...(item.item_data as any),
           added_date: item.created_at,
         })) || [];

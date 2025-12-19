@@ -40,7 +40,7 @@ describe('TMDB Multi-language Reviews', () => {
         headers: { get: jest.fn() },
         json: async () => ({
           id: 1,
-          results: [{ id: 'r1', content: 'PT Review', created_at: '2023-01-01' }],
+          results: [{ id: 'r1', author: 'Author 1', content: 'PT Review', created_at: '2023-01-01' }],
           total_pages: 1
         })
       };
@@ -50,7 +50,7 @@ describe('TMDB Multi-language Reviews', () => {
         headers: { get: jest.fn() },
         json: async () => ({
           id: 1,
-          results: [{ id: 'r2', content: 'EN Review', created_at: '2023-01-02' }],
+          results: [{ id: 'r2', author: 'Author 2', content: 'EN Review', created_at: '2023-01-02' }],
           total_pages: 1
         })
       };

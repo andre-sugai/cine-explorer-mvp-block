@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Heart, Check, Share, Bookmark, Shield, ListPlus } from 'lucide-react';
@@ -58,7 +58,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
   const isBlacklisted = isInBlacklist(title);
 
   const isAuthenticated = !!user;
-  const [inviteOpen, setInviteOpen] = React.useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
 
   const requireAuth = () => {
     if (!isAuthenticated) {

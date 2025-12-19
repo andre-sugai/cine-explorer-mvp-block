@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Film,
@@ -61,8 +61,8 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
   const location = useLocation();
   const currentPath = location.pathname;
-  const [searchTerm, setSearchTerm] = React.useState('');
-  const [isSearchFocused, setIsSearchFocused] = React.useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authInitialTab, setAuthInitialTab] = useState<'login' | 'register'>(
     'login'
@@ -150,7 +150,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
     setShowMigrationModal(true);
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail as
         | { tab?: 'login' | 'register' }

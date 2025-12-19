@@ -2,7 +2,8 @@
 // This file contains helper functions for interacting with The Movie Database API
 
 import { filterAdultContent } from './adultContentFilter';
-import { getCacheItem, setCacheItem, CACHE_TTL } from './cache';
+import { CACHE_TTL } from './cache';
+import { getApiCache, setApiCache, cacheImage } from './apiCache';
 
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p';
@@ -13,7 +14,12 @@ export const getApiKey = (): string | null => {
 
 export const buildImageUrl = (path: string, size: string = 'w500'): string => {
   if (!path) return '/placeholder.svg';
-  return `${TMDB_IMAGE_BASE_URL}/${size}${path}`;
+  const url = `${TMDB_IMAGE_BASE_URL}/${size}${path}`;
+  
+  // Cachear imagem em background
+  cacheImage(url).catch(console.error);
+  
+  return url;
 };
 
 export const buildApiUrl = (
@@ -72,9 +78,11 @@ const logRequest = () => {
   localStorage.setItem('tmdb_rate_updated', new Date().toISOString());
 
   // Log para debug
+  /*
   console.log(
     `📊 TMDB API: ${requestLogs.length}/${RATE_LIMIT_MAX} requisições nos últimos 10s (${remaining} restantes)`
   );
+  */
 
   // Disparar evento para atualizar UI
   window.dispatchEvent(new Event('tmdb-quota-updated'));
@@ -141,19 +149,13 @@ export const getReleasedContent = async (
     const CACHE_TTL = 60 * 60 * 1000; // 1 hour
 
     try {
-        try {
-            const cached = localStorage.getItem(CACHE_KEY);
+    try {
+        const cached = await getApiCache<TMDBContent[]>(CACHE_KEY);
         if (cached) {
-            const parsed = JSON.parse(cached);
-            const now = Date.now();
-            if (now - parsed.timestamp < CACHE_TTL) {
-                // console.log('Returning cached calendar data');
-                return parsed.data;
-            }
+            return cached;
         }
     } catch (e) {
-        console.warn('Cache parse error', e);
-        localStorage.removeItem(CACHE_KEY);
+        console.warn('Cache read error', e);
     }
 
     const fetchMovies = !filters?.type || filters.type === 'all' || filters.type === 'movie';
@@ -327,12 +329,9 @@ export const getReleasedContent = async (
 
     // Save to cache
     try {
-       localStorage.setItem(CACHE_KEY, JSON.stringify({
-           timestamp: Date.now(),
-           data: uniqueContent
-       }));
+       await setApiCache(CACHE_KEY, uniqueContent, { ttl: CACHE_TTL });
     } catch (e) {
-       console.warn('Failed to save to cache (quota?)', e);
+       console.warn('Failed to save to cache', e);
     }
 
     return uniqueContent;
@@ -535,9 +534,9 @@ export const getMovieDetails = async (id: number) => {
   try {
     // Check cache first
     const cacheKey = `movie_details_${id}`;
-    const cached = getCacheItem(cacheKey);
+    const cached = await getApiCache<any>(cacheKey);
     if (cached) {
-      console.log(`✅ Cache hit: movie ${id}`);
+      console.log(`✅ Cache hit (Storage API): movie ${id}`);
       return cached;
     }
 
@@ -553,8 +552,8 @@ export const getMovieDetails = async (id: number) => {
     const data = await response.json();
 
     // Save to cache
-    setCacheItem(cacheKey, data, CACHE_TTL.MOVIE_DETAILS);
-    console.log(`💾 Cached: movie ${id}`);
+    await setApiCache(cacheKey, data, { ttl: CACHE_TTL.MOVIE_DETAILS });
+    console.log(`💾 Cached (Storage API): movie ${id}`);
 
     return data;
   } catch (error) {
@@ -568,9 +567,9 @@ export const getTVShowDetails = async (id: number) => {
   try {
     // Check cache first
     const cacheKey = `tv_details_${id}`;
-    const cached = getCacheItem(cacheKey);
+    const cached = await getApiCache<any>(cacheKey);
     if (cached) {
-      console.log(`✅ Cache hit: TV show ${id}`);
+      console.log(`✅ Cache hit (Storage API): TV show ${id}`);
       return cached;
     }
 
@@ -586,8 +585,8 @@ export const getTVShowDetails = async (id: number) => {
     const data = await response.json();
 
     // Save to cache
-    setCacheItem(cacheKey, data, CACHE_TTL.TV_DETAILS);
-    console.log(`💾 Cached: TV show ${id}`);
+    await setApiCache(cacheKey, data, { ttl: CACHE_TTL.TV_DETAILS });
+    console.log(`💾 Cached (Storage API): TV show ${id}`);
 
     return data;
   } catch (error) {
@@ -604,9 +603,8 @@ export const getTVSeasonDetails = async (
   try {
     // Check cache first
     const cacheKey = `season_details_${tvId}_${seasonNumber}`;
-    const cached = getCacheItem(cacheKey);
+    const cached = await getApiCache<any>(cacheKey);
     if (cached) {
-      // console.log(`✅ Cache hit: season ${seasonNumber} of show ${tvId}`);
       return cached;
     }
 
@@ -620,7 +618,7 @@ export const getTVSeasonDetails = async (
     const data = await response.json();
 
     // Save to cache (using same TTL as TV details for now)
-    setCacheItem(cacheKey, data, CACHE_TTL.TV_DETAILS);
+    await setApiCache(cacheKey, data, { ttl: CACHE_TTL.TV_DETAILS });
     // console.log(`💾 Cached: season ${seasonNumber} of show ${tvId}`);
 
     return data;
@@ -652,9 +650,9 @@ export const getPersonDetails = async (id: number) => {
   try {
     // Check cache first
     const cacheKey = `person_details_${id}`;
-    const cached = getCacheItem(cacheKey);
+    const cached = await getApiCache<any>(cacheKey);
     if (cached) {
-      console.log(`✅ Cache hit: person ${id}`);
+      console.log(`✅ Cache hit (Storage API): person ${id}`);
       return cached;
     }
 
@@ -670,8 +668,8 @@ export const getPersonDetails = async (id: number) => {
     const data = await response.json();
 
     // Save to cache
-    setCacheItem(cacheKey, data, CACHE_TTL.PERSON_DETAILS);
-    console.log(`💾 Cached: person ${id}`);
+    await setApiCache(cacheKey, data, { ttl: CACHE_TTL.PERSON_DETAILS });
+    console.log(`💾 Cached (Storage API): person ${id}`);
 
     return data;
   } catch (error) {
@@ -1051,7 +1049,7 @@ export const getMovieWatchProviders = async (id: number, region = 'BR') => {
   try {
     // Check cache first
     const cacheKey = `movie_providers_${id}_${region}`;
-    const cached = getCacheItem(cacheKey);
+    const cached = await getApiCache<any>(cacheKey);
     if (cached) {
       return cached;
     }
@@ -1063,7 +1061,7 @@ export const getMovieWatchProviders = async (id: number, region = 'BR') => {
     const result = data.results?.[region] || { flatrate: [], rent: [], buy: [] };
     
     // Save to cache
-    setCacheItem(cacheKey, result, CACHE_TTL.PROVIDERS);
+    await setApiCache(cacheKey, result, { ttl: CACHE_TTL.PROVIDERS });
     
     return result;
   } catch (error) {
@@ -1095,7 +1093,7 @@ export const getTVWatchProviders = async (id: number, region = 'BR') => {
   try {
     // Check cache first
     const cacheKey = `tv_providers_${id}_${region}`;
-    const cached = getCacheItem(cacheKey);
+    const cached = await getApiCache<any>(cacheKey);
     if (cached) {
       return cached;
     }
@@ -1107,7 +1105,7 @@ export const getTVWatchProviders = async (id: number, region = 'BR') => {
     const result = data.results?.[region] || { flatrate: [], rent: [], buy: [] };
 
     // Save to cache
-    setCacheItem(cacheKey, result, CACHE_TTL.PROVIDERS);
+    await setApiCache(cacheKey, result, { ttl: CACHE_TTL.PROVIDERS });
 
     return result;
   } catch (error) {

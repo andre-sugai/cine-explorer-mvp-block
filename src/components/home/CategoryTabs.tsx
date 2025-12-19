@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Film, Tv, Users, Camera, Calendar, Library, PlayCircle } from 'lucide-react';
 
@@ -20,11 +20,11 @@ export const CategoryTabs: React.FC<CategoryTabsProps> = ({
   activeCategory,
   onCategoryChange,
 }) => {
-  const [indicatorStyle, setIndicatorStyle] = React.useState({
+  const [indicatorStyle, setIndicatorStyle] = useState({
     left: 0,
     width: 0,
   });
-  const buttonsRef = React.useRef<(HTMLButtonElement | null)[]>([]);
+  const buttonsRef = useRef<(HTMLButtonElement | null)[]>([]);
 
   const categories = [
     {
@@ -71,7 +71,7 @@ export const CategoryTabs: React.FC<CategoryTabsProps> = ({
     },
   ];
 
-  React.useEffect(() => {
+  useEffect(() => {
     const activeIndex = categories.findIndex(
       (cat) => cat.id === activeCategory
     );

@@ -31,7 +31,12 @@ export const translateText = async (text: string, targetLang: string = 'pt'): Pr
     // Determine endpoint based on environment
     // Local: use Vite proxy at /api/translate
     // Production: use Netlify Function directly to avoid rewrite issues
-    const baseUrl = import.meta.env.DEV ? '/api/translate' : '/.netlify/functions/translate';
+    // Use a safe check for import.meta.env for Jest compatibility
+    const isDev = typeof process !== 'undefined' && process.env.NODE_ENV === 'test' 
+      ? true 
+      : (typeof (import.meta as any).env !== 'undefined' && (import.meta as any).env.DEV);
+
+    const baseUrl = isDev ? '/api/translate' : '/.netlify/functions/translate';
     const response = await fetch(`${baseUrl}?${params.toString()}`);
     
     if (!response.ok) {

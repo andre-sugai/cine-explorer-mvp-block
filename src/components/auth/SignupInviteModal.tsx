@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -189,12 +189,12 @@ const SignupInviteModal: React.FC<SignupInviteModalProps> = ({
   open,
   onOpenChange,
 }) => {
-  const [invite, setInvite] = React.useState<InviteItem>(getRandomInvite());
-  const [dynamicImageUrl, setDynamicImageUrl] = React.useState<
+  const [invite, setInvite] = useState<InviteItem>(getRandomInvite());
+  const [dynamicImageUrl, setDynamicImageUrl] = useState<
     string | undefined
   >();
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (open) {
       const next = getRandomInvite();
       setInvite(next);

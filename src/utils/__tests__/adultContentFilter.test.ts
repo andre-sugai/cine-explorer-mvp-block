@@ -5,7 +5,7 @@ import {
   getBlacklistedTitles,
   isAdultContent,
   filterAdultContent,
-} from '@/utils/adultContentFilter';
+} from '../adultContentFilter';
 
 // Mock do localStorage
 const localStorageMock = (() => {

@@ -14,58 +14,6 @@ interface CacheEntry<T> {
 const CACHE_PREFIX = 'cine_cache_';
 
 /**
- * Get data from cache
- * @param key - Cache key
- * @returns Cached data or null if not found/expired
- */
-export function getCacheItem<T>(key: string): T | null {
-  try {
-    const cacheKey = CACHE_PREFIX + key;
-    const cached = localStorage.getItem(cacheKey);
-    
-    if (!cached) {
-      return null;
-    }
-
-    const entry: CacheEntry<T> = JSON.parse(cached);
-    const now = Date.now();
-    
-    // Check if cache has expired
-    if (now - entry.timestamp > entry.ttl) {
-      localStorage.removeItem(cacheKey);
-      return null;
-    }
-
-    return entry.data;
-  } catch (error) {
-    console.error('Error reading from cache:', error);
-    return null;
-  }
-}
-
-/**
- * Set data in cache with TTL
- * @param key - Cache key
- * @param data - Data to cache
- * @param ttl - Time to live in milliseconds (default: 1 hour)
- */
-export function setCacheItem<T>(
-  key: string,
-  data: T,
-  ttl: number = 60 * 60 * 1000 // Default: 1 hour
-): void {
-  const cacheKey = CACHE_PREFIX + key;
-  const entry: CacheEntry<T> = {
-    data,
-    timestamp: Date.now(),
-    ttl,
-  };
-
-  // Use the safe utility which handles quota exceeded by cleaning up
-  safeLocalStorageSetItem(cacheKey, JSON.stringify(entry));
-}
-
-/**
  * Remove specific cache entry
  * @param key - Cache key to remove
  */

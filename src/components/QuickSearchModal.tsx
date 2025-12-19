@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 
@@ -13,10 +13,10 @@ const QuickSearchModal: React.FC<QuickSearchModalProps> = ({
   onOpenChange,
   onSubmit,
 }) => {
-  const [term, setTerm] = React.useState('');
-  const inputRef = React.useRef<HTMLInputElement | null>(null);
+  const [term, setTerm] = useState('');
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (open && inputRef.current) {
       // foco e seleção
       inputRef.current.focus();

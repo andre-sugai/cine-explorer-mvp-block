@@ -67,7 +67,6 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
   const loadVideoInPlayer = useCallback((videoId: string) => {
     // Verificações de segurança
     if (!playerRef.current) {
-      console.log('❌ Player não existe');
       return;
     }
 
@@ -75,7 +74,6 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
       !playerRef.current.loadVideoById ||
       typeof playerRef.current.loadVideoById !== 'function'
     ) {
-      console.log('❌ Player não está pronto para carregar vídeo');
       return;
     }
 
@@ -200,14 +198,14 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
 
   // Inicializar player quando modal abre e API está pronta
   useEffect(() => {
-    console.log('🔍 useEffect inicialização:', {
+    /* console.log('🔍 useEffect inicialização:', {
       open,
       useYTPlayer,
       isLoading: isLoadingRef.current,
       hasPlayer: !!playerRef.current,
       hasTrailer: !!currentTrailer,
       initialLoadDone: initialLoadDone.current
-    });
+    }); */
 
     // Só carregar quando modal ABRE (não quando fecha)
     if (open && useYTPlayer && !isLoadingRef.current && !initialLoadDone.current) {
@@ -220,12 +218,8 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
       loadRandomTrailer();
     } else {
       if (!open) {
-         console.log('⏸️ Modal fechado');
          initialLoadDone.current = false; // Resetar para próxima abertura
       }
-      if (!useYTPlayer) console.log('⏸️ YouTube API não pronta');
-      if (isLoadingRef.current) console.log('⏸️ Já está carregando');
-      if (initialLoadDone.current && open) console.log('⏸️ Já carregou trailer inicial');
     }
   }, [open, useYTPlayer, loadRandomTrailer]);
 

@@ -91,24 +91,44 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
         ? JSON.parse(localData)
         : [];
 
-      const { data, error } = await supabase
-        .from('user_favorites')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+      let allRemoteFavorites: any[] = [];
+      let page = 0;
+      const PAGE_SIZE = 50;
+      let hasMore = true;
 
-      if (error) {
-        console.error('Error loading favorites:', error);
-        reportSyncError('favorites', error);
-        // Em caso de erro, usar dados do localStorage
-        if (localFavorites.length > 0) {
-          setFavorites(localFavorites);
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from('user_favorites')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+
+        if (error) {
+          console.error('Error loading favorites page', page, error);
+          reportSyncError('favorites', error);
+          // Em caso de erro, usar dados do localStorage
+          if (localFavorites.length > 0) {
+            setFavorites(localFavorites);
+          }
+          return;
         }
-        return;
+
+        if (data && data.length > 0) {
+          allRemoteFavorites = [...allRemoteFavorites, ...data];
+          if (data.length < PAGE_SIZE) {
+            hasMore = false;
+          } else {
+            page++;
+            await new Promise((resolve) => setTimeout(resolve, 150));
+          }
+        } else {
+          hasMore = false;
+        }
       }
 
       const formattedFavorites =
-        data?.map((item) => ({
+        allRemoteFavorites.map((item) => ({
           ...(item.item_data as any),
           addedAt: item.created_at,
         })) || [];

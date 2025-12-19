@@ -400,11 +400,7 @@ export const HomePage: React.FC = () => {
       const endIndex = startIndex + batchSize;
       const directorsToFetch = famousDirectors.slice(startIndex, endIndex);
 
-      console.log(
-        `🔍 Buscando diretores ${startIndex + 1}-${endIndex} de ${
-          famousDirectors.length
-        }...`
-      );
+
 
       const results = [];
 
@@ -416,7 +412,7 @@ export const HomePage: React.FC = () => {
         // Buscar sub-batch em paralelo
         const subBatchPromises = subBatch.map(async (name) => {
           try {
-            console.log(`🔍 Buscando: ${name}`);
+            // console.log(`🔍 Buscando: ${name}`);
             const result = await searchPeople(name);
             const directors = result.results
               .filter(
@@ -440,22 +436,18 @@ export const HomePage: React.FC = () => {
         }
       }
 
-      console.log(
-        `✅ Encontrados ${results.length} diretores na página ${page}`
-      );
+
 
       // Se não encontrou nenhum diretor, retornar pelo menos alguns resultados da API popular
       if (results.length === 0) {
-        console.log('🔄 Fallback: buscando pessoas populares...');
+        // console.log('🔄 Fallback: buscando pessoas populares...');
         const popularPeople = await getPopularPeople(page);
         const fallbackDirectors = popularPeople.results
           .filter(
             (person: TMDBPerson) => person.known_for_department === 'Directing'
           )
           .slice(0, batchSize);
-        console.log(
-          `✅ Fallback: encontrados ${fallbackDirectors.length} diretores`
-        );
+
         return fallbackDirectors;
       }
 
@@ -471,9 +463,7 @@ export const HomePage: React.FC = () => {
             (person: TMDBPerson) => person.known_for_department === 'Directing'
           )
           .slice(0, batchSize);
-        console.log(
-          `✅ Fallback final: encontrados ${fallbackDirectors.length} diretores`
-        );
+
         return fallbackDirectors;
       } catch (fallbackError) {
         console.error('Erro no fallback:', fallbackError);
@@ -570,15 +560,15 @@ export const HomePage: React.FC = () => {
 
       // Tratar coleções separadamente
       if (category === 'collections') {
-        console.log('🔍 HomePage: Carregando coleções, página:', pageNum);
+        // console.log('🔍 HomePage: Carregando coleções, página:', pageNum);
         const collectionsData = await getPopularCollections(pageNum);
-        console.log('📚 HomePage: Coleções recebidas:', collectionsData.length);
+        // console.log('📚 HomePage: Coleções recebidas:', collectionsData.length);
         if (reset) {
           setCollections(collectionsData);
-          console.log('✅ HomePage: Coleções definidas (reset)');
+          // console.log('✅ HomePage: Coleções definidas (reset)');
         } else {
           setCollections((prev) => [...prev, ...collectionsData]);
-          console.log('✅ HomePage: Coleções adicionadas');
+          // console.log('✅ HomePage: Coleções adicionadas');
         }
         setHasMore(collectionsData.length > 0);
         setIsLoading(false);
@@ -1051,13 +1041,7 @@ export const HomePage: React.FC = () => {
                 keywordTranslations[selectedKeyword.toLowerCase()] ||
                 selectedKeyword;
 
-              console.log(
-                `🔍 Buscando keyword: "${selectedKeyword}" ${
-                  searchTerm !== selectedKeyword
-                    ? `(traduzido para "${searchTerm}")`
-                    : ''
-                }`
-              );
+
 
               const keywordSearchUrl = `https://api.themoviedb.org/3/search/keyword?query=${encodeURIComponent(
                 searchTerm
@@ -1067,9 +1051,7 @@ export const HomePage: React.FC = () => {
               if (keywordData.results && keywordData.results.length > 0) {
                 // Pegar o ID da primeira keyword encontrada
                 params.with_keywords = keywordData.results[0].id;
-                console.log(
-                  `🔍 Keyword "${searchTerm}" resolvida para ID: ${params.with_keywords}`
-                );
+
               } else {
                 console.warn(
                   `⚠️ Keyword "${searchTerm}" não encontrada. Ignorando filtro.`
@@ -1093,16 +1075,13 @@ export const HomePage: React.FC = () => {
           apiUrl.searchParams.append('language', 'pt-BR');
 
           // Debug: log da URL completa
-          console.log('🔍 API URL:', apiUrl.toString());
-          console.log('📊 Params:', params);
+          // console.log('🔍 API URL:', apiUrl.toString());
+          // console.log('📊 Params:', params);
 
           const res = await fetch(apiUrl.toString());
           response = await res.json();
 
-          console.log(
-            '📊 Resultados encontrados:',
-            response.results?.length || 0
-          );
+
         }
       } else {
         // Mantém lógica antiga para atores/diretores
@@ -1115,10 +1094,7 @@ export const HomePage: React.FC = () => {
             break;
           case 'directors':
             const directors = await fetchDirectors(pageNum, 20);
-            console.log(
-              '📊 Diretores retornados pela fetchDirectors:',
-              directors
-            );
+
             response = {
               results: directors,
               total_pages: Math.ceil(famousDirectors.length / 20),
@@ -1132,27 +1108,19 @@ export const HomePage: React.FC = () => {
       let filteredResults =
         response && response.results ? response.results : [];
 
-      console.log(
-        `📊 Dados recebidos da API: ${filteredResults.length} itens para ${category}`
-      );
+
 
       // Aplicar filtro de conteúdo adulto APENAS para filmes e pessoas
       if (category === 'movies' || (category as any) === 'cinema') {
         filteredResults = filterAdultContent(filteredResults);
-        console.log(
-          `📊 Filmes após filtro adulto: ${filteredResults.length} itens`
-        );
+
       } else if (category === 'tv') {
         // Para séries (TV), não aplicar NENHUM filtro - manter todos os resultados
-        console.log(
-          `📺 Séries: mantendo todos os ${filteredResults.length} itens (sem filtro)`
-        );
+
       } else {
         // Para pessoas (atores/diretores), aplicar filtro
         filteredResults = filterAdultContent(filteredResults);
-        console.log(
-          `👥 Pessoas após filtro adulto: ${filteredResults.length} itens`
-        );
+
       }
 
       if (
@@ -1170,9 +1138,7 @@ export const HomePage: React.FC = () => {
           const movieYear = new Date(movie.release_date).getFullYear();
           return movieYear >= startYear && movieYear <= endYear;
         });
-        console.log(
-          `📊 Filmes após filtro de ano: ${filteredResults.length} itens`
-        );
+
       } else if (
         selectedYear &&
         selectedYear !== 'current-month' &&
@@ -1186,9 +1152,7 @@ export const HomePage: React.FC = () => {
           const showYear = new Date(show.first_air_date).getFullYear();
           return showYear >= startYear && showYear <= endYear;
         });
-        console.log(
-          `📺 Séries após filtro de ano: ${filteredResults.length} itens`
-        );
+
       }
 
       if (category === 'actors' || category === 'directors') {
@@ -1206,9 +1170,7 @@ export const HomePage: React.FC = () => {
         setHasMore(true); // Assumindo sempre mais por enquanto
       } else {
         // Processar resultados de filmes/séries.
-        console.log(
-          `📊 FINAL: Definindo ${filteredResults.length} itens para exibição`
-        );
+
 
         if (reset) {
           setContent(filteredResults);

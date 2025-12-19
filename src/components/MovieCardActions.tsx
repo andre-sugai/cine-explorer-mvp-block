@@ -11,7 +11,7 @@ import { useFavoritesContext } from '@/context/FavoritesContext';
 import { useWantToWatchContext } from '@/context/WantToWatchContext';
 import { useWatchedContext } from '@/context/WatchedContext';
 import { useAuth } from '@/context/AuthContext';
-import React from 'react';
+import React, { useState } from 'react';
 import confetti from 'canvas-confetti';
 import { toast } from '@/components/ui/sonner';
 import {
@@ -77,9 +77,9 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
   const isBlacklisted = isInBlacklist(title);
 
   const isAuthenticated = !!user;
-  const [inviteOpen, setInviteOpen] = React.useState(false);
-  const [trailerModalOpen, setTrailerModalOpen] = React.useState(false);
-  const [galleryModalOpen, setGalleryModalOpen] = React.useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [trailerModalOpen, setTrailerModalOpen] = useState(false);
+  const [galleryModalOpen, setGalleryModalOpen] = useState(false);
 
   const buttonClass = size === 'compact' 
     ? 'p-1 rounded-full transition-colors min-w-[24px] min-h-[24px] flex items-center justify-center'

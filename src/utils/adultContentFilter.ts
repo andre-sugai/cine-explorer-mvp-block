@@ -353,13 +353,7 @@ export const isAdultContent = (item: any): boolean => {
   const overview = item.overview || '';
   const tagline = item.tagline || '';
 
-  // Log detalhado para debugging
-  console.log(
-    `🔍 Verificando item: "${title}" | Filtro ativado: ${filterEnabled}`
-  );
-
   if (!filterEnabled) {
-    console.log(`⚠️ Filtro desativado - item "${title}" não será verificado`);
     return false;
   }
 
@@ -367,7 +361,6 @@ export const isAdultContent = (item: any): boolean => {
   const isTVShow = item.first_air_date !== undefined || item.name !== undefined;
 
   if (isTVShow) {
-    console.log(`📺 Aplicando filtro leve para série: "${title}"`);
 
     // Para séries, apenas bloquear conteúdo explicitamente adulto
     const explicitAdultKeywords = [
@@ -445,6 +438,8 @@ export const isAdultContent = (item: any): boolean => {
     'harry potter',
     'game of thrones',
     'breaking bad',
+    'o poderoso chefão',
+    'the godfather',
   ];
 
   const titleLower = title.toLowerCase();
@@ -459,13 +454,9 @@ export const isAdultContent = (item: any): boolean => {
   let skipKeywordChecks = false;
 
   if (isWhitelisted) {
-    console.log(
-      `✅ Filme na whitelist: "${title}" - pulando verificações de palavras-chave (filme mainstream conhecido)`
-    );
     skipKeywordChecks = true;
     // Ainda verificar flag 'adult' do TMDB e classificação etária, mas não palavras-chave
     if (item.adult === true) {
-      console.log(`🔞 Conteúdo adulto detectado por flag 'adult': ${title}`);
       return true;
     }
   }
@@ -713,37 +704,17 @@ export const isAdultContent = (item: any): boolean => {
 export const filterAdultContent = (items: any[]): any[] => {
   const filterEnabled = localStorage.getItem('adult_content_filter') === 'true';
 
-  console.log(
-    `🔍 Filtro de conteúdo adulto: ${filterEnabled ? 'ATIVADO' : 'DESATIVADO'}`
-  );
-
   if (!filterEnabled) {
-    console.log(`📋 Retornando ${items.length} itens sem filtrar`);
     return items;
   }
 
   const originalCount = items.length;
   const filtered = items.filter((item) => {
     const isAdult = isAdultContent(item);
-    if (isAdult) {
-      const title = item.title || item.name || 'Título desconhecido';
-      console.log(`🚫 BLOQUEADO: ${title}`);
-    }
     return !isAdult;
   });
 
-  const blockedCount = originalCount - filtered.length;
-
-  if (blockedCount > 0) {
-    console.log(
-      `🔞 FILTRO APLICADO: ${blockedCount} de ${originalCount} itens bloqueados`
-    );
-  } else {
-    console.log(
-      `✅ Nenhum conteúdo adulto detectado em ${originalCount} itens`
-    );
-  }
-
+  // const blockedCount = originalCount - filtered.length;
   return filtered;
 };
 

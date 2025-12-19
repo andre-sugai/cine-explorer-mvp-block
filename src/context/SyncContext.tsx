@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useRef } from 'react';
 import { toast } from '@/hooks/use-toast';
 
 export type SyncMode = 'persistence' | 'suspended';
@@ -47,7 +47,7 @@ export const SyncProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     // Debug helper and safety timeout
-    if (activeSyncs.size > 0) {
+    /* if (activeSyncs.size > 0) {
       console.log('🔄 Active syncs:', Array.from(activeSyncs));
       
       // Safety timeout: clear all active syncs after 15 seconds if they get hung
@@ -57,11 +57,11 @@ export const SyncProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }, 15000);
       
       return () => clearTimeout(timeout);
-    }
+    } */
   }, [activeSyncs]);
 
-  const registry = React.useRef<Map<string, () => Promise<void>>>(new Map());
-  const retryTimeouts = React.useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const registry = useRef<Map<string, () => Promise<void>>>(new Map());
+  const retryTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   // Clear timeouts on unmount
   useEffect(() => {
@@ -110,7 +110,7 @@ export const SyncProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return;
     }
 
-    console.log(`📡 Sync started: ${service}`);
+    // console.log(`📡 Sync started: ${service}`);
     
     // Clear any pending retry for this service
     if (retryTimeouts.current.has(service)) {
@@ -131,7 +131,7 @@ export const SyncProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const reportSyncSuccess = (service: string) => {
-    console.log(`✅ Sync success: ${service}`);
+    // console.log(`✅ Sync success: ${service}`);
     setActiveSyncs(prev => {
       const next = new Set(prev);
       next.delete(service);

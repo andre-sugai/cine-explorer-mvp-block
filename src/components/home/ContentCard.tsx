@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Star, Calendar, Users, Heart } from 'lucide-react';
 import { TMDBMovie, TMDBTVShow, TMDBPerson, buildImageUrl } from '@/utils/tmdb';
@@ -19,12 +19,12 @@ interface ContentCardProps {
 
 export const ContentCard = forwardRef<HTMLDivElement, ContentCardProps>(
   ({ item, category, onItemClick }, ref) => {
-    const [isLoaded, setIsLoaded] = React.useState(false);
+    const [isLoaded, setIsLoaded] = useState(false);
     const navigate = useNavigate();
     const { addToFavorites, removeFromFavorites, isFavorite } =
       useFavoritesContext();
 
-    React.useEffect(() => {
+    useEffect(() => {
       // Trigger animation after component mounts
       const timer = setTimeout(() => setIsLoaded(true), 50);
       return () => clearTimeout(timer);

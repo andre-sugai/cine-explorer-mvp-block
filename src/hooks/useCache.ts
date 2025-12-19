@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getCacheItem, setCacheItem } from '@/utils/cache';
+import { getApiCache, setApiCache } from '../utils/apiCache';
 
 interface UseCacheOptions {
   ttl?: number; // Time to live in milliseconds
@@ -31,7 +31,7 @@ export function useCache<T>(
 
       // Try to get from cache first if enabled
       if (useCache && enabled) {
-        const cached = getCacheItem<T>(key);
+        const cached = await getApiCache<T>(key);
         if (cached !== null) {
           setData(cached);
           setIsLoading(false);
@@ -45,7 +45,7 @@ export function useCache<T>(
 
       // Save to cache if enabled
       if (enabled) {
-        setCacheItem(key, freshData, ttl);
+        await setApiCache(key, freshData, { ttl });
       }
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Unknown error'));

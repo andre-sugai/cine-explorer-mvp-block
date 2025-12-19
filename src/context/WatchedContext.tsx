@@ -121,7 +121,7 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
       // Fetch all data from Supabase with pagination
       let allRemoteWatched: any[] = [];
       let page = 0;
-      const PAGE_SIZE = 100; // Reduced from 1000 to prevent statement timeouts
+      const PAGE_SIZE = 50; // Reduced from 100 to 50 to further prevent statement timeouts
       let hasMore = true;
 
       while (hasMore) {
@@ -136,7 +136,7 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
           console.error('Error loading watched list page', page, error);
           reportSyncError('watched', error);
           
-          // CRITICAL: Read localStorage HERE, in case of error, to ensure we have the latest local state
+          // CRITICAL: Read localStorage HERE, in case of error
           const currentLocalData = localStorage.getItem('cine-explorer-watched');
           if (currentLocalData) {
             setWatched(JSON.parse(currentLocalData));
@@ -151,6 +151,8 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
             hasMore = false;
           } else {
             page++;
+            // Optimization: Small delay to let Supabase API breathe
+            await new Promise(resolve => setTimeout(resolve, 150));
           }
         } else {
           hasMore = false;
