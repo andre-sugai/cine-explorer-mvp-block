@@ -54,8 +54,15 @@ const WatchedContext = createContext<WatchedContextData | undefined>(undefined);
 
 export const WatchedProvider = ({ children }: { children: ReactNode }) => {
   const { user, isAuthenticated } = useAuth();
-  const { reportSyncStart, reportSyncSuccess, reportSyncError } = useSyncContext();
+  const { reportSyncStart, reportSyncSuccess, reportSyncError, registerSyncService } = useSyncContext();
   const [watched, setWatched] = useState<WatchedItem[]>([]);
+
+  // Register sync service for auto-retry
+  useEffect(() => {
+    registerSyncService('watched', async () => {
+      if (user) await loadWatchedFromSupabase();
+    });
+  }, [user]);
 
   // Load data when user changes
   useEffect(() => {

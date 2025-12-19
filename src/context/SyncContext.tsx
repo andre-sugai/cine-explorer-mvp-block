@@ -10,6 +10,7 @@ interface SyncContextData {
   reportSyncStart: (service: string) => void;
   reportSyncSuccess: (service: string) => void;
   reportSyncError: (service: string, error: any) => void;
+  registerSyncService: (service: string, syncFn: () => Promise<void>) => void;
 }
 
 const SyncContext = createContext<SyncContextData | undefined>(undefined);
@@ -35,8 +36,29 @@ export const SyncProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [activeSyncs]);
 
+  const registry = React.useRef<Map<string, () => Promise<void>>>(new Map());
+  const retryTimeouts = React.useRef<Map<string, NodeJS.Timeout>>(new Map());
+
+  // Clear timeouts on unmount
+  useEffect(() => {
+    return () => {
+      retryTimeouts.current.forEach((timeout) => clearTimeout(timeout));
+    };
+  }, []);
+
+  const registerSyncService = (service: string, syncFn: () => Promise<void>) => {
+    registry.current.set(service, syncFn);
+  };
+
   const reportSyncStart = (service: string) => {
     console.log(`📡 Sync started: ${service}`);
+    
+    // Clear any pending retry for this service
+    if (retryTimeouts.current.has(service)) {
+      clearTimeout(retryTimeouts.current.get(service));
+      retryTimeouts.current.delete(service);
+    }
+
     setActiveSyncs(prev => {
       const next = new Set(prev);
       next.add(service);
@@ -71,6 +93,17 @@ export const SyncProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       next.set(service, error);
       return next;
     });
+
+    // Schedule auto-retry if service is registered
+    const syncFn = registry.current.get(service);
+    if (syncFn) {
+      console.log(`🔄 Scheduling retry for ${service} in 10s...`);
+      const timeout = setTimeout(() => {
+        console.log(`🔄 Auto-retrying specific service: ${service}`);
+        syncFn().catch(e => console.error(`Retry failed for ${service}`, e));
+      }, 10000); // Retry after 10 seconds
+      retryTimeouts.current.set(service, timeout);
+    }
   };
 
   const getStatus = (): SyncStatus => {
@@ -90,6 +123,7 @@ export const SyncProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         reportSyncStart,
         reportSyncSuccess,
         reportSyncError,
+        registerSyncService,
       }}
     >
       {children}

@@ -40,8 +40,15 @@ const CUSTOM_LISTS_KEY = 'cine-explorer-custom-lists';
 
 export const CustomListsProvider = ({ children }: { children: ReactNode }) => {
   const { user, isAuthenticated } = useAuth();
-  const { reportSyncStart, reportSyncSuccess, reportSyncError } = useSyncContext();
+  const { reportSyncStart, reportSyncSuccess, reportSyncError, registerSyncService } = useSyncContext();
   const [lists, setLists] = useState<CustomList[]>([]);
+
+  // Register sync service for auto-retry
+  useEffect(() => {
+    registerSyncService('custom_lists', async () => {
+      if (user) await loadListsFromSupabase();
+    });
+  }, [user]);
 
   // Load data when user changes
   useEffect(() => {

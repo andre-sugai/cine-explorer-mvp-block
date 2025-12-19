@@ -46,9 +46,16 @@ const FavoritesContext = createContext<FavoritesContextData | undefined>(
 
 export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
   const { user, isAuthenticated } = useAuth();
-  const { reportSyncStart, reportSyncSuccess, reportSyncError } = useSyncContext();
+  const { reportSyncStart, reportSyncSuccess, reportSyncError, registerSyncService } = useSyncContext();
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Register sync service for auto-retry
+  useEffect(() => {
+    registerSyncService('favorites', async () => {
+      if (user) await loadFavoritesFromSupabase();
+    });
+  }, [user]);
 
   // Load data when user changes
   useEffect(() => {

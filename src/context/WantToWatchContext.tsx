@@ -38,8 +38,15 @@ const WANT_TO_WATCH_KEY = 'queroAssistir';
 
 export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
   const { user, isAuthenticated } = useAuth();
-  const { reportSyncStart, reportSyncSuccess, reportSyncError } = useSyncContext();
+  const { reportSyncStart, reportSyncSuccess, reportSyncError, registerSyncService } = useSyncContext();
   const [wantToWatchList, setWantToWatchList] = useState<WantToWatchItem[]>([]);
+
+  // Register sync service for auto-retry
+  useEffect(() => {
+    registerSyncService('watchlist', async () => {
+      if (user) await loadWantToWatchFromSupabase();
+    });
+  }, [user]);
 
   // Load data when user changes
   useEffect(() => {
