@@ -3,31 +3,16 @@
  * Baseado em padrões identificados em filmes eróticos/adultos
  */
 
-// Palavras-chave que indicam conteúdo adulto (em diferentes idiomas)
 const ADULT_KEYWORDS = [
-  // Português
-  'erótico',
   'erotico',
   'adulto',
   'sensual',
   'sexual',
   'sexo',
   'nudez',
-  'pornô',
   'porno',
-  'sedução',
   'seducao',
-  'tesão',
   'tesao',
-  'prazer',
-  'desejo',
-  'paixão',
-  'paixao',
-  'íntimo',
-  'intimo',
-  'provocante',
-  'safado',
-  'safada',
   'gostosa',
   'gostoso',
   'strip',
@@ -36,120 +21,43 @@ const ADULT_KEYWORDS = [
   'prostituto',
   'escort',
   'acompanhante',
-
-  // Inglês
   'erotic',
   'adult',
-  'sexual',
-  'sex',
   'nude',
   'nudity',
-  'porn',
   'pornographic',
   'seduction',
   'seductive',
-  'sensual',
-  'intimate',
   'provocative',
   'steamy',
-  'hot',
-  'sexy',
   'lust',
-  'desire',
-  'passion',
   'temptation',
   'forbidden',
-  'strip',
-  'stripper',
-  'prostitute',
-  'escort',
   'call girl',
   'gigolo',
-  'affair',
   'infidelity',
-  'cheating',
   'mistress',
-  'lover',
-
-  // Espanhol
-  'erótico',
-  'adulto',
-  'sexual',
-  'sexo',
   'desnudo',
   'desnuda',
-  'sensual',
-  'seducción',
-  'seduccion',
-  'provocativo',
-  'provocativa',
-  'caliente',
-  'pasión',
-  'pasion',
-  'deseo',
   'lujuria',
-  'tentación',
   'tentacion',
-
-  // Francês
-  'érotique',
-  'adulte',
   'sexuel',
   'sexe',
-  'nu',
-  'nue',
-  'sensuel',
-  'séduction',
-  'seduction',
-  'provocant',
-  'provocante',
-  'chaud',
-  'passion',
-  'désir',
-  'desir',
   'luxure',
   'tentation',
-
-  // Italiano
-  'erotico',
-  'adulto',
   'sessuale',
   'sesso',
-  'nudo',
-  'nuda',
-  'sensuale',
   'seduzione',
-  'provocante',
-  'caldo',
-  'passione',
-  'desiderio',
-
-  // Alemão
   'erotisch',
-  'erwachsen',
   'sexuell',
-  'sex',
   'nackt',
-  'sinnlich',
-  'verführung',
-  'verführerisch',
-  'heiß',
+  'verfuhrung',
+  'verfuhrerisch',
   'leidenschaft',
   'begierde',
-
-  // Japonês (romanizado)
-  'ecchi',
   'hentai',
-  'ero',
-  'seijin',
-  'otona',
-
-  // Coreano (romanizado)
+  'ecchi',
   'seong-in',
-  'ero',
-  'sekseu',
-
-  // Termos específicos de filmes adultos
   'sorority',
   'fraternity',
   'college girls',
@@ -172,15 +80,10 @@ const ADULT_KEYWORDS = [
   'orgy',
   'gangbang',
   'bukkake',
-
-  // Títulos comuns em filmes adultos asiáticos
   'kalakal',
-  'sorority',
   'kiskisan',
   'bubu',
   'gyohwan',
-
-  // Termos asiáticos específicos
   'pink film',
   'roman porno',
   'category iii',
@@ -194,28 +97,10 @@ const ADULT_KEYWORDS = [
   'hardcore',
   'erotic thriller',
   'erotic drama',
-  'sexual',
-  'sensual',
-  'seductive',
-  'temptation',
-  'desire',
-  'lust',
-  'passion',
-  'intimate',
-  'forbidden',
-  'taboo',
   'scandal',
-  'affair',
-  'mistress',
-  'lover',
-  'seduction',
-
-  // Termos em outros idiomas asiáticos (romanizados)
-  'sarang', // amor em coreano
-  'ai', // amor em japonês
-  'ren ai', // romance em japonês
-  'ecchi na', // pervertido em japonês
-  'ero guro', // erótico grotesco em japonês
+  'ероти',
+  'порно',
+  'эроти',
 ];
 
 // Gêneros que frequentemente contêm conteúdo adulto
@@ -275,6 +160,25 @@ const hasAdultKeywords = (text: string): boolean => {
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '');
 
+    // Se a palavra-chave for muito curta (menos de 4 caracteres), exigir limites de palavra
+    // Isso evita que "nu" bloqueie "Nuremberg" ou "ai" bloqueie "Natal"
+    // Nota: \b funciona para caracteres latinos. Para japonês/coreano, usamos includes se for longo o suficiente.
+    const isLatin = /^[a-z0-9\s]+$/i.test(normalizedKeyword);
+
+    if (normalizedKeyword.length < 4) {
+      if (isLatin) {
+        const regex = new RegExp(`\\b${normalizedKeyword}\\b`, 'i');
+        return regex.test(normalizedText);
+      }
+      // Para não-latinos curtos, ainda usamos includes (mas idealmente limpar a lista de curtos)
+      return normalizedText.includes(normalizedKeyword);
+    }
+
+    if (isLatin) {
+      const regex = new RegExp(`\\b${normalizedKeyword}`, 'i');
+      return regex.test(normalizedText);
+    }
+    
     return normalizedText.includes(normalizedKeyword);
   });
 };
@@ -440,6 +344,19 @@ export const isAdultContent = (item: any): boolean => {
     'breaking bad',
     'o poderoso chefão',
     'the godfather',
+    'diário de um banana',
+    'diario de um banana',
+    'nuremberg',
+    'hamnet',
+    'hamlet',
+    'natal',
+    'christmas',
+    'vovó',
+    'vovo',
+    'shrek',
+    'toy story',
+    'pixar',
+    'disney',
   ];
 
   const titleLower = title.toLowerCase();
@@ -474,51 +391,8 @@ export const isAdultContent = (item: any): boolean => {
     }
   }
 
-  // TESTE AGRESSIVO: Bloquear qualquer filme com palavras específicas
-  const testWords = [
-    'sorority',
-    'kalakal',
-    'kiskisan',
-    'bubu',
-    'gyohwan',
-    'pink',
-    'erotic',
-    'sexy',
-    'hot',
-    'sensual',
-    'desire',
-    'lust',
-    'passion',
-    'temptation',
-    'seduction',
-    'affair',
-    'mistress',
-    'forbidden',
-    'taboo',
-    // Palavras coreanas/asiáticas específicas
-    '교환',
-    '엄마',
-    '아내',
-    '노출',
-    '욕망',
-    '목적',
-    '유혹',
-    '바람',
-    '새엄마',
-    '친구의',
-    '가슴',
-    '동창회',
-    '배달',
-  ];
-
-  for (const word of testWords) {
-    if (titleLower.includes(word) || overviewLower.includes(word)) {
-      console.log(
-        `🔞 TESTE AGRESSIVO: Bloqueando "${title}" por conter "${word}"`
-      );
-      return true;
-    }
-  }
+  // Removido o loop de teste agressivo redundante que causava falsos positivos
+  // A verificação agora é feita apenas pela função isAdultContent principal.
 
   // DETECÇÃO ESPECÍFICA PARA FILMES ASIÁTICOS OBSCUROS
   const asianCountries = [
@@ -546,24 +420,23 @@ export const isAdultContent = (item: any): boolean => {
     const voteCount = item.vote_count || 0;
     const voteAverage = item.vote_average || 0;
 
-    // DETECÇÃO ULTRA AGRESSIVA para filmes asiáticos
-    // Baseada nos filmes mostrados que têm avaliações 2.5-9.8
+    // DETECÇÃO para filmes asiáticos (menos agressiva)
+    // Só bloqueia se tiver índices de popularidade MUITO baixos E for recente
+    // OU se tiver palavras suspeitas (verificado adiante)
     if (
-      // Qualquer filme com popularidade baixa
-      popularity < 20 ||
-      // Ou poucos votos (independente da nota)
-      voteCount < 500 ||
-      // Ou combinação suspeita de nota e votos
-      (voteCount < 1000 && voteAverage > 5) ||
-      // Ou título muito curto (comum em filmes adultos)
-      title.length < 15 ||
-      // Ou qualquer filme de 2015-2025 (período comum de filmes adultos asiáticos)
-      (item.release_date && new Date(item.release_date).getFullYear() >= 2015)
+      popularity < 5 &&
+      voteCount < 50 &&
+      voteAverage > 4 &&
+      voteAverage < 9 &&
+      item.release_date && new Date(item.release_date).getFullYear() >= 2020
     ) {
-      console.log(
-        `🔞 FILME ASIÁTICO ULTRA SUSPEITO: "${title}" (pop: ${popularity}, votes: ${voteCount}, avg: ${voteAverage}, year: ${item.release_date})`
-      );
-      return true;
+      // Mas ainda verificar se não tem palavras-chave antes de bater o martelo
+      if (hasAdultKeywords(title) || hasAdultKeywords(overview)) {
+        console.log(
+          `🔞 FILME ASIÁTICO BLOQUEADO: "${title}" (pop: ${popularity}, votes: ${voteCount})`
+        );
+        return true;
+      }
     }
   }
 
