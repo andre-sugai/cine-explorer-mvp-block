@@ -8,6 +8,10 @@ export interface CustomListItem {
   title: string;
   poster_path?: string;
   type: 'movie' | 'tv';
+  release_date?: string;
+  vote_average?: number;
+  genre_ids?: number[];
+  overview?: string;
 }
 
 export interface CustomList {

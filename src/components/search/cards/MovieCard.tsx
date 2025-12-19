@@ -9,8 +9,19 @@ import { BlacklistButton } from '@/components/BlacklistButton';
 import { AddToListButton } from '@/components/AddToListButton';
 import { useStreamingProvider } from '@/hooks/useStreamingProvider';
 
+// Partial TMDBMovie to support CustomListItem which might miss some fields
+type MovieCardData = Partial<TMDBMovie> & {
+  id: number;
+  title: string;
+  poster_path: string;
+  // Essential fields we need to handle if missing
+  release_date?: string;
+  vote_average?: number;
+  genre_ids?: number[];
+};
+
 interface MovieCardProps {
-  movie: TMDBMovie;
+  movie: MovieCardData;
 }
 
 export const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
@@ -22,9 +33,9 @@ export const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
   };
 
   return (
-    <Card className="group overflow-hidden bg-gradient-cinema border-primary/20 hover:shadow-glow transition-all duration-300 transform hover:scale-105">
+    <Card className="group overflow-hidden bg-gradient-cinema border-primary/20 hover:shadow-glow transition-all duration-300 transform hover:scale-105 h-full flex flex-col">
       <div 
-        className="cursor-pointer relative"
+        className="cursor-pointer relative flex-shrink-0"
         onClick={handleCardClick}
       >
         <div className="relative aspect-[2/3] overflow-hidden">
@@ -45,7 +56,7 @@ export const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
           <div className="absolute bottom-2 left-2 right-2 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             <div className="flex items-center gap-2 text-sm">
               <Star className="w-4 h-4 fill-current text-yellow-400" />
-              <span>{movie.vote_average.toFixed(1)}</span>
+              <span>{movie.vote_average?.toFixed(1) || 'N/A'}</span>
             </div>
           </div>
           
@@ -59,44 +70,46 @@ export const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
             <BlacklistButton title={movie.title} type="movie" />
           </div>
         </div>
-
-        <CardContent className="p-3">
-          <div className="flex justify-between items-start">
+      </div>
+        
+      <CardContent className="p-3 flex-1 flex flex-col justify-between">
+        <div className="flex justify-between items-start mb-2">
             <div className="flex-1 min-w-0 pr-2">
-              <h3 className="font-bold text-foreground line-clamp-2 mb-1">
+              <h3 className="font-bold text-foreground line-clamp-2 mb-1 text-sm md:text-base" title={movie.title}>
                 {movie.title}
               </h3>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Calendar className="w-3 h-3" />
                 {movie.release_date ? new Date(movie.release_date).getFullYear() : 'N/A'}
               </div>
             </div>
             {streamingProvider.logoPath && (
-              <div className="flex-shrink-0 mb-2" title={`Disponível em ${streamingProvider.providerName}`}>
+              <div className="flex-shrink-0" title={`Disponível em ${streamingProvider.providerName}`}>
                 <img
                   src={streamingProvider.logoPath}
                   alt={streamingProvider.providerName || 'Streaming Service'}
-                  className="w-8 h-8 rounded-md object-cover shadow-sm"
+                  className="w-6 h-6 rounded-md object-cover shadow-sm"
                 />
               </div>
             )}
-          </div>
-        </CardContent>
-      </div>
-      
-      {/* Action Icons */}
-      <div className="px-3 pb-3">
-        <MovieCardActions
-          id={movie.id}
-          title={movie.title}
-          poster_path={movie.poster_path}
-          release_date={movie.release_date}
-          vote_average={movie.vote_average}
-          genre_ids={movie.genre_ids}
-          type="movie"
-          showBlacklist={false}
-        />
-      </div>
+        </div>
+
+        {/* Action Icons */}
+        <div className="pt-2 border-t border-border/10">
+            <MovieCardActions
+            id={movie.id}
+            title={movie.title}
+            poster_path={movie.poster_path}
+            release_date={movie.release_date}
+            vote_average={movie.vote_average}
+            genre_ids={movie.genre_ids || []}
+            type="movie"
+            showBlacklist={false}
+            size="compact"
+            className="flex justify-between items-center w-full"
+            />
+        </div>
+      </CardContent>
     </Card>
   );
 };

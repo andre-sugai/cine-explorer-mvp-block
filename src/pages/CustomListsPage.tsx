@@ -10,6 +10,7 @@ import { Plus, Trash2, Film, Tv, MoreVertical, Search, Loader, X } from 'lucide-
 import { buildImageUrl, searchMulti } from '@/utils/tmdb';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { MovieCard } from '@/components/search/cards/MovieCard';
 
 const CustomListsPage: React.FC = () => {
   const { lists, createList, deleteList, addItemToList, removeItemFromList } = useCustomListsContext();
@@ -70,6 +71,10 @@ const CustomListsPage: React.FC = () => {
       title: item.title || item.name,
       poster_path: item.poster_path,
       type: item.media_type === 'movie' ? 'movie' : 'tv',
+      release_date: item.release_date || item.first_air_date,
+      vote_average: item.vote_average,
+      genre_ids: item.genre_ids,
+      overview: item.overview,
     };
 
     addItemToList(activeListId, newItem);
@@ -238,31 +243,27 @@ const CustomListsPage: React.FC = () => {
                   {list.items.length > 0 ? (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                       {list.items.map((item) => (
-                        <div key={item.id} className="relative group aspect-[2/3] rounded-md overflow-hidden bg-black/40">
-                          <img
-                            src={buildImageUrl(item.poster_path, 'w342')}
-                            alt={item.title}
-                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110 cursor-pointer"
-                            onClick={() => navigate(item.type === 'movie' ? `/filme/${item.id}` : `/serie/${item.id}`)}
+                        <div key={item.id} className="relative group">
+                          <MovieCard 
+                            movie={{
+                              ...item, 
+                              poster_path: item.poster_path || '', 
+                              title: item.title,
+                              id: item.id
+                            }} 
                           />
-                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center p-2 text-center">
-                            <span className="text-xs font-medium text-white mb-2 line-clamp-2">{item.title}</span>
-                            <Button
-                              variant="destructive"
-                              size="icon"
-                              className="h-8 w-8 rounded-full"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                removeItemFromList(list.id, item.id);
-                              }}
-                              title="Remover da lista"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          </div>
-                          <div className="absolute top-1 right-1 bg-black/60 rounded px-1 text-[10px] font-bold text-white uppercase">
-                            {item.type === 'movie' ? 'Filme' : 'Série'}
-                          </div>
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            className="absolute -top-2 -right-2 h-8 w-8 rounded-full shadow-lg z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-200 scale-90 hover:scale-100"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeItemFromList(list.id, item.id);
+                            }}
+                            title="Remover da lista"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                         </div>
                       ))}
                     </div>
