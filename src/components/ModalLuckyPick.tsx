@@ -37,6 +37,7 @@ import { useWantToWatchContext } from '@/context/WantToWatchContext';
 import { useWatchedContext } from '@/context/WatchedContext';
 import { useNavigate } from 'react-router-dom';
 import { useStreamingProvider } from '@/hooks/useStreamingProvider';
+import confetti from 'canvas-confetti';
 
 export const ModalLuckyPick: React.FC<{
   open: boolean;
@@ -222,12 +223,26 @@ export const ModalLuckyPick: React.FC<{
     }
   };
 
-  const handleWatched = () => {
+  const handleWatched = (e: React.MouseEvent) => {
     if (!result) return;
     if (isWatched(result.item.id, result.type)) {
       removeFromWatched(result.item.id, result.type);
       showToast('Removido de Vistos!');
     } else {
+      // Trigger confetti
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      const x = (rect.left + rect.width / 2) / window.innerWidth;
+      const y = (rect.top + rect.height / 2) / window.innerHeight;
+      
+      confetti({
+        particleCount: 100,
+        spread: 80,
+        origin: { x, y },
+        colors: ['#22c55e', '#ffffff', '#fbbf24'],
+        disableForReducedMotion: true,
+        zIndex: 9999,
+      });
+
       addToWatched({
         id: result.item.id,
         type: result.type,
@@ -432,10 +447,10 @@ export const ModalLuckyPick: React.FC<{
                 <Button
                   variant="cinema"
                   onClick={handleWatched}
-                  className="flex items-center gap-2 text-xs lg:text-sm h-9"
+                  className="flex items-center gap-2 text-xs lg:text-sm h-9 bg-green-500 text-white hover:bg-green-600 shadow-[0_0_15px_rgba(34,197,94,0.5)] scale-110 active:scale-95 transition-all duration-300"
                   size="sm"
                 >
-                  <Check className="w-4 h-4 text-green-500" />
+                  <Check className="w-4 h-4 text-white" />
                   <span className="hidden sm:inline">Remover de Vistos</span>
                   <span className="sm:hidden">Visto</span>
                 </Button>

@@ -7,6 +7,7 @@ import { useWantToWatchContext } from '@/context/WantToWatchContext';
 import { useWatchedContext } from '@/context/WatchedContext';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/components/ui/sonner';
+import confetti from 'canvas-confetti';
 import {
   isAdminUser,
   addToBlacklist,
@@ -111,7 +112,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
     }
   };
 
-  const handleWatched = () => {
+  const handleWatched = (e: React.MouseEvent) => {
     if (requireAuth()) return;
     if (type === 'person') return;
 
@@ -119,6 +120,20 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
       removeFromWatched(id, type);
       toast.success('Removido da lista de assistidos');
     } else {
+      // Trigger confetti
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      const x = (rect.left + rect.width / 2) / window.innerWidth;
+      const y = (rect.top + rect.height / 2) / window.innerHeight;
+      
+      confetti({
+        particleCount: 80,
+        spread: 70,
+        origin: { x, y },
+        colors: ['#22c55e', '#ffffff', '#fbbf24'],
+        disableForReducedMotion: true,
+        zIndex: 9999,
+      });
+
       // Salvar dados completos incluindo poster_path
       addToWatched({
         id,
@@ -207,7 +222,9 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
           variant="outline"
           onClick={handleWatched}
           className={
-            watched ? 'bg-green-500 text-white hover:bg-green-600' : ''
+            watched 
+              ? 'bg-green-500 text-white hover:bg-green-600 shadow-[0_0_15px_rgba(34,197,94,0.5)] scale-110 active:scale-95 transition-all duration-300' 
+              : 'hover:text-green-500 hover:border-green-500 hover:scale-110 active:scale-95 transition-all duration-200'
           }
         >
           <Check className={`w-4 h-4 mr-2 ${watched ? 'fill-current' : ''}`} />

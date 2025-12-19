@@ -1,4 +1,4 @@
-import React from 'react';
+
 import {
   Heart,
   Bookmark,
@@ -11,6 +11,8 @@ import { useFavoritesContext } from '@/context/FavoritesContext';
 import { useWantToWatchContext } from '@/context/WantToWatchContext';
 import { useWatchedContext } from '@/context/WatchedContext';
 import { useAuth } from '@/context/AuthContext';
+import React from 'react';
+import confetti from 'canvas-confetti';
 import { toast } from '@/components/ui/sonner';
 import {
   isAdminUser,
@@ -156,6 +158,20 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
       removeFromWatched(id, type as 'movie' | 'tv');
       toast.success('Removido dos assistidos');
     } else {
+      // Trigger confetti
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      const x = (rect.left + rect.width / 2) / window.innerWidth;
+      const y = (rect.top + rect.height / 2) / window.innerHeight;
+      
+      confetti({
+        particleCount: 60,
+        spread: 70,
+        origin: { x, y },
+        colors: ['#22c55e', '#ffffff', '#fbbf24'], // Green, White, Amber
+        disableForReducedMotion: true,
+        zIndex: 9999,
+      });
+
       addToWatched({
         id,
         type: type as 'movie' | 'tv',
@@ -247,8 +263,8 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
               onClick={handleWatched}
               className={`${buttonClass} ${
                 watched
-                  ? 'bg-green-500 text-white hover:bg-green-600'
-                  : 'border border-muted-foreground/30 text-muted-foreground hover:text-green-500 hover:border-green-500'
+                  ? 'bg-green-500 text-white hover:bg-green-600 shadow-[0_0_15px_rgba(34,197,94,0.5)] scale-110 active:scale-95 transition-all duration-300'
+                  : 'border border-muted-foreground/30 text-muted-foreground hover:text-green-500 hover:border-green-500 hover:scale-110 active:scale-95 transition-all duration-200'
               }`}
               title={watched ? 'Remover dos assistidos' : 'Marcar como assistido'}
             >

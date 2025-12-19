@@ -6,6 +6,7 @@ import { Calendar, Star, Clock, Check, X } from 'lucide-react';
 import { buildImageUrl } from '@/utils/tmdb';
 import { useWatchedContext } from '@/context/WatchedContext';
 import { toast } from 'sonner';
+import confetti from 'canvas-confetti';
 
 interface Episode {
   id: number;
@@ -34,6 +35,20 @@ export const EpisodeCard: React.FC<EpisodeCardProps> = ({ episode, tvId }) => {
       removeFromWatched(episode.id, 'episode');
       toast.success('Episódio removido dos vistos');
     } else {
+      // Trigger confetti
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      const x = (rect.left + rect.width / 2) / window.innerWidth;
+      const y = (rect.top + rect.height / 2) / window.innerHeight;
+      
+      confetti({
+        particleCount: 60,
+        spread: 70,
+        origin: { x, y },
+        colors: ['#22c55e', '#ffffff', '#fbbf24'],
+        disableForReducedMotion: true,
+        zIndex: 9999,
+      });
+
       addToWatched({
         id: episode.id,
         type: 'episode',
@@ -124,10 +139,10 @@ export const EpisodeCard: React.FC<EpisodeCardProps> = ({ episode, tvId }) => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className={`h-8 w-8 rounded-full ${
+                    className={`h-8 w-8 rounded-full transition-all duration-300 ${
                       watched
-                        ? 'text-green-500 hover:text-green-600 bg-green-500/10'
-                        : 'text-muted-foreground hover:text-green-500'
+                        ? 'text-green-500 hover:text-green-600 bg-green-500/10 shadow-[0_0_10px_rgba(34,197,94,0.3)] scale-110 active:scale-90'
+                        : 'text-muted-foreground hover:text-green-500 hover:scale-110 active:scale-90'
                     }`}
                     onClick={handleToggleWatched}
                     title={watched ? 'Remover dos vistos' : 'Marcar como visto'}
