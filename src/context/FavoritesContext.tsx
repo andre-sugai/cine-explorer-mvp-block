@@ -7,6 +7,7 @@ import React, {
 } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
+import { safeLocalStorageSetItem } from '@/utils/storage';
 
 interface FavoriteItem {
   id: number;
@@ -137,7 +138,7 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
       setFavorites(finalFavorites);
 
       // Sincronizar com localStorage como backup
-      localStorage.setItem(
+      safeLocalStorageSetItem(
         'cine-explorer-favorites',
         JSON.stringify(finalFavorites)
       );
@@ -213,7 +214,7 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
 
         // Se sucesso, atualizar localStorage como backup
         setFavorites((current) => {
-          localStorage.setItem(
+          safeLocalStorageSetItem(
             'cine-explorer-favorites',
             JSON.stringify(current)
           );
@@ -229,7 +230,7 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
     } else {
       // Usuário não logado - usar localStorage
       setFavorites((current) => {
-        localStorage.setItem(
+        safeLocalStorageSetItem(
           'cine-explorer-favorites',
           JSON.stringify(current)
         );
@@ -272,7 +273,7 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
 
         // Se sucesso, atualizar localStorage
         setFavorites((current) => {
-          localStorage.setItem(
+          safeLocalStorageSetItem(
             'cine-explorer-favorites',
             JSON.stringify(current)
           );
@@ -288,7 +289,7 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
     } else {
       // Usuário não logado - atualizar localStorage
       setFavorites((current) => {
-        localStorage.setItem(
+        safeLocalStorageSetItem(
           'cine-explorer-favorites',
           JSON.stringify(current)
         );

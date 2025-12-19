@@ -7,6 +7,7 @@ import React, {
 } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
+import { safeLocalStorageSetItem } from '@/utils/storage';
 
 export interface WantToWatchItem {
   id: number;
@@ -133,7 +134,7 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
       setWantToWatchList(finalWatchlist);
 
       // Sincronizar com localStorage como backup
-      localStorage.setItem(WANT_TO_WATCH_KEY, JSON.stringify(finalWatchlist));
+      safeLocalStorageSetItem(WANT_TO_WATCH_KEY, JSON.stringify(finalWatchlist));
 
       // Se houver itens locais não sincronizados, tentar sincronizar
       if (mergedWatchlist.length > uniqueWatchlist.length) {
@@ -208,7 +209,7 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
         setWantToWatchList((prev) => {
           const updatedList = [...prev, newItem];
           // Sincronizar com localStorage como backup
-          localStorage.setItem(WANT_TO_WATCH_KEY, JSON.stringify(updatedList));
+          safeLocalStorageSetItem(WANT_TO_WATCH_KEY, JSON.stringify(updatedList));
           return updatedList;
         });
       } catch (error) {
@@ -216,7 +217,7 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
         // Em caso de erro, ainda salvar no localStorage como fallback
         setWantToWatchList((prev) => {
           const updatedList = [...prev, newItem];
-          localStorage.setItem(WANT_TO_WATCH_KEY, JSON.stringify(updatedList));
+          safeLocalStorageSetItem(WANT_TO_WATCH_KEY, JSON.stringify(updatedList));
           return updatedList;
         });
       }
@@ -224,7 +225,7 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
       // Add to localStorage for non-authenticated users
       setWantToWatchList((prev) => {
         const updatedList = [...prev, newItem];
-        localStorage.setItem(WANT_TO_WATCH_KEY, JSON.stringify(updatedList));
+        safeLocalStorageSetItem(WANT_TO_WATCH_KEY, JSON.stringify(updatedList));
         return updatedList;
       });
     }
@@ -242,7 +243,7 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
         (item) => !(item.id === id && (type ? item.type === type : true))
       );
       // Atualizar localStorage imediatamente
-      localStorage.setItem(WANT_TO_WATCH_KEY, JSON.stringify(updatedList));
+      safeLocalStorageSetItem(WANT_TO_WATCH_KEY, JSON.stringify(updatedList));
       return updatedList;
     });
 
@@ -269,7 +270,7 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
           if (itemToRemove) {
             setWantToWatchList((prev) => {
               const restoredList = [...prev, itemToRemove];
-              localStorage.setItem(
+              safeLocalStorageSetItem(
                 WANT_TO_WATCH_KEY,
                 JSON.stringify(restoredList)
               );
@@ -283,7 +284,7 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
         if (itemToRemove) {
           setWantToWatchList((prev) => {
             const restoredList = [...prev, itemToRemove];
-            localStorage.setItem(
+            safeLocalStorageSetItem(
               WANT_TO_WATCH_KEY,
               JSON.stringify(restoredList)
             );

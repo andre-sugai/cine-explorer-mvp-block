@@ -1,3 +1,5 @@
+import { safeLocalStorageSetItem } from './storage';
+
 /**
  * Cache utility for storing and retrieving data with expiration (TTL)
  * Uses localStorage for persistence across sessions
@@ -52,34 +54,15 @@ export function setCacheItem<T>(
   data: T,
   ttl: number = 60 * 60 * 1000 // Default: 1 hour
 ): void {
-  try {
-    const cacheKey = CACHE_PREFIX + key;
-    const entry: CacheEntry<T> = {
-      data,
-      timestamp: Date.now(),
-      ttl,
-    };
+  const cacheKey = CACHE_PREFIX + key;
+  const entry: CacheEntry<T> = {
+    data,
+    timestamp: Date.now(),
+    ttl,
+  };
 
-    localStorage.setItem(cacheKey, JSON.stringify(entry));
-  } catch (error) {
-    console.error('Error writing to cache:', error);
-    // If localStorage is full, clear old entries
-    if (error instanceof DOMException && error.name === 'QuotaExceededError') {
-      clearExpiredCache();
-      // Try again after clearing
-      try {
-        const cacheKey = CACHE_PREFIX + key;
-        const entry: CacheEntry<T> = {
-          data,
-          timestamp: Date.now(),
-          ttl,
-        };
-        localStorage.setItem(cacheKey, JSON.stringify(entry));
-      } catch (retryError) {
-        console.error('Error writing to cache after cleanup:', retryError);
-      }
-    }
-  }
+  // Use the safe utility which handles quota exceeded by cleaning up
+  safeLocalStorageSetItem(cacheKey, JSON.stringify(entry));
 }
 
 /**

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
+import { safeLocalStorageSetItem } from '@/utils/storage';
 
 export interface CustomListItem {
   id: number;
@@ -114,7 +115,7 @@ export const CustomListsProvider = ({ children }: { children: ReactNode }) => {
       }
 
       setLists(mergedLists);
-      localStorage.setItem(CUSTOM_LISTS_KEY, JSON.stringify(mergedLists));
+      safeLocalStorageSetItem(CUSTOM_LISTS_KEY, JSON.stringify(mergedLists));
 
       // Sync local-only lists to Supabase
       if (listsToSync.length > 0) {
@@ -145,7 +146,7 @@ export const CustomListsProvider = ({ children }: { children: ReactNode }) => {
 
   const saveListsLocally = (newLists: CustomList[]) => {
     setLists(newLists);
-    localStorage.setItem(CUSTOM_LISTS_KEY, JSON.stringify(newLists));
+    safeLocalStorageSetItem(CUSTOM_LISTS_KEY, JSON.stringify(newLists));
   };
 
   const createList = async (name: string, description?: string) => {

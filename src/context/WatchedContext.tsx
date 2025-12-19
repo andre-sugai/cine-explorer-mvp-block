@@ -7,6 +7,7 @@ import React, {
 } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
+import { safeLocalStorageSetItem } from '@/utils/storage';
 
 interface WatchedItem {
   id: number;
@@ -48,63 +49,6 @@ interface WatchedContextData {
 }
 
 const WatchedContext = createContext<WatchedContextData | undefined>(undefined);
-
-// Helper function to safely save to localStorage with quota handling
-const safeLocalStorageSetItem = (key: string, value: string): boolean => {
-  try {
-    localStorage.setItem(key, value);
-    return true;
-  } catch (error) {
-    if (error instanceof DOMException && error.name === 'QuotaExceededError') {
-      console.warn(
-        '⚠️ LocalStorage quota exceeded. Attempting to clean old data...'
-      );
-
-      try {
-        // Try to get current data
-        const currentData = localStorage.getItem(key);
-        if (currentData) {
-          const parsed = JSON.parse(currentData);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            // Keep only the most recent 50% of items
-            const halfLength = Math.floor(parsed.length / 2);
-            const recentItems = parsed.slice(-halfLength);
-
-            console.log(
-              `🧹 Cleaning localStorage: ${parsed.length} → ${recentItems.length} items`
-            );
-
-            safeLocalStorageSetItem(key, JSON.stringify(recentItems));
-
-            // Try to save the new value again
-            const newData = JSON.parse(value);
-            const combined = [...recentItems, ...newData.slice(-10)]; // Keep last 10 new items
-            safeLocalStorageSetItem(key, JSON.stringify(combined));
-
-            console.log('✅ Successfully saved after cleanup');
-            return true;
-          }
-        }
-      } catch (cleanupError) {
-        console.error('❌ Failed to cleanup localStorage:', cleanupError);
-      }
-
-      // If cleanup failed, clear the storage as last resort
-      console.warn('⚠️ Clearing localStorage as last resort...');
-      try {
-        localStorage.removeItem(key);
-        safeLocalStorageSetItem(key, value);
-        return true;
-      } catch (finalError) {
-        console.error('❌ Failed to save even after clearing:', finalError);
-        return false;
-      }
-    }
-
-    console.error('❌ Error saving to localStorage:', error);
-    return false;
-  }
-};
 
 export const WatchedProvider = ({ children }: { children: ReactNode }) => {
   const { user, isAuthenticated } = useAuth();
