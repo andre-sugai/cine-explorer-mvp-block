@@ -214,6 +214,7 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
       const formattedWatched =
         allRemoteWatched.map((item) => ({
           ...(item.item_data as any),
+          id: Number(item.item_id), // Ensure ID is always a number from the source of truth
           watchedAt: item.watched_date,
         })) || [];
 
@@ -229,12 +230,15 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
       localWatched.forEach((localItem) => {
         const existsInSupabase = uniqueWatched.some(
           (supabaseItem) =>
-            supabaseItem.id === localItem.id &&
+            supabaseItem.id === Number(localItem.id) && // Ensure local comparison is also numeric
             supabaseItem.type === localItem.type
         );
         if (!existsInSupabase) {
           // Item existe localmente mas não no Supabase - adicionar ao merge
-          mergedWatched.push(localItem);
+          mergedWatched.push({
+             ...localItem,
+             id: Number(localItem.id) // Ensure local item ID is number
+          });
           console.log(
             `Item local encontrado não sincronizado: ${localItem.title} (${localItem.id})`
           );
@@ -262,7 +266,7 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
           (localItem) =>
             !uniqueWatched.some(
               (supabaseItem) =>
-                supabaseItem.id === localItem.id &&
+                supabaseItem.id === Number(localItem.id) &&
                 supabaseItem.type === localItem.type
             )
         );
@@ -271,7 +275,7 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
         if (itemsToSync.length > 0) {
             const rowsToInsert = itemsToSync.map(item => ({
               user_id: user.id,
-              item_id: item.id,
+              item_id: Number(item.id),
               item_type: item.type,
               item_data: item as any,
               watched_date: item.watchedAt,
@@ -296,9 +300,12 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
   const addToWatched = async (
     item: Omit<WatchedItem, 'watchedAt' | 'year'>
   ) => {
+    // Ensure item ID is a number
+    const numericId = Number(item.id);
+    
     // Verificar se o item já existe para evitar duplicatas
     const existingItem = watched.find(
-      (w) => w.id === item.id && w.type === item.type
+      (w) => w.id === numericId && w.type === item.type
     );
     if (existingItem) {
       console.log('Item já existe na lista de assistidos:', item.title);
@@ -312,6 +319,7 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
       : undefined;
     const watchedItem: WatchedItem = {
       ...item,
+      id: numericId, // Use numeric ID
       watchedAt: new Date().toISOString(),
       year: releaseYear,
     };
