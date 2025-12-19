@@ -117,11 +117,15 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
     }
 
     reportSyncStart('watched');
+    
+    // INSTANT LOADING: Load from localStorage immediately so the user doesn't wait
+    loadWatchedFromLocalStorage();
+
     try {
-      // Fetch all data from Supabase with pagination
+      // Fetch all data from Supabase with pagination in background
       let allRemoteWatched: any[] = [];
       let page = 0;
-      const PAGE_SIZE = 50; // Reduced from 100 to 50 to further prevent statement timeouts
+      const PAGE_SIZE = 50;
       let hasMore = true;
 
       while (hasMore) {
@@ -135,14 +139,8 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
         if (error) {
           console.error('Error loading watched list page', page, error);
           reportSyncError('watched', error);
-          
-          // CRITICAL: Read localStorage HERE, in case of error
-          const currentLocalData = localStorage.getItem('cine-explorer-watched');
-          if (currentLocalData) {
-            setWatched(JSON.parse(currentLocalData));
-            return;
-          }
-          break;
+          // Local data is already loaded, just stop the sync process
+          return;
         }
 
         if (data && data.length > 0) {

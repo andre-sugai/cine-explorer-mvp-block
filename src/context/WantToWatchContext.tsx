@@ -83,13 +83,12 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
     }
 
     reportSyncStart('watchlist');
-    try {
-      // Carregar dados do localStorage primeiro (backup local)
-      const localData = localStorage.getItem(WANT_TO_WATCH_KEY);
-      const localWatchlist: WantToWatchItem[] = localData
-        ? JSON.parse(localData)
-        : [];
 
+    // INSTANT LOADING: Load from localStorage immediately so the user doesn't wait
+    loadWantToWatchFromLocalStorage();
+
+    try {
+      // Fetch data from Supabase in background
       let allRemoteWatchlist: any[] = [];
       let page = 0;
       const PAGE_SIZE = 50;
@@ -106,9 +105,7 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
         if (error) {
           console.error('Error loading watchlist page', page, error);
           reportSyncError('watchlist', error);
-          if (localWatchlist.length > 0) {
-            setWantToWatchList(localWatchlist);
-          }
+          // Local data is already loaded, just stop the sync process
           return;
         }
 
@@ -137,6 +134,12 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
           index ===
           self.findIndex((w) => w.id === item.id && w.type === item.type)
       );
+
+      // CRITICAL FIX: Read localStorage AFTER the network fetch completes.
+      const localData = localStorage.getItem(WANT_TO_WATCH_KEY);
+      const localWatchlist: WantToWatchItem[] = localData
+        ? JSON.parse(localData)
+        : [];
 
       // Fazer merge com dados locais (priorizar dados do Supabase, mas manter dados locais não sincronizados)
       const mergedWatchlist = [...uniqueWatchlist];

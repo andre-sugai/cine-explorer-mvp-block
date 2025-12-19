@@ -6,6 +6,7 @@ interface WantToWatchFiltersState {
   orderBy: 'date' | 'rating';
   orderDirection: 'asc' | 'desc';
   selectedStreaming: string;
+  selectedRating: string;
   scrollPosition: number;
 }
 
@@ -46,6 +47,7 @@ export const useWantToWatchFilters = () => {
   const [orderBy, setOrderBy] = useState<'date' | 'rating'>('date');
   const [orderDirection, setOrderDirection] = useState<'asc' | 'desc'>('desc');
   const [selectedStreaming, setSelectedStreaming] = useState('0');
+  const [selectedRating, setSelectedRating] = useState('');
   const [isRestored, setIsRestored] = useState(false);
 
   // Carregar filtros salvos ao montar o componente
@@ -57,6 +59,7 @@ export const useWantToWatchFilters = () => {
       setOrderBy(savedFilters.orderBy || 'date');
       setOrderDirection(savedFilters.orderDirection || 'desc');
       setSelectedStreaming(savedFilters.selectedStreaming || '0');
+      setSelectedRating(savedFilters.selectedRating || '');
 
       // Restaurar posição do scroll após um pequeno delay
       setTimeout(() => {
@@ -124,6 +127,7 @@ export const useWantToWatchFilters = () => {
     setOrderBy('date');
     setOrderDirection('desc');
     setSelectedStreaming('0');
+    setSelectedRating('');
     clearFiltersFromStorage();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
@@ -135,6 +139,7 @@ export const useWantToWatchFilters = () => {
     orderBy,
     orderDirection,
     selectedStreaming,
+    selectedRating,
 
     // Setters
     setSearchTerm,
@@ -142,6 +147,7 @@ export const useWantToWatchFilters = () => {
     setOrderBy,
     setOrderDirection,
     setSelectedStreaming,
+    setSelectedRating,
 
     // Utilitários
     saveScrollPosition,

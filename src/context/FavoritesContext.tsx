@@ -84,13 +84,12 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
 
     reportSyncStart('favorites');
     setIsLoading(true);
-    try {
-      // Carregar dados do localStorage primeiro (backup local)
-      const localData = localStorage.getItem('cine-explorer-favorites');
-      const localFavorites: FavoriteItem[] = localData
-        ? JSON.parse(localData)
-        : [];
 
+    // INSTANT LOADING: Load from localStorage immediately
+    loadFavoritesFromLocalStorage();
+
+    try {
+      // Fetch data from Supabase in background
       let allRemoteFavorites: any[] = [];
       let page = 0;
       const PAGE_SIZE = 50;
@@ -107,11 +106,8 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
         if (error) {
           console.error('Error loading favorites page', page, error);
           reportSyncError('favorites', error);
-          // Em caso de erro, usar dados do localStorage
-          if (localFavorites.length > 0) {
-            setFavorites(localFavorites);
-          }
-          return;
+          // Local data is already loaded, no need to return or fallback
+          break; // Stop fetching further pages
         }
 
         if (data && data.length > 0) {
@@ -141,6 +137,12 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
             (f) => f.id === item.id && f.type === item.type
           )
       );
+
+      // CRITICAL FIX: Read localStorage AFTER the network fetch completes.
+      const localData = localStorage.getItem('cine-explorer-favorites');
+      const localFavorites: FavoriteItem[] = localData
+        ? JSON.parse(localData)
+        : [];
 
       // Fazer merge com dados locais (priorizar dados do Supabase, mas manter dados locais não sincronizados)
       const mergedFavorites = [...uniqueFavorites];

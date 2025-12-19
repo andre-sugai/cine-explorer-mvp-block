@@ -36,11 +36,13 @@ export const WantToWatchFiltersTabs: React.FC<WantToWatchFiltersTabsProps> = ({
     orderBy,
     orderDirection,
     selectedStreaming,
+    selectedRating,
     setSearchTerm,
     setActiveTab,
     setOrderBy,
     setOrderDirection,
     setSelectedStreaming,
+    setSelectedRating,
     saveScrollPosition,
     isRestored,
   } = useWantToWatchFilters();
@@ -91,9 +93,14 @@ export const WantToWatchFiltersTabs: React.FC<WantToWatchFiltersTabsProps> = ({
   };
 
   const filterItems = (list: any[]) =>
-    list.filter((item) =>
-      item.title?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    list.filter((item) => {
+      const matchesSearch = item.title?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const rating = item.vote_average || item.rating || 0;
+      const matchesRating = !selectedRating || rating >= Number(selectedRating);
+      
+      return matchesSearch && matchesRating;
+    });
 
   const sortItems = (list: any[]) => {
     if (orderBy === 'date') {
@@ -261,6 +268,40 @@ export const WantToWatchFiltersTabs: React.FC<WantToWatchFiltersTabsProps> = ({
               Limpar Filtro
             </Button>
           )}
+
+          <div className="flex items-center gap-4 ml-auto">
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                Nota Mínima:
+              </label>
+              <select
+                value={selectedRating}
+                onChange={(e) => setSelectedRating(e.target.value)}
+                className="border rounded px-2 py-1 text-sm bg-secondary/50 border-primary/20 focus:outline-none focus:ring-2 focus:ring-primary h-9 min-w-[120px]"
+              >
+                <option value="">Qualquer</option>
+                <option value="9">Acima de 9.0</option>
+                <option value="8">Acima de 8.0</option>
+                <option value="7">Acima de 7.0</option>
+                <option value="6">Acima de 6.0</option>
+                <option value="5">Acima de 5.0</option>
+                <option value="4">Acima de 4.0</option>
+                <option value="3">Acima de 3.0</option>
+                <option value="2">Acima de 2.0</option>
+                <option value="1">Acima de 1.0</option>
+              </select>
+            </div>
+            {selectedRating && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedRating('')}
+                className="text-xs"
+              >
+                Reset nota
+              </Button>
+            )}
+          </div>
         </div>
       )}
 
