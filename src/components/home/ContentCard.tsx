@@ -7,6 +7,7 @@ import { MovieCardActions } from '@/components/MovieCardActions';
 import { useFavoritesContext } from '@/context/FavoritesContext';
 import { BlacklistButton } from '@/components/BlacklistButton';
 import { AddToListButton } from '@/components/AddToListButton';
+import { ToggleFollowButton } from '@/components/ToggleFollowButton';
 import { useStreamingProvider } from '@/hooks/useStreamingProvider';
 
 type ContentCategory = 'movies' | 'tv' | 'actors' | 'directors' | 'cinema';
@@ -199,6 +200,21 @@ export const ContentCard = forwardRef<HTMLDivElement, ContentCardProps>(
             )}
             {'name' in item && 'first_air_date' in item && (
               <div className="absolute top-2 left-2 z-10 flex flex-row gap-2">
+                <ToggleFollowButton
+                  id={item.id}
+                  title={item.name}
+                  poster_path={
+                    'poster_path' in item ? item.poster_path : undefined
+                  }
+                  type="tv"
+                  release_date={
+                    'first_air_date' in item ? item.first_air_date : undefined
+                  }
+                  vote_average={
+                    'vote_average' in item ? item.vote_average : undefined
+                  }
+                  genre_ids={'genre_ids' in item ? item.genre_ids : undefined}
+                />
                 <AddToListButton
                   id={item.id}
                   title={item.name}

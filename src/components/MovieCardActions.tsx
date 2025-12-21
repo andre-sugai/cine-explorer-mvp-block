@@ -181,6 +181,7 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
         vote_average,
         genre_ids,
         runtime,
+        status: type === 'tv' ? 'completed' : undefined,
       });
 
       // Se estava na lista "quero assistir", remover de lá

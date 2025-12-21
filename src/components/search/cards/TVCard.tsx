@@ -7,6 +7,7 @@ import { buildImageUrl, TMDBTVShow } from '@/utils/tmdb';
 import { MovieCardActions } from '@/components/MovieCardActions';
 import { BlacklistButton } from '@/components/BlacklistButton';
 import { AddToListButton } from '@/components/AddToListButton';
+import { ToggleFollowButton } from '@/components/ToggleFollowButton';
 import { useStreamingProvider } from '@/hooks/useStreamingProvider';
 
 interface TVCardProps {
@@ -47,6 +48,15 @@ export const TVCard: React.FC<TVCardProps> = ({ show }) => {
         </div>
         
         <div className="absolute top-2 left-2 z-10 flex flex-row gap-2">
+          <ToggleFollowButton
+            id={show.id}
+            title={show.name}
+            poster_path={show.poster_path}
+            type="tv"
+            release_date={show.first_air_date}
+            vote_average={show.vote_average}
+            genre_ids={show.genre_ids}
+          />
           <AddToListButton 
             id={show.id} 
             title={show.name} 

@@ -24,6 +24,7 @@ interface WatchedItem {
   year?: number;
   tvId?: number;
   seasonNumber?: number;
+  status?: 'following' | 'completed';
 }
 
 interface WatchedContextData {
@@ -263,20 +264,17 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
     // Ensure item ID is a number
     const numericId = Number(item.id);
     
-    // Verificar se o item já existe para evitar duplicatas
-    const existingItem = watched.find(
+    // Verificar se o item já existe
+    const existingItemIndex = watched.findIndex(
       (w) => w.id === numericId && w.type === item.type
     );
-    if (existingItem) {
-      console.log('Item já existe na lista de assistidos:', item.title);
-      return;
-    }
 
     const releaseYear = item.release_date
       ? new Date(item.release_date).getFullYear()
       : item.first_air_date
       ? new Date(item.first_air_date).getFullYear()
       : undefined;
+
     const watchedItem: WatchedItem = {
       ...item,
       id: numericId, // Use numeric ID
@@ -284,15 +282,32 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
       year: releaseYear,
     };
 
-    // OPTIMISTIC UPDATE: Update local state and localStorage immediately
-    setWatched((prev) => {
-      const newWatched = [...prev, watchedItem];
-      safeLocalStorageSetItem(
-        'cine-explorer-watched',
-        JSON.stringify(newWatched)
-      );
-      return newWatched;
-    });
+    if (existingItemIndex > -1) {
+      // Item existe - Atualizar propriedades (como status)
+      setWatched((prev) => {
+        const newWatched = [...prev];
+        newWatched[existingItemIndex] = {
+          ...newWatched[existingItemIndex],
+          ...watchedItem, // Sobrescreve com novos dados (incluindo status novo)
+        };
+        safeLocalStorageSetItem(
+          'cine-explorer-watched',
+          JSON.stringify(newWatched)
+        );
+        return newWatched;
+      });
+      console.log('Item atualizado na lista de assistidos:', item.title);
+    } else {
+      // Item novo - Adicionar
+      setWatched((prev) => {
+        const newWatched = [...prev, watchedItem];
+        safeLocalStorageSetItem(
+          'cine-explorer-watched',
+          JSON.stringify(newWatched)
+        );
+        return newWatched;
+      });
+    }
 
 
 

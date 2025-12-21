@@ -485,8 +485,13 @@ export const HomePage: React.FC = () => {
       // Tratar categoria 'watching' separadamente
       if (category === 'watching') {
         const watchedShows = watched
-          .filter((item) => item.type === 'episode' && item.tvId)
-          .map((item) => item.tvId)
+          .filter(
+            (item) =>
+              (item.type === 'episode' && item.tvId) ||
+              (item.type === 'tv' && item.status === 'following')
+          )
+          .map((item) => (item.type === 'tv' ? item.id : item.tvId))
+          .filter((value): value is number => value !== undefined)
           .filter((value, index, self) => self.indexOf(value) === index); // Unique IDs
 
         // Sort by most recently watched (using checked item's watchedAt if available, otherwise order in list)
@@ -494,14 +499,14 @@ export const HomePage: React.FC = () => {
         // Better: sort unique IDs by looking up latest watchedAt for that tvId
         const sortedShowIds = watchedShows.sort((a, b) => {
           const lastWatchedA = watched
-            .filter((w) => w.tvId === a)
+            .filter((w) => w.tvId === a || (w.type === 'tv' && w.id === a))
             .sort(
               (x, y) =>
                 new Date(y.watchedAt).getTime() -
                 new Date(x.watchedAt).getTime()
             )[0];
           const lastWatchedB = watched
-            .filter((w) => w.tvId === b)
+            .filter((w) => w.tvId === b || (w.type === 'tv' && w.id === b))
             .sort(
               (x, y) =>
                 new Date(y.watchedAt).getTime() -
@@ -537,9 +542,25 @@ export const HomePage: React.FC = () => {
         // Filter out completed shows
         const inProgressShows = validShows.filter((show) => {
           if (!show) return false;
+          
+          // Verifica se a série foi marcada como COMPLETADA (check button)
+          const isCompleted = watched.some(
+            (w) => w.type === 'tv' && w.id === show.id && w.status === 'completed'
+          );
+          if (isCompleted) return false;
+
+          // Verifica se está seguindo (follow button)
+          const isFollowing = watched.some(
+            (w) => w.type === 'tv' && w.id === show.id && w.status === 'following'
+          );
+
+          // Se estiver seguindo, mostra mesmo sem episódios
+          if (isFollowing) return true;
+
           const watchedEpisodeCount = watched.filter(
             (w) => w.type === 'episode' && w.tvId === show.id
           ).length;
+          
           // Keep if not fully watched (and has episodes)
           return (
             show.number_of_episodes &&
