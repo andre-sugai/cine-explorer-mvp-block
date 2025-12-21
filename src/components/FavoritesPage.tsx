@@ -7,7 +7,7 @@ import { Heart, Search, Trash2, MonitorPlay, Loader2 } from 'lucide-react';
 import { useFavoritesContext } from '@/context/FavoritesContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { PersonalListCard } from '@/components/personal/PersonalListCard';
+import { ContentCard } from '@/components/home/ContentCard';
 import { useWatchProviders } from '@/hooks/useWatchProviders';
 
 /**
@@ -352,20 +352,10 @@ export const FavoritesPage: React.FC = () => {
         onRemove={handleRemoveFavorite}
         enableStreamingFilter={true}
         renderCard={(item) => (
-          <PersonalListCard
+          <ContentCard
             key={`${item.type}-${item.id}`}
-            item={item}
-            onDetailsClick={() => navigateToDetails(item)}
-            showDate={true}
-            dateLabel="Adicionado em"
-            actions={[
-              {
-                label: 'Remover',
-                onClick: () =>
-                  handleRemoveFavorite(item.id, item.type, item.title),
-                variant: 'destructive',
-              },
-            ]}
+            item={item as any}
+            category={item.type === 'movie' ? 'movies' : item.type === 'tv' ? 'tv' : 'actors'}
           />
         )}
         contextLabel="Favoritos"

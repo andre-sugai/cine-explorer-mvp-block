@@ -10,7 +10,7 @@ import { Calendar, Eye, Trash2, ExternalLink, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/components/ui/sonner';
 import { Input } from '@/components/ui/input';
-import { PersonalListCard } from '@/components/personal/PersonalListCard';
+import { ContentCard } from '@/components/home/ContentCard';
 import { WantToWatchFiltersTabs } from '@/components/WantToWatchFiltersTabs';
 import { StreamingOptimizer } from '@/components/StreamingOptimizer';
 
@@ -71,37 +71,10 @@ const WantToWatchPage: React.FC = () => {
           onRemove={handleRemove}
           enableStreamingFilter={true}
           renderCard={(item) => (
-            <PersonalListCard
+            <ContentCard
               key={`${item.type}-${item.id}`}
-              item={item}
-              onDetailsClick={() =>
-                navigate(
-                  item.type === 'tv'
-                    ? `/serie/${item.id}?title=${encodeURIComponent(
-                        item.title
-                      )}`
-                    : `/filme/${item.id}?title=${encodeURIComponent(
-                        item.title
-                      )}`
-                )
-              }
-              showDate={true}
-              dateLabel="Adicionado em"
-              actions={[
-                item.type === 'movie' || item.type === 'tv'
-                  ? {
-                      label: 'Marcar como Assistido',
-                      onClick: () => handleMarkAsWatched(item),
-                      variant: 'default' as const,
-                      className: 'bg-green-600 text-white hover:bg-green-700',
-                    }
-                  : undefined,
-                {
-                  label: 'Remover da Lista',
-                  onClick: () => handleRemove(item.id, item.type, item.title),
-                  variant: 'destructive' as const,
-                },
-              ].filter(Boolean)}
+              item={item as any}
+              category={item.type === 'movie' ? 'movies' : 'tv'}
             />
           )}
           contextLabel="Quero Assistir"

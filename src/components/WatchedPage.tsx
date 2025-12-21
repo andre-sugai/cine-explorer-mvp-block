@@ -5,7 +5,7 @@ import { CheckCircle, Trash2 } from 'lucide-react';
 import { useWatchedContext } from '@/context/WatchedContext';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
-import { PersonalListCard } from '@/components/personal/PersonalListCard';
+import { ContentCard } from '@/components/home/ContentCard';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { PersonalListFiltersTabs } from '@/components/FavoritesPage';
@@ -35,7 +35,7 @@ export const WatchedPage: React.FC = () => {
         `Tem certeza que deseja remover "${title}" da sua lista de assistidos?`
       )
     ) {
-      removeFromWatched(id, type);
+      removeFromWatched(id, type as 'movie' | 'tv' | 'episode');
       toast({
         title: 'Removido da lista',
         description: `${title} foi removido da sua lista de assistidos.`,
@@ -77,25 +77,10 @@ export const WatchedPage: React.FC = () => {
         onRemove={handleRemove}
         enableStreamingFilter={true}
         renderCard={(item) => (
-          <PersonalListCard
+          <ContentCard
             key={`${item.type}-${item.id}`}
-            item={item}
-            onDetailsClick={() =>
-              navigate(
-                item.type === 'movie'
-                  ? `/filme/${item.id}`
-                  : `/serie/${item.id}`
-              )
-            }
-            showDate={true}
-            dateLabel="Assistido em"
-            actions={[
-              {
-                label: 'Remover',
-                onClick: () => handleRemove(item.id, item.type, item.title),
-                variant: 'destructive',
-              },
-            ]}
+            item={item as any}
+            category={item.type === 'movie' ? 'movies' : 'tv'}
           />
         )}
         contextLabel="Vistos"
