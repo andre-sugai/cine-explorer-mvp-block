@@ -34,14 +34,31 @@ export const ContentCard = forwardRef<HTMLDivElement, ContentCardProps>(
       return () => clearTimeout(timer);
     }, []);
 
+    // Determinar o tipo de conteúdo de forma robusta
+    const isTV =
+      category === 'tv' ||
+      ('type' in item && item.type === 'tv') ||
+      ('name' in item && 'first_air_date' in item);
+
+    const isMovie =
+      !isTV &&
+      (category === 'movies' ||
+        category === 'cinema' ||
+        ('type' in item && item.type === 'movie') ||
+        'title' in item);
+
+    const isPerson =
+      !isTV &&
+      !isMovie &&
+      (category === 'actors' ||
+        category === 'directors' ||
+        ('type' in item && item.type === 'person') ||
+        'profile_path' in item);
+
     // Fetch streaming provider with lazy loading
     const streamingProvider = useStreamingProvider(
       item.id,
-      'title' in item
-        ? 'movie'
-        : 'name' in item && 'first_air_date' in item
-        ? 'tv'
-        : undefined
+      isTV ? 'tv' : isMovie ? 'movie' : undefined
     );
 
     const handleItemClick = () => {
@@ -49,31 +66,30 @@ export const ContentCard = forwardRef<HTMLDivElement, ContentCardProps>(
         onItemClick(item);
       }
 
-      if ('title' in item) {
-        // Movie
+      if (isMovie) {
         navigate(`/filme/${item.id}`);
-      } else if ('name' in item && 'first_air_date' in item) {
-        // TV Show
+      } else if (isTV) {
         navigate(`/serie/${item.id}`);
-      } else if ('name' in item) {
-        // Person
+      } else if (isPerson) {
         navigate(`/pessoa/${item.id}`);
       }
     };
 
     // Verifica se é um diretor
     const isDirector =
-      category === 'directors' &&
-      'known_for_department' in item &&
-      (item.known_for_department === 'Directing' ||
-        item.known_for_department === 'Direção');
+      (category === 'directors' ||
+        ('known_for_department' in item &&
+          (item.known_for_department === 'Directing' ||
+            item.known_for_department === 'Direção'))) &&
+      isPerson;
 
     // Verifica se é um ator
     const isActor =
-      category === 'actors' &&
-      'known_for_department' in item &&
-      (item.known_for_department === 'Acting' ||
-        item.known_for_department === 'Atuação');
+      (category === 'actors' ||
+        ('known_for_department' in item &&
+          (item.known_for_department === 'Acting' ||
+            item.known_for_department === 'Atuação'))) &&
+      isPerson;
 
     // Favorito para diretores
     const directorIsFavorite = isDirector && isFavorite(item.id, 'person');
@@ -112,7 +128,7 @@ export const ContentCard = forwardRef<HTMLDivElement, ContentCardProps>(
 
     const isCompleted = watched.some(
       (w) =>
-        w.type === 'tv' && 'name' in item && w.id === item.id && w.status === 'completed'
+        w.type === 'tv' && isTV && w.id === item.id && w.status === 'completed'
     );
 
     return (
@@ -149,7 +165,9 @@ export const ContentCard = forwardRef<HTMLDivElement, ContentCardProps>(
                   : '',
                 'w500'
               )}
-              alt={'title' in item ? item.title : item.name}
+              alt={
+                'title' in item ? item.title : 'name' in item ? item.name : ''
+              }
               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
               loading="lazy"
             />
@@ -206,22 +224,27 @@ export const ContentCard = forwardRef<HTMLDivElement, ContentCardProps>(
             )}
 
             {/* Botões AddToList e Blacklist no topo esquerdo */}
-            {'title' in item && (
+            {isMovie && (
               <div className="absolute top-2 left-2 z-10 flex flex-row gap-2">
                 <AddToListButton
                   id={item.id}
-                  title={item.title}
-                  poster_path={item.poster_path}
+                  title={'title' in item ? item.title : (item as any).name || ''}
+                  poster_path={
+                    'poster_path' in item ? item.poster_path : undefined
+                  }
                   type="movie"
                 />
-                <BlacklistButton title={item.title} type="movie" />
+                <BlacklistButton
+                  title={'title' in item ? item.title : (item as any).name || ''}
+                  type="movie"
+                />
               </div>
             )}
-            {'name' in item && 'first_air_date' in item && (
+            {isTV && (
               <div className="absolute top-2 left-2 z-10 flex flex-row gap-2">
                 <ToggleFollowButton
                   id={item.id}
-                  title={item.name}
+                  title={'name' in item ? item.name : (item as any).title || ''}
                   poster_path={
                     'poster_path' in item ? item.poster_path : undefined
                   }
@@ -236,13 +259,16 @@ export const ContentCard = forwardRef<HTMLDivElement, ContentCardProps>(
                 />
                 <AddToListButton
                   id={item.id}
-                  title={item.name}
+                  title={'name' in item ? item.name : (item as any).title || ''}
                   poster_path={
                     'poster_path' in item ? item.poster_path : undefined
                   }
                   type="tv"
                 />
-                <BlacklistButton title={item.name} type="tv" />
+                <BlacklistButton
+                  title={'name' in item ? item.name : (item as any).title || ''}
+                  type="tv"
+                />
               </div>
             )}
           </div>
@@ -252,7 +278,11 @@ export const ContentCard = forwardRef<HTMLDivElement, ContentCardProps>(
             <div className="flex justify-between items-start">
               <div className="flex-1 min-w-0 pr-2">
                 <h3 className="font-semibold text-foreground text-sm leading-tight mb-2 line-clamp-2">
-                  {'title' in item ? item.title : item.name}
+                  {'title' in item
+                    ? item.title
+                    : 'name' in item
+                    ? item.name
+                    : ''}
                 </h3>
 
                 <div className="space-y-1 text-xs text-muted-foreground">
@@ -298,12 +328,17 @@ export const ContentCard = forwardRef<HTMLDivElement, ContentCardProps>(
             </div>
 
             {/* Action Icons - Só para filmes e séries */}
-            {('title' in item ||
-              ('name' in item && 'first_air_date' in item)) && (
+            {(isMovie || isTV) && (
               <div className="mt-2">
                 <MovieCardActions
                   id={item.id}
-                  title={'title' in item ? item.title : item.name}
+                  title={
+                    'title' in item
+                      ? item.title
+                      : 'name' in item
+                      ? item.name
+                      : ''
+                  }
                   poster_path={
                     'poster_path' in item ? item.poster_path : undefined
                   }
@@ -318,7 +353,7 @@ export const ContentCard = forwardRef<HTMLDivElement, ContentCardProps>(
                     'vote_average' in item ? item.vote_average : undefined
                   }
                   genre_ids={'genre_ids' in item ? item.genre_ids : undefined}
-                  type={'title' in item ? 'movie' : 'tv'}
+                  type={isTV ? 'tv' : 'movie'}
                   showBlacklist={false}
                 />
               </div>
