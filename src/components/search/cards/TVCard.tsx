@@ -10,6 +10,8 @@ import { AddToListButton } from '@/components/AddToListButton';
 import { ToggleFollowButton } from '@/components/ToggleFollowButton';
 import { useStreamingProvider } from '@/hooks/useStreamingProvider';
 
+import { useWatchedContext } from '@/context/WatchedContext';
+
 interface TVCardProps {
   show: TMDBTVShow;
 }
@@ -17,10 +19,17 @@ interface TVCardProps {
 export const TVCard: React.FC<TVCardProps> = ({ show }) => {
   const navigate = useNavigate();
   const streamingProvider = useStreamingProvider(show.id, 'tv');
+  const { watched } = useWatchedContext();
+
+  const isCompleted = watched.some(
+    (w) => w.type === 'tv' && w.id === show.id && w.status === 'completed'
+  );
 
   return (
     <Card
-      className="group cursor-pointer overflow-hidden bg-gradient-cinema border-primary/20 hover:shadow-glow transition-all duration-300 transform hover:scale-105"
+      className={`group cursor-pointer overflow-hidden bg-gradient-cinema hover:shadow-glow transition-all duration-300 transform hover:scale-105 ${
+        isCompleted ? 'border-2 border-green-500' : 'border-primary/20'
+      }`}
       onClick={() => navigate(`/serie/${show.id}`)}
     >
       <div className="relative">

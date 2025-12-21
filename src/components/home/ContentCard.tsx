@@ -10,6 +10,8 @@ import { AddToListButton } from '@/components/AddToListButton';
 import { ToggleFollowButton } from '@/components/ToggleFollowButton';
 import { useStreamingProvider } from '@/hooks/useStreamingProvider';
 
+import { useWatchedContext } from '@/context/WatchedContext';
+
 type ContentCategory = 'movies' | 'tv' | 'actors' | 'directors' | 'cinema';
 
 interface ContentCardProps {
@@ -24,6 +26,7 @@ export const ContentCard = forwardRef<HTMLDivElement, ContentCardProps>(
     const navigate = useNavigate();
     const { addToFavorites, removeFromFavorites, isFavorite } =
       useFavoritesContext();
+    const { watched } = useWatchedContext();
 
     useEffect(() => {
       // Trigger animation after component mounts
@@ -107,6 +110,11 @@ export const ContentCard = forwardRef<HTMLDivElement, ContentCardProps>(
       }
     };
 
+    const isCompleted = watched.some(
+      (w) =>
+        w.type === 'tv' && 'name' in item && w.id === item.id && w.status === 'completed'
+    );
+
     return (
       <Card
         ref={ref}
@@ -115,6 +123,7 @@ export const ContentCard = forwardRef<HTMLDivElement, ContentCardProps>(
           hover:scale-105 hover:shadow-glow border-primary/20
           bg-gradient-cinema overflow-hidden
           ${isLoaded ? 'animate-flip-in' : 'opacity-0'}
+          ${isCompleted ? 'border-2 border-green-500' : 'border border-gray-800'}
         `}
         onClick={handleItemClick}
       >

@@ -65,7 +65,7 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
     useFavoritesContext();
   const { addToWantToWatch, removeFromWantToWatch, isInWantToWatch } =
     useWantToWatchContext();
-  const { addToWatched, removeFromWatched, isWatched } = useWatchedContext();
+  const { addToWatched, bulkAddToWatched, removeFromWatched, isWatched } = useWatchedContext();
   const { user } = useAuth();
 
   const favorite = isFavorite(id, type);
@@ -172,24 +172,95 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
         zIndex: 9999,
       });
 
-      addToWatched({
-        id,
-        type: type as 'movie' | 'tv',
-        title,
-        poster_path,
-        release_date,
-        vote_average,
-        genre_ids,
-        runtime,
-        status: type === 'tv' ? 'completed' : undefined,
-      });
+      if (type === 'tv') {
+        toast.promise(
+          (async () => {
+            const { getTVShowDetails, getTVSeasonDetails } = await import('@/utils/tmdb');
+            
+            // 1. Get number of seasons
+            const details = await getTVShowDetails(id);
+            const seasonsCount = details.number_of_seasons || 0;
+            const seasonPromises = [];
+
+            // 2. Fetch all seasons
+            // Starting from season 1 (ignoring season 0/specials for now unless desired? logic usually implies main seasons)
+            // Let's include season 0 if it exists? Usually 'number_of_seasons' counts from 1.
+            // TMDB details.seasons is an array including season 0.
+            // Let's iterate based on details.seasons array if available, or 1..number_of_seasons
+            
+            const seasonsToFetch = details.seasons?.filter(s => s.season_number > 0) || [];
+
+            for (const season of seasonsToFetch) {
+               seasonPromises.push(getTVSeasonDetails(id, season.season_number));
+            }
+
+            const seasonsData = await Promise.all(seasonPromises);
+            
+            const allEpisodesToAdd: any[] = [];
+            
+            const now = new Date().toISOString();
+
+            // 3. Prepare all episodes
+            seasonsData.forEach((season) => {
+               if (season.episodes) {
+                 season.episodes.forEach((ep: any) => {
+                    allEpisodesToAdd.push({
+                      id: ep.id,
+                      type: 'episode',
+                      title: ep.name,
+                      poster_path: ep.still_path || poster_path, // Use episode image or show poster
+                      release_date: ep.air_date,
+                      vote_average: ep.vote_average,
+                      runtime: ep.runtime,
+                      tvId: id,
+                      seasonNumber: ep.season_number,
+                      watchedAt: now
+                    });
+                 });
+               }
+            });
+
+            // 4. Add Show ID itself as completed
+            allEpisodesToAdd.push({
+              id,
+              type: 'tv',
+              title,
+              poster_path,
+              release_date,
+              vote_average,
+              genre_ids,
+              runtime,
+              status: 'completed',
+              watchedAt: now
+            });
+
+            // 5. Bulk add
+            await bulkAddToWatched(allEpisodesToAdd);
+          })(),
+          {
+            loading: 'Marcando todos os episódios como assistidos...',
+            success: 'Série e episódios marcados como assistidos!',
+            error: 'Erro ao marcar episódios.',
+          }
+        );
+      } else {
+        addToWatched({
+          id,
+          type: type as 'movie' | 'tv',
+          title,
+          poster_path,
+          release_date,
+          vote_average,
+          genre_ids,
+          runtime,
+        });
+        toast.success('Marcado como assistido');
+      }
 
       // Se estava na lista "quero assistir", remover de lá
       if (wantToWatch) {
         removeFromWantToWatch(id, type as 'movie' | 'tv');
       }
-
-      toast.success('Marcado como assistido');
     }
   };
 
