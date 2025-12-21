@@ -34,7 +34,7 @@ export const ContentCard = forwardRef<HTMLDivElement, ContentCardProps>(
       return () => clearTimeout(timer);
     }, []);
 
-    // Fetch streaming provider
+    // Fetch streaming provider with lazy loading
     const streamingProvider = useStreamingProvider(
       item.id,
       'title' in item
@@ -117,7 +117,17 @@ export const ContentCard = forwardRef<HTMLDivElement, ContentCardProps>(
 
     return (
       <Card
-        ref={ref}
+        ref={(node) => {
+          // Combina os refs
+          if (typeof ref === 'function') {
+            ref(node);
+          } else if (ref) {
+            ref.current = node;
+          }
+          if (streamingProvider.ref) {
+            streamingProvider.ref.current = node;
+          }
+        }}
         className={`
           group cursor-pointer transition-all duration-500
           hover:scale-105 hover:shadow-glow border-primary/20

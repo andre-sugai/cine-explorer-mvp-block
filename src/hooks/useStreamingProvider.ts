@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   getMovieWatchProviders,
   getTVWatchProviders,
@@ -14,14 +14,46 @@ interface StreamingProvider {
 export const useStreamingProvider = (
   id: number | undefined,
   type: 'movie' | 'tv' | 'person' | undefined
-): StreamingProvider => {
+): StreamingProvider & { ref: React.RefObject<HTMLDivElement> } => {
   const [provider, setProvider] = useState<StreamingProvider>({
     logoPath: null,
     providerName: null,
     isLoading: false,
   });
+  const [isVisible, setIsVisible] = useState(false);
+  const elementRef = useRef<HTMLDivElement>(null);
 
+  // IntersectionObserver para detectar quando o elemento está visível
   useEffect(() => {
+    const element = elementRef.current;
+    if (!element) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setIsVisible(true);
+            observer.disconnect(); // Para de observar após primeira visualização
+          }
+        });
+      },
+      {
+        rootMargin: '50px', // Começa a carregar 50px antes de aparecer
+        threshold: 0.01, // Dispara quando 1% do elemento está visível
+      }
+    );
+
+    observer.observe(element);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  // Fetch provider apenas quando visível
+  useEffect(() => {
+    if (!isVisible) return; // Não faz nada se não estiver visível
+    
     let isMounted = true;
 
     const fetchProvider = async () => {
@@ -76,7 +108,8 @@ export const useStreamingProvider = (
     return () => {
       isMounted = false;
     };
-  }, [id, type]);
+  }, [id, type, isVisible]); // Adiciona isVisible como dependência
 
-  return provider;
+  return { ...provider, ref: elementRef };
 };
+
