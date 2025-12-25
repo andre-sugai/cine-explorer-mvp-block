@@ -174,10 +174,12 @@ export const ContentCard = forwardRef<HTMLDivElement, ContentCardProps>(
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
             {/* Rating for movies/tv shows */}
-            {'vote_average' in item && item.vote_average > 0 && (
+            {(('vote_average' in item && item.vote_average > 0) || ('rating' in item && (item as any).rating > 0)) && (
               <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded-md text-xs font-semibold flex items-center gap-1">
                 <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                {item.vote_average.toFixed(1)}
+                {('vote_average' in item && item.vote_average > 0) 
+                  ? item.vote_average.toFixed(1) 
+                  : ((item as any).rating as number).toFixed(1)}
               </div>
             )}
             {/* Botão de favorito para diretores */}
