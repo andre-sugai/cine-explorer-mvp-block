@@ -166,7 +166,7 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
       );
 
       setWantToWatchList(finalWatchlist);
-      reportSyncSuccess('watchlist');
+      reportSyncSuccess('watchlist', `${finalWatchlist.length} itens encontrados`);
 
       // Sincronizar com localStorage como backup
       safeLocalStorageSetItem(WANT_TO_WATCH_KEY, JSON.stringify(finalWatchlist));
@@ -244,7 +244,7 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
         if (error) {
           console.error('Error adding to watchlist in Supabase:', error);
           reportSyncError('watchlist_add', error);
-          throw error;
+          return; // Stop here, error already reported
         }
 
         // Update local state only after successful Supabase insert

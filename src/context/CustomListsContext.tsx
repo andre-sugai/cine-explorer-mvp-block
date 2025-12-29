@@ -127,6 +127,7 @@ export const CustomListsProvider = ({ children }: { children: ReactNode }) => {
       }
 
       setLists(mergedLists);
+      reportSyncSuccess('custom_lists', `${mergedLists.length} listas encontradas`);
       safeLocalStorageSetItem(CUSTOM_LISTS_KEY, JSON.stringify(mergedLists));
 
       // Sync local-only lists to Supabase

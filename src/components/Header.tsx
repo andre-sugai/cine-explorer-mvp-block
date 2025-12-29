@@ -52,6 +52,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useIsMobile } from '@/hooks/use-mobile';
 import QuickSearchModal from '@/components/QuickSearchModal';
+import { SyncControlPanel } from './SyncControlPanel';
 
 interface HeaderProps {
   activeTab?: string;
@@ -70,6 +71,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
   const [showMigrationModal, setShowMigrationModal] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showQuickSearch, setShowQuickSearch] = useState(false);
+  const [showSyncPanel, setShowSyncPanel] = useState(false);
   const [userProfile, setUserProfile] = useState<{
     profileImage?: string;
     nickname?: string;
@@ -235,62 +237,8 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
   /**
    * Sincroniza todos os dados locais com a nuvem
    */
-  const handleCloudSync = async () => {
-    if (!isAuthenticated || !user) {
-      toast({
-        title: 'Erro de sincronização',
-        description: 'Você precisa estar logado para sincronizar com a nuvem.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    // Se estiver suspenso, mudar para modo persistência para permitir a sincronização
-    if (syncMode === 'suspended') {
-      try {
-        setSyncMode('persistence');
-        toast({
-          title: 'Modo Online Ativado',
-          description: 'A sincronização foi ativada para realizar esta operação.',
-        });
-        // Pequeno delay para garantir que o estado propagou
-        await new Promise(resolve => setTimeout(resolve, 100));
-      } catch (error) {
-        console.error('Erro ao ativar modo persistência:', error);
-      }
-    }
-
-    setIsSyncing(true);
-
-    try {
-      toast({
-        title: 'Sincronizando...',
-        description:
-          'Atualizando dados com a nuvem. Isso pode levar alguns segundos.',
-      });
-      
-      await Promise.all([
-        watchedContext.refresh(),
-        favoritesContext.refresh(),
-        wantToWatchContext.refresh(),
-        customListsContext.refresh(),
-      ]);
-
-      toast({
-        title: 'Sincronização concluída',
-        description: 'Seus dados foram atualizados com sucesso.',
-      });
-    } catch (error) {
-      console.error('Erro durante sincronização:', error);
-      toast({
-        title: 'Erro na sincronização',
-        description:
-          'Ocorreu um erro ao sincronizar com a nuvem. Tente novamente.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSyncing(false);
-    }
+  const handleCloudSync = () => {
+    setShowSyncPanel(true);
   };
 
   const navItems = [
@@ -688,6 +636,10 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
         open={showQuickSearch}
         onOpenChange={setShowQuickSearch}
         onSubmit={handleQuickSearchSubmit}
+      />
+      <SyncControlPanel
+        open={showSyncPanel}
+        onOpenChange={setShowSyncPanel}
       />
     </header>
   );

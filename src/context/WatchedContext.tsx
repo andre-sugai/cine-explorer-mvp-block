@@ -127,7 +127,7 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
       // Fetch all data from Supabase with pagination in background
       let allRemoteWatched: any[] = [];
       let page = 0;
-      const PAGE_SIZE = 50;
+      const PAGE_SIZE = 1000; // MUCH larger page size for 200k items
       let hasMore = true;
 
       while (hasMore) {
@@ -151,11 +151,17 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
             hasMore = false;
           } else {
             page++;
-            // Optimization: Small delay to let Supabase API breathe
-            await new Promise(resolve => setTimeout(resolve, 150));
+            // No more delay needed with large pages, but yielded to event loop
+            await new Promise(resolve => setTimeout(resolve, 10));
           }
         } else {
           hasMore = false;
+        }
+
+        // Safety break to prevent infinite loops if something goes wrong with 200k items
+        if (page > 250) { 
+           console.warn('Reached safety limit of 250k items. Stopping sync.');
+           break;
         }
       }
 
@@ -167,49 +173,44 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
         ? JSON.parse(localData)
         : [];
 
-      const formattedWatched =
-        allRemoteWatched.map((item) => ({
-          ...(item.item_data as any),
-          id: Number(item.item_id), // Ensure ID is always a number from the source of truth
-          watchedAt: item.watched_date,
-        })) || [];
-
-      // Remover duplicatas baseado em id e type
-      const uniqueWatched = formattedWatched.filter(
-        (item, index, self) =>
-          index ===
-          self.findIndex((w) => w.id === item.id && w.type === item.type)
-      );
-
-      // Fazer merge com dados locais (priorizar dados do Supabase, mas manter dados locais não sincronizados)
-      const mergedWatched = [...uniqueWatched];
-      localWatched.forEach((localItem) => {
-        const existsInSupabase = uniqueWatched.some(
-          (supabaseItem) =>
-            supabaseItem.id === Number(localItem.id) && // Ensure local comparison is also numeric
-            supabaseItem.type === localItem.type
-        );
-        if (!existsInSupabase) {
-          // Item existe localmente mas não no Supabase - adicionar ao merge
-          mergedWatched.push({
-             ...localItem,
-             id: Number(localItem.id) // Ensure local item ID is number
+      // 1. Create a Map of remote items for O(1) deduplication and merge
+      const remoteMap = new Map<string, WatchedItem>();
+      
+      allRemoteWatched.forEach(item => {
+        const id = Number(item.item_id);
+        const type = item.item_type;
+        const key = `${id}-${type}`;
+        
+        // If multiple entries exist in remote (due to redundancy bug), 
+        // the last one (most recent due to order) will be kept
+        if (!remoteMap.has(key)) {
+          remoteMap.set(key, {
+            ...(item.item_data as any),
+            id,
+            watchedAt: item.watched_date,
           });
-          console.log(
-            `Item local encontrado não sincronizado: ${localItem.title} (${localItem.id})`
-          );
         }
       });
 
-      // Remover duplicatas finais
-      const finalWatched = mergedWatched.filter(
-        (item, index, self) =>
-          index ===
-          self.findIndex((w) => w.id === item.id && w.type === item.type)
-      );
+      const uniqueSupabaseWatched = Array.from(remoteMap.values());
 
+      // 2. Merge with local data
+      const finalWatchedMap = new Map<string, WatchedItem>(remoteMap);
+      
+      localWatched.forEach((localItem) => {
+        const key = `${Number(localItem.id)}-${localItem.type}`;
+        if (!finalWatchedMap.has(key)) {
+          finalWatchedMap.set(key, {
+            ...localItem,
+            id: Number(localItem.id)
+          });
+          console.log(`Item local não sincronizado adicionado ao merge: ${localItem.title}`);
+        }
+      });
+
+      const finalWatched = Array.from(finalWatchedMap.values());
       setWatched(finalWatched);
-      reportSyncSuccess('watched');
+      reportSyncSuccess('watched', `${finalWatched.length} itens encontrados`);
 
       // Sincronizar com localStorage como backup
       safeLocalStorageSetItem(
@@ -218,33 +219,38 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
       );
 
       // Se houver itens locais não sincronizados, tentar sincronizar
-      if (mergedWatched.length > uniqueWatched.length) {
-        const itemsToSync = localWatched.filter(
-          (localItem) =>
-            !uniqueWatched.some(
-              (supabaseItem) =>
-                supabaseItem.id === Number(localItem.id) &&
-                supabaseItem.type === localItem.type
-            )
-        );
-        // Sincronizar itens locais com Supabase em background
-        // Sincronizar itens locais com Supabase em background - BULK INSERT
+      if (finalWatched.length > uniqueSupabaseWatched.length) {
+        const itemsToSync = localWatched.filter((localItem) => {
+          const key = `${Number(localItem.id)}-${localItem.type}`;
+          return !remoteMap.has(key);
+        });
+
         if (itemsToSync.length > 0) {
-            const BATCH_SIZE = 5;
+            console.log(`Iniciando sincronismo de ${itemsToSync.length} itens locais...`);
+            const BATCH_SIZE = 100; // Larger batches for performance
             for (let i = 0; i < itemsToSync.length; i += BATCH_SIZE) {
                 const batch = itemsToSync.slice(i, i + BATCH_SIZE);
                 const rowsToInsert = batch.map(item => ({
                   user_id: user.id,
                   item_id: Number(item.id),
                   item_type: item.type,
-                  item_data: item as any,
+                  item_data: {
+                    ...item,
+                    id: Number(item.id)
+                  } as any,
                   watched_date: item.watchedAt,
                 }));
 
                 try {
                   const { error } = await supabase.from('user_watched').insert(rowsToInsert);
-                  if (error) throw error;
-                  console.log(`Sincronizados ${batch.length} itens assistidos em background (lote ${i / BATCH_SIZE + 1}).`);
+                  if (error) {
+                    if (error.code === '23505') {
+                        console.log('Alguns itens já existem no Supabase (conflito de unique), ignorando lote.');
+                    } else {
+                        throw error;
+                    }
+                  }
+                  console.log(`Sincronizados ${batch.length} itens assistidos (lote ${i / BATCH_SIZE + 1}).`);
                 } catch (error) {
                   console.error('Erro ao sincronizar lote de itens assistidos:', error);
                 }
@@ -320,13 +326,32 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
 
     // 2. Sync to Supabase in background (if user is logged in)
     if (user && isSyncEnabled) {
-      // Implement bulk sync to Supabase here if needed or rely on SyncContext
-      // ideally we should batch insert to 'user_watched' table
-      // For now, let's keep it simple and just rely on local state locally
-      // Real sync implementation would require a new supabase function or loop
-      // But given the previous refactor to minimize IO, we should probably use a custom RPC or just loop carefully.
-      // However, for this task, the critical part is the local state update for UI.
-      // We will leave the Supabase sync for the existing sync mechanism or future optimization.
+      const syncService = items.length === 1 ? 'watched_add' : 'watched_bulk_add';
+      reportSyncStart(syncService);
+      
+      const rowsToInsert = items.map(item => {
+        const now = new Date().toISOString();
+        return {
+          user_id: user.id,
+          item_id: Number(item.id),
+          item_type: item.type,
+          item_data: {
+            ...item,
+            id: Number(item.id),
+            watchedAt: now,
+          } as any,
+          watched_date: now,
+        };
+      });
+
+      try {
+        const { error } = await supabase.from('user_watched').insert(rowsToInsert);
+        if (error) throw error;
+        reportSyncSuccess(syncService);
+      } catch (error) {
+        console.error(`Error syncing ${syncService} to Supabase:`, error);
+        reportSyncError(syncService, error);
+      }
     }
   };
 

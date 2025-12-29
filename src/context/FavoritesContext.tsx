@@ -107,7 +107,7 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
           console.error('Error loading favorites page', page, error);
           reportSyncError('favorites', error);
           // Local data is already loaded, no need to return or fallback
-          break; // Stop fetching further pages
+          return; // STOP synchronization instead of just breaking the loop
         }
 
         if (data && data.length > 0) {
@@ -169,7 +169,7 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
       );
 
       setFavorites(finalFavorites);
-      reportSyncSuccess('favorites');
+      reportSyncSuccess('favorites', `${finalFavorites.length} itens encontrados`);
 
       // Sincronizar com localStorage como backup
       safeLocalStorageSetItem(
@@ -250,7 +250,7 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
             )
           );
           console.error('Error adding to favorites in Supabase:', error);
-          throw new Error('Falha ao salvar favorito. Tente novamente.');
+          return; // Stop here, error already reported
         }
 
         // Se sucesso, atualizar localStorage como backup
