@@ -5,11 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getTVShowDetails, buildImageUrl, getTVShowImages } from '@/utils/tmdb';
+import { getTVShowDetails, buildImageUrl, getTVShowImages, getTVSeasonDetails } from '@/utils/tmdb';
 import ActionButtons from '@/components/ActionButtons';
+import { MovieCardActions } from '@/components/MovieCardActions';
 import TrailerPlayer from '@/components/TrailerPlayer';
 import { Layout } from '@/components/Layout';
-import { ChevronLeft, Calendar, Tv, Star, Users, Globe, CheckCircle, Eye } from 'lucide-react';
+import { ChevronLeft, Calendar, Tv, Star, Users, Globe, CheckCircle, Eye, Check } from 'lucide-react';
 import { useDetailNameContext } from '@/context/DetailNameContext';
 import { ImageGallery } from '@/components/ImageGallery';
 import { ImageGalleryModal } from '@/components/ImageGalleryModal';
@@ -17,6 +18,9 @@ import TVWatchProvidersSection from '@/components/TVWatchProvidersSection';
 import { SeasonDetailsModal } from '@/components/SeasonDetailsModal';
 import { useWatchedContext } from '@/context/WatchedContext';
 import ReviewsList from '@/components/reviews/ReviewsList';
+import { ToggleFollowButton } from '@/components/ToggleFollowButton';
+import confetti from 'canvas-confetti';
+import { toast } from 'sonner';
 
 const TVShowDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -27,7 +31,7 @@ const TVShowDetails: React.FC = () => {
     number: number;
     name: string;
   } | null>(null);
-  const { watched } = useWatchedContext();
+  const { watched, bulkAddToWatched, removeFromWatched } = useWatchedContext();
 
   const {
     data: show,
@@ -243,6 +247,19 @@ const TVShowDetails: React.FC = () => {
                               <Eye className="w-5 h-5 text-black" />
                             </div>
                           )}
+                          
+                          {/* Follow Button - Top Left Corner */}
+                          <div className="absolute top-2 left-2 z-10">
+                            <ToggleFollowButton
+                              id={show.id}
+                              title={show.name}
+                              poster_path={show.poster_path}
+                              type="tv"
+                              release_date={show.first_air_date}
+                              vote_average={show.vote_average}
+                              genre_ids={show.genres?.map((g: any) => g.id)}
+                            />
+                          </div>
                         </div>
                         {/* Progress Bar */}
                         {season.episode_count > 0 && (
@@ -274,10 +291,111 @@ const TVShowDetails: React.FC = () => {
                             {season.episode_count} episódio{season.episode_count !== 1 ? 's' : ''}
                           </p>
                           {season.air_date && (
-                            <p className="text-muted-foreground text-xs">
+                            <p className="text-muted-foreground text-xs mb-3">
                               {new Date(season.air_date).getFullYear()}
                             </p>
                           )}
+                          
+                          {/* Action Buttons - Custom Season Watched Handler */}
+                          <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+                            <Button
+                              variant={isSeasonWatched ? "default" : "outline"}
+                              size="sm"
+                              className={`w-full ${
+                                isSeasonWatched
+                                  ? 'bg-green-600 hover:bg-green-700 text-white'
+                                  : 'hover:bg-primary/10'
+                              }`}
+                              onClick={async (e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                
+                                if (isSeasonWatched) {
+                                  // Remove all episodes of this season
+                                  const episodesToRemove = watched.filter(
+                                    (w) =>
+                                      w.type === 'episode' &&
+                                      w.tvId === Number(id) &&
+                                      w.seasonNumber === season.season_number
+                                  );
+                                  
+                                  for (const episode of episodesToRemove) {
+                                    await removeFromWatched(episode.id, 'episode');
+                                  }
+                                  
+                                  // Remove season card
+                                  await removeFromWatched(season.id, 'season');
+                                  
+                                  toast.success('Temporada removida dos assistidos');
+                                } else {
+                                  // Trigger confetti
+                                  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                                  const x = (rect.left + rect.width / 2) / window.innerWidth;
+                                  const y = (rect.top + rect.height / 2) / window.innerHeight;
+                                  
+                                  confetti({
+                                    particleCount: 60,
+                                    spread: 70,
+                                    origin: { x, y },
+                                    colors: ['#22c55e', '#ffffff', '#fbbf24'],
+                                    disableForReducedMotion: true,
+                                    zIndex: 9999,
+                                  });
+                                  
+                                  toast.promise(
+                                    (async () => {
+                                      const seasonDetails = await getTVSeasonDetails(Number(id), season.season_number);
+                                      
+                                      const allEpisodesToAdd: any[] = [];
+                                      const now = new Date().toISOString();
+                                      
+                                      // Add all episodes
+                                      if (seasonDetails.episodes) {
+                                        seasonDetails.episodes.forEach((ep: any) => {
+                                          allEpisodesToAdd.push({
+                                            id: ep.id,
+                                            type: 'episode',
+                                            title: ep.name,
+                                            poster_path: ep.still_path || show.poster_path,
+                                            release_date: ep.air_date,
+                                            vote_average: ep.vote_average,
+                                            runtime: ep.runtime,
+                                            tvId: Number(id),
+                                            seasonNumber: season.season_number,
+                                            watchedAt: now
+                                          });
+                                        });
+                                      }
+                                      
+                                      // Add season card
+                                      allEpisodesToAdd.push({
+                                        id: season.id,
+                                        type: 'season',
+                                        title: season.name,
+                                        poster_path: season.poster_path || show.poster_path,
+                                        release_date: season.air_date,
+                                        vote_average: season.vote_average,
+                                        tvId: Number(id),
+                                        seasonNumber: season.season_number,
+                                        episodeCount: season.episode_count,
+                                        watchedAt: now
+                                      });
+                                      
+                                      await bulkAddToWatched(allEpisodesToAdd);
+                                    })(),
+                                    {
+                                      loading: 'Marcando episódios como assistidos...',
+                                      success: 'Temporada marcada como assistida!',
+                                      error: 'Erro ao marcar temporada.',
+                                    }
+                                  );
+                                }
+                              }}
+                            >
+                              <Check className="w-4 h-4 mr-1" />
+                              {isSeasonWatched ? 'Assistido' : 'Marcar como Visto'}
+                            </Button>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>

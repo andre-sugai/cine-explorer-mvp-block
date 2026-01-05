@@ -12,7 +12,7 @@ import { safeLocalStorageSetItem } from '@/utils/storage';
 
 interface WatchedItem {
   id: number;
-  type: 'movie' | 'tv' | 'episode';
+  type: 'movie' | 'tv' | 'episode' | 'season';
   title: string;
   poster_path?: string;
   release_date?: string;
@@ -24,6 +24,7 @@ interface WatchedItem {
   year?: number;
   tvId?: number;
   seasonNumber?: number;
+  episodeCount?: number; // For season type
   status?: 'following' | 'completed';
 }
 
@@ -31,7 +32,7 @@ interface WatchedContextData {
   watched: WatchedItem[];
   addToWatched: (item: Omit<WatchedItem, 'watchedAt' | 'year'>) => void;
   bulkAddToWatched: (items: Omit<WatchedItem, 'watchedAt' | 'year'>[]) => void;
-  removeFromWatched: (id: number, type: 'movie' | 'tv' | 'episode') => void;
+  removeFromWatched: (id: number, type: 'movie' | 'tv' | 'episode' | 'season') => void;
   clearAllWatched: () => void;
   cleanInvalidWatched: () => void;
   getStats: () => {
