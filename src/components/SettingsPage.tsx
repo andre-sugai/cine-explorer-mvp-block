@@ -41,6 +41,8 @@ import {
   Globe,
   Save,
   Tv,
+  LogOut,
+  Bell,
 } from 'lucide-react';
 import { getWatchProviders, buildImageUrl } from '@/utils/tmdb';
 import { useDataManager } from '@/hooks/useDataManager';
@@ -51,6 +53,7 @@ import { useProfileImage } from '@/hooks/useProfileImage';
 import { ProfileImageUpload } from '@/components/profile/ProfileImageUpload';
 import { useSettingsContext } from '@/context/SettingsContext';
 import { useSyncContext } from '@/context/SyncContext';
+import { ImprovedCheckboxSetting } from '@/components/settings/ImprovedCheckboxSetting';
 
 import { toast } from '@/hooks/use-toast';
 
@@ -767,50 +770,18 @@ export const SettingsPage: React.FC = () => {
                 <h3 className="text-lg font-semibold text-primary">
                   Controle Parental
                 </h3>
-                <div className="p-4 bg-secondary/30 rounded-lg border border-primary/20">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <Lock className="w-4 h-4 text-primary" />
-                        <span className="font-medium text-primary">
-                          Filtrar Conteúdo Adulto (+18)
-                        </span>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Oculta filmes e séries com conteúdo adulto, erótico ou
-                        impróprio para menores
-                      </p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id="adult-content-filter"
-                        className="rounded border-primary/20"
-                        defaultChecked={settings.adult_content_filter}
-                        onChange={(e) => {
-                          updateSetting('adult_content_filter', e.target.checked);
-                          toast({
-                            title: e.target.checked
-                              ? 'Filtro ativado'
-                              : 'Filtro desativado',
-                            description: e.target.checked
-                              ? 'Conteúdo adulto será ocultado da navegação'
-                              : 'Todo o conteúdo será exibido',
-                          });
-                        }}
-                      />
-                      <Label htmlFor="adult-content-filter" className="text-sm">
-                        Ativar filtro
-                      </Label>
-                    </div>
-                  </div>
-                  <div className="mt-3 text-xs text-muted-foreground">
-                    <strong>Critérios de filtragem:</strong> Filmes com
-                    classificação NC-17, gêneros adultos, palavras-chave
-                    relacionadas a conteúdo erótico, e títulos com indicadores
-                    de conteúdo adulto.
-                  </div>
-                </div>
+                <ImprovedCheckboxSetting
+                  id="adult-content-filter"
+                  checked={settings.adult_content_filter ?? false}
+                  onCheckedChange={(checked) => {
+                    updateSetting('adult_content_filter', checked);
+                  }}
+                  icon={<Lock className="w-4 h-4" />}
+                  title="Filtrar Conteúdo Adulto (+18)"
+                  description="Oculta filmes e séries com conteúdo adulto, erótico ou impróprio para menores. Critérios: classificação NC-17, gêneros adultos, palavras-chave relacionadas a conteúdo erótico."
+                  successMessage="Filtro ativado"
+                  disabledMessage="Filtro desativado"
+                />
               </div>
 
               {/* Sincronização com a Nuvem */}
@@ -818,37 +789,19 @@ export const SettingsPage: React.FC = () => {
                 <h3 className="text-lg font-semibold text-primary">
                   Sincronização
                 </h3>
-                <div className="p-4 bg-secondary/30 rounded-lg border border-primary/20">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <Globe className="w-4 h-4 text-primary" />
-                        <span className="font-medium text-primary">
-                          Sincronizar com a nuvem
-                        </span>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Mantém suas listas salvas na nuvem para acessar em outros dispositivos.
-                        Desative para manter os dados apenas neste dispositivo.
-                      </p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id="cloud-sync-toggle"
-                        className="rounded border-primary/20"
-                        checked={isSyncEnabled}
-                        onChange={(e) => {
-                          const newMode = e.target.checked ? 'persistence' : 'suspended';
-                          setSyncMode(newMode);
-                        }}
-                      />
-                      <Label htmlFor="cloud-sync-toggle" className="text-sm">
-                        {isSyncEnabled ? 'Ativado' : 'Desativado'}
-                      </Label>
-                    </div>
-                  </div>
-                </div>
+                <ImprovedCheckboxSetting
+                  id="cloud-sync-toggle"
+                  checked={isSyncEnabled}
+                  onCheckedChange={(checked) => {
+                    const newMode = checked ? 'persistence' : 'suspended';
+                    setSyncMode(newMode);
+                  }}
+                  icon={<Globe className="w-4 h-4" />}
+                  title="Sincronizar com a nuvem"
+                  description="Mantém suas listas salvas na nuvem para acessar em outros dispositivos. Desative para manter os dados apenas neste dispositivo."
+                  successMessage="Sincronização ativada"
+                  disabledMessage="Sincronização desativada"
+                />
               </div>
 
               {/* Limpeza de Dados */}
@@ -1172,38 +1125,38 @@ export const SettingsPage: React.FC = () => {
                   Preferências
                 </h3>
                 <div className="space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="notifications"
-                      className="rounded border-primary/20"
-                    />
-                    <Label htmlFor="notifications">
-                      Receber notificações de novos filmes
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="recommendations"
-                      className="rounded border-primary/20"
-                      defaultChecked
-                    />
-                    <Label htmlFor="recommendations">
-                      Ativar recomendações personalizadas
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="analytics"
-                      className="rounded border-primary/20"
-                      defaultChecked
-                    />
-                    <Label htmlFor="analytics">
-                      Compartilhar dados para melhorar o serviço
-                    </Label>
-                  </div>
+                  <ImprovedCheckboxSetting
+                    id="notifications"
+                    checked={settings.notifications_enabled ?? false}
+                    onCheckedChange={(checked) => updateSetting('notifications_enabled', checked)}
+                    icon={<Bell className="w-4 h-4" />}
+                    title="Receber notificações de novos filmes"
+                    description="Seja notificado quando novos filmes e séries forem adicionados ao catálogo"
+                    successMessage="Notificações ativadas"
+                    disabledMessage="Notificações desativadas"
+                  />
+                  
+                  <ImprovedCheckboxSetting
+                    id="recommendations"
+                    checked={settings.recommendations_enabled ?? true}
+                    onCheckedChange={(checked) => updateSetting('recommendations_enabled', checked)}
+                    icon={<BarChart3 className="w-4 h-4" />}
+                    title="Ativar recomendações personalizadas"
+                    description="Receba sugestões de filmes e séries baseadas no seu histórico de visualização"
+                    successMessage="Recomendações ativadas"
+                    disabledMessage="Recomendações desativadas"
+                  />
+                  
+                  <ImprovedCheckboxSetting
+                    id="analytics"
+                    checked={settings.analytics_enabled ?? true}
+                    onCheckedChange={(checked) => updateSetting('analytics_enabled', checked)}
+                    icon={<BarChart3 className="w-4 h-4" />}
+                    title="Compartilhar dados para melhorar o serviço"
+                    description="Ajude-nos a melhorar o Cine Explorer compartilhando dados anônimos de uso"
+                    successMessage="Compartilhamento ativado"
+                    disabledMessage="Compartilhamento desativado"
+                  />
                 </div>
               </div>
 
@@ -1240,7 +1193,7 @@ export const SettingsPage: React.FC = () => {
                     variant="outline"
                     className="flex items-center gap-2"
                   >
-                    <Settings className="w-4 h-4" />
+                    <LogOut className="w-4 h-4" />
                     Sair da Conta
                   </Button>
                 </div>

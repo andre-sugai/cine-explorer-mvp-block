@@ -15,6 +15,9 @@ export interface UserSettings {
   tmdb_api_key?: string;
   adult_content_filter?: boolean;
   my_streamings?: string[];
+  notifications_enabled?: boolean;
+  recommendations_enabled?: boolean;
+  analytics_enabled?: boolean;
   user_profile?: {
     nickname: string;
     bio: string;
@@ -126,6 +129,16 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       }
     }
 
+    // Load new preference settings
+    const notifications = localStorage.getItem('notifications_enabled');
+    if (notifications) loadedSettings.notifications_enabled = notifications === 'true';
+
+    const recommendations = localStorage.getItem('recommendations_enabled');
+    if (recommendations) loadedSettings.recommendations_enabled = recommendations === 'true';
+
+    const analytics = localStorage.getItem('analytics_enabled');
+    if (analytics) loadedSettings.analytics_enabled = analytics === 'true';
+
     return loadedSettings;
   };
 
@@ -144,6 +157,19 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     
     if (newSettings.user_profile !== undefined) {
       localStorage.setItem('user_profile', JSON.stringify(newSettings.user_profile));
+    }
+
+    // Save new preference settings
+    if (newSettings.notifications_enabled !== undefined) {
+      localStorage.setItem('notifications_enabled', String(newSettings.notifications_enabled));
+    }
+
+    if (newSettings.recommendations_enabled !== undefined) {
+      localStorage.setItem('recommendations_enabled', String(newSettings.recommendations_enabled));
+    }
+
+    if (newSettings.analytics_enabled !== undefined) {
+      localStorage.setItem('analytics_enabled', String(newSettings.analytics_enabled));
     }
   };
 
