@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { LuckyButton } from '@/components/LuckyButton';
 import { TrailerButton } from '@/components/TrailerButton';
 import { NovidadesButton } from '@/components/NovidadesButton';
+import { ArenaButton } from '@/components/ArenaButton';
 import { useVoiceSearch } from '@/hooks/useVoiceSearch';
 import { toast } from '@/hooks/use-toast';
 import {
@@ -276,6 +277,10 @@ export const SearchSection: React.FC = () => {
               className="w-full sm:w-auto min-w-[180px]"
             />
             <NovidadesButton
+              variant="default"
+              className="w-full sm:w-auto min-w-[180px]"
+            />
+            <ArenaButton
               variant="default"
               className="w-full sm:w-auto min-w-[180px]"
             />
