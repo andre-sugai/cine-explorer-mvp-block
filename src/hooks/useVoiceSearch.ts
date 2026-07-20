@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 
 /**
  * Hook personalizado para funcionalidade de busca por voz
@@ -19,6 +19,9 @@ export const useVoiceSearch = () => {
   const [isListening, setIsListening] = useState(false);
   const [isPermissionGranted, setIsPermissionGranted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const recognitionRef = useRef<any>(null);
+  const stopRef = useRef<boolean>(false);
+  const onResultRef = useRef<(text: string) => void>();
 
   // Verificar se o navegador suporta reconhecimento de fala
   const isSupported =
@@ -29,7 +32,7 @@ export const useVoiceSearch = () => {
     window.SpeechRecognition || window.webkitSpeechRecognition;
 
   const startListening = useCallback(
-    (onResult: (text: string) => void) => {
+    (onResult: (text: string) => void, options: { continuous?: boolean } = {}) => {
       if (!isSupported) {
         setError('Seu navegador não suporta reconhecimento de fala');
         return;
@@ -38,10 +41,15 @@ export const useVoiceSearch = () => {
       try {
         setError(null);
         setIsListening(true);
+        stopRef.current = false;
+        onResultRef.current = onResult;
 
         const recognition = new SpeechRecognition();
+        recognitionRef.current = recognition;
 
         // Configurar o reconhecimento
+        // Usamos continuous = false e reiniciamos manualmente no onend, 
+        // pois o continuous nativo do Chrome costuma travar após o primeiro comando.
         recognition.continuous = false;
         recognition.interimResults = false;
         recognition.lang = 'pt-BR'; // Português do Brasil
@@ -55,14 +63,23 @@ export const useVoiceSearch = () => {
 
         // Evento quando o reconhecimento termina
         recognition.onend = () => {
-          setIsListening(false);
+          if (options.continuous && !stopRef.current) {
+            try {
+              recognition.start();
+            } catch(e) {
+              setIsListening(false);
+            }
+          } else {
+            setIsListening(false);
+          }
         };
 
         // Evento quando há resultados
-        recognition.onresult = (event) => {
-          const transcript = event.results[0][0].transcript;
-          if (transcript) {
-            onResult(transcript.trim());
+        recognition.onresult = (event: any) => {
+          const current = event.resultIndex;
+          const transcript = event.results[current][0].transcript;
+          if (transcript && onResultRef.current) {
+            onResultRef.current(transcript.trim());
           }
         };
 
@@ -108,6 +125,14 @@ export const useVoiceSearch = () => {
   );
 
   const stopListening = useCallback(() => {
+    stopRef.current = true;
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {
+        // Ignorar erros caso já tenha parado
+      }
+    }
     setIsListening(false);
     setError(null);
   }, []);

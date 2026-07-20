@@ -17,12 +17,15 @@ import {
   Film,
   Tv,
   Star,
+  Mic,
+  MicOff,
 } from 'lucide-react';
 import { useTrailers } from '@/hooks/useTrailers';
 import { useYouTubePlayer } from '@/hooks/useYouTubePlayer';
 import { toast } from 'sonner';
 import { TrailerActionButtons } from '@/components/TrailerActionButtons';
 import { useStreamingProvider } from '@/hooks/useStreamingProvider';
+import { useVoiceSearch } from '@/hooks/useVoiceSearch';
 
 interface TrailerModalProps {
   open: boolean;
@@ -54,6 +57,20 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [useYTPlayer, setUseYTPlayer] = useState(false);
   
+  const {
+    isSupported: isVoiceSupported,
+    isListening,
+    startListening,
+    stopListening,
+    error: voiceError,
+  } = useVoiceSearch();
+
+  useEffect(() => {
+    if (voiceError) {
+      toast.error(voiceError);
+    }
+  }, [voiceError]);
+
   const { logoPath: streamingLogo, providerName: streamingProviderName } = useStreamingProvider(
     currentTrailer?.movieId,
     currentTrailer?.contentType
@@ -420,6 +437,10 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
     console.log('🚪 Fechando modal de trailers');
     setIsPlaying(false);
     isLoadingRef.current = false;
+    
+    if (isListening) {
+      stopListening();
+    }
 
     // Destruir player ao fechar modal
     if (playerRef.current) {
@@ -433,7 +454,59 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
     }
 
     onOpenChange(false);
-  }, [onOpenChange]);
+  }, [onOpenChange, isListening, stopListening]);
+
+  // Usar uma ref para o handler evitar problemas de stale closure com o handleNextTrailer
+  const voiceCommandHandler = useRef<(transcript: string) => void>();
+  useEffect(() => {
+    voiceCommandHandler.current = (transcript: string) => {
+      const rawCommand = transcript.toLowerCase();
+      // Remove acentos para facilitar a comparação (ex: "próximo" -> "proximo")
+      const command = rawCommand.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      
+      toast.success(`Comando reconhecido: "${transcript}"`);
+      
+      if (command.includes('proximo') || command.includes('proxima') || command.includes('pular') || command.includes('avancar')) {
+        toast.info("Avançando trailer...");
+        isLoadingRef.current = false; // Força a liberação caso o ref estivesse travado
+        handleNextTrailer();
+      } else if (command.includes('pare') || command.includes('parar') || command.includes('pausar') || command.includes('pausa')) {
+        if (playerRef.current) playerRef.current.pauseVideo();
+      } else if (command.includes('tocar') || command.includes('play') || command.includes('iniciar') || command.includes('continuar')) {
+        if (playerRef.current) playerRef.current.playVideo();
+      } else if (command.includes('tela cheia') || command.includes('fullscreen') || command.includes('ampliar') || command.includes('maximizar')) {
+        const iframe = document.querySelector('#youtube-player');
+        const elementToFullscreen = (iframe && iframe.requestFullscreen) ? iframe : playerContainerRef.current;
+        
+        if (elementToFullscreen && elementToFullscreen.requestFullscreen) {
+          elementToFullscreen.requestFullscreen().catch(err => {
+            console.error("Erro tela cheia:", err);
+            toast.error("O navegador bloqueou a tela cheia por inatividade. Clique em qualquer lugar da tela e tente novamente.");
+          });
+        }
+      } else {
+        toast.error(`Comando ignorado: "${transcript}". Diga "Próximo" para pular.`);
+      }
+    };
+  });
+
+  const handleVoiceSearch = () => {
+    if (!isVoiceSupported) {
+      toast.error('Seu navegador não suporta busca por voz.');
+      return;
+    }
+
+    if (isListening) {
+      stopListening();
+      return;
+    }
+
+    toast.info('Ouvindo comandos: Próximo, Pare, Tocar, Tela Cheia...', { duration: 4000 });
+
+    startListening((transcript) => {
+      voiceCommandHandler.current?.(transcript);
+    }, { continuous: true });
+  };
 
   // Format title with year
   const getFormattedTitle = () => {
@@ -559,6 +632,26 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
                   genre_ids={currentTrailer.genre_ids}
                   className="contents"
                 />
+              )}
+
+              {isVoiceSupported && (
+                <Button
+                  onClick={handleVoiceSearch}
+                  variant="outline"
+                  size="icon"
+                  className={`rounded-full w-9 h-9 ${
+                    isListening
+                      ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse border-none'
+                      : ''
+                  }`}
+                  title={isListening ? 'Parar gravação' : 'Buscar por voz'}
+                >
+                  {isListening ? (
+                    <MicOff className="w-4 h-4" />
+                  ) : (
+                    <Mic className="w-4 h-4" />
+                  )}
+                </Button>
               )}
 
               <Button
