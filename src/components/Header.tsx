@@ -187,10 +187,15 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
 
     startListening((transcript) => {
       setSearchTerm(transcript);
-      toast({
-        title: 'Busca por voz',
-        description: `"${transcript}" - Pressione Enter para buscar`,
-      });
+      if (transcript.trim()) {
+        toast({
+          title: 'Busca por voz',
+          description: `Buscando por "${transcript}"...`,
+        });
+        navigate(`/busca/${encodeURIComponent(transcript.trim())}`);
+        setSearchTerm('');
+        setIsMobileMenuOpen(false);
+      }
     });
   };
 

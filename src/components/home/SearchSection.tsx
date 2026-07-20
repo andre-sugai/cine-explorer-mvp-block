@@ -111,10 +111,13 @@ export const SearchSection: React.FC = () => {
 
     startListening((transcript) => {
       setSearchTerm(transcript);
-      toast({
-        title: 'Busca por voz',
-        description: `"${transcript}" - Clique em Pesquisar para buscar`,
-      });
+      if (transcript.trim()) {
+        toast({
+          title: 'Busca por voz',
+          description: `Buscando por "${transcript}"...`,
+        });
+        navigate(`/busca/${encodeURIComponent(transcript.trim())}`);
+      }
     });
   };
 
