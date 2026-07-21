@@ -10,7 +10,12 @@ import { useAuth } from '@/context/AuthContext';
 import { useSyncContext } from '@/context/SyncContext';
 import { safeLocalStorageSetItem } from '@/utils/storage';
 
-interface WatchedItem {
+export interface PersonCredit {
+  id: number;
+  name: string;
+}
+
+export interface WatchedItem {
   id: number;
   type: 'movie' | 'tv' | 'episode' | 'season';
   title: string;
@@ -26,6 +31,8 @@ interface WatchedItem {
   seasonNumber?: number;
   episodeCount?: number; // For season type
   status?: 'following' | 'completed';
+  cast?: PersonCredit[];
+  directors?: PersonCredit[];
 }
 
 interface WatchedContextData {
@@ -42,6 +49,10 @@ interface WatchedContextData {
     totalHours: number;
     mostWatchedGenre: number;
     thisMonth: number;
+    favoriteDecade: string;
+    favoriteWeekday: string;
+    averageRating: number;
+    moviePercent: number;
   };
   getFilteredWatched: (
     searchTerm: string,
@@ -475,9 +486,9 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
 
   const getStats = () => {
     const movies = watched.filter((w) => w.type === 'movie');
-    const series = watched.filter((w) => w.type === 'tv');
+    const series = watched.filter((w) => ['tv', 'season', 'episode'].includes(w.type));
     const totalRuntime = watched.reduce(
-      (total, item) => total + (item.runtime || 120),
+      (total, item) => total + (item.runtime || (item.type === 'movie' ? 120 : 45)),
       0
     );
     const genreCount: { [key: number]: number } = {};
@@ -486,10 +497,45 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
         genreCount[genreId] = (genreCount[genreId] || 0) + 1;
       });
     });
-    const mostWatchedGenreId = Object.keys(genreCount).reduce(
-      (a, b) => (genreCount[Number(a)] > genreCount[Number(b)] ? a : b),
-      '0'
-    );
+    const genreKeys = Object.keys(genreCount);
+    const mostWatchedGenreId = genreKeys.length > 0 
+      ? genreKeys.reduce((a, b) => (genreCount[Number(a)] > genreCount[Number(b)] ? a : b))
+      : '0';
+
+    const decadeCount: { [key: string]: number } = {};
+    watched.forEach(item => {
+      const year = item.year || (item.release_date ? new Date(item.release_date).getFullYear() : (item.first_air_date ? new Date(item.first_air_date).getFullYear() : 0));
+      if (year > 1900) {
+        const decade = `${Math.floor(year / 10) * 10}s`;
+        decadeCount[decade] = (decadeCount[decade] || 0) + 1;
+      }
+    });
+    const decadeKeys = Object.keys(decadeCount);
+    const favoriteDecade = decadeKeys.length > 0
+      ? decadeKeys.reduce((a, b) => (decadeCount[a] > decadeCount[b] ? a : b))
+      : '-';
+
+    const weekdayCount: { [key: string]: number } = {};
+    const weekdays = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+    watched.forEach(item => {
+      if (item.watchedAt) {
+        const date = new Date(item.watchedAt);
+        const day = weekdays[date.getDay()];
+        weekdayCount[day] = (weekdayCount[day] || 0) + 1;
+      }
+    });
+    const weekdayKeys = Object.keys(weekdayCount);
+    const favoriteWeekday = weekdayKeys.length > 0
+      ? weekdayKeys.reduce((a, b) => (weekdayCount[a] > weekdayCount[b] ? a : b))
+      : '-';
+
+    const itemsWithRating = watched.filter(w => w.vote_average && w.vote_average > 0);
+    const averageRating = itemsWithRating.length > 0
+      ? itemsWithRating.reduce((acc, item) => acc + (item.vote_average || 0), 0) / itemsWithRating.length
+      : 0;
+
+    const moviePercent = watched.length > 0 ? (movies.length / watched.length) * 100 : 0;
+
     return {
       total: watched.length,
       movies: movies.length,
@@ -504,6 +550,10 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
           watchedDate.getFullYear() === now.getFullYear()
         );
       }).length,
+      favoriteDecade,
+      favoriteWeekday,
+      averageRating,
+      moviePercent
     };
   };
 
