@@ -55,7 +55,7 @@ export const NovidadesButton: React.FC<NovidadesButtonProps> = ({
       <Button
         onClick={handleClick}
         variant={variant}
-        className={`relative overflow-hidden group ${className} bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 border-none text-white`}
+        className={`relative overflow-hidden group ${className}`}
       >
         <Sparkles className="w-4 h-4 mr-2 group-hover:animate-pulse" />
         Novidades
