@@ -132,7 +132,7 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
       const uniqueWatchlist = formattedWatchlist.filter(
         (item, index, self) =>
           index ===
-          self.findIndex((w) => w.id === item.id && w.type === item.type)
+          self.findIndex((w) => Number(w.id) === Number(item.id) && w.type === item.type)
       );
 
       // CRITICAL FIX: Read localStorage AFTER the network fetch completes.
@@ -146,7 +146,7 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
       localWatchlist.forEach((localItem) => {
         const existsInSupabase = uniqueWatchlist.some(
           (supabaseItem) =>
-            supabaseItem.id === localItem.id &&
+            Number(supabaseItem.id) === Number(localItem.id) &&
             supabaseItem.type === localItem.type
         );
         if (!existsInSupabase) {
@@ -162,7 +162,7 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
       const finalWatchlist = mergedWatchlist.filter(
         (item, index, self) =>
           index ===
-          self.findIndex((w) => w.id === item.id && w.type === item.type)
+          self.findIndex((w) => Number(w.id) === Number(item.id) && w.type === item.type)
       );
 
       setWantToWatchList(finalWatchlist);
@@ -176,7 +176,7 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
         const itemsToSync = localWatchlist.filter((localItem) =>
           !uniqueWatchlist.some(
             (supabaseItem) =>
-              supabaseItem.id === localItem.id &&
+              Number(supabaseItem.id) === Number(localItem.id) &&
               supabaseItem.type === localItem.type
           )
         );
@@ -216,7 +216,7 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
   ) => {
     // Verificar se o item já existe para evitar duplicatas
     const existingItem = wantToWatchList.find(
-      (w) => w.id === item.id && w.type === item.type
+      (w) => Number(w.id) === Number(item.id) && w.type === item.type
     );
     if (existingItem) {
       console.log('Item já existe na lista de quero assistir:', item.title);
@@ -278,13 +278,13 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
   const removeFromWantToWatch = async (id: number, type?: 'movie' | 'tv') => {
     // Backup do item antes de remover para possível restauração
     const itemToRemove = wantToWatchList.find(
-      (w) => w.id === id && (type ? w.type === type : true)
+      (w) => Number(w.id) === Number(id) && (type ? w.type === type : true)
     );
 
     // Atualizar estado local otimisticamente
     setWantToWatchList((prev) => {
       const updatedList = prev.filter(
-        (item) => !(item.id === id && (type ? item.type === type : true))
+        (item) => !(Number(item.id) === Number(id) && (type ? item.type === type : true))
       );
       // Atualizar localStorage imediatamente
       safeLocalStorageSetItem(WANT_TO_WATCH_KEY, JSON.stringify(updatedList));
@@ -341,7 +341,7 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
 
   const isInWantToWatch = (id: number, type?: 'movie' | 'tv'): boolean => {
     return wantToWatchList.some(
-      (item) => item.id === id && (type ? item.type === type : true)
+      (item) => Number(item.id) === Number(id) && (type ? item.type === type : true)
     );
   };
 

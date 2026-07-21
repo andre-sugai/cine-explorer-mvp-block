@@ -86,7 +86,7 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
         const uniqueWatched = parsedWatched.filter(
           (item: WatchedItem, index: number, self: WatchedItem[]) =>
             index ===
-            self.findIndex((w) => w.id === item.id && w.type === item.type)
+            self.findIndex((w) => Number(w.id) === Number(item.id) && w.type === item.type)
         );
 
         setWatched(uniqueWatched);
@@ -284,7 +284,7 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
         const numericId = Number(item.id);
         const existingItemIndex = newWatched.findIndex(
           (w) =>
-            w.id === numericId &&
+            Number(w.id) === numericId &&
             w.type === item.type &&
             // Para episódios, verifica temporada e numero
             (item.type === 'episode'
@@ -360,12 +360,12 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
 
   const removeFromWatched = async (id: number, type: string) => {
     // Backup do item antes de remover para possível restauração
-    const itemToRemove = watched.find((w) => w.id === id && w.type === type);
+    const itemToRemove = watched.find((w) => Number(w.id) === Number(id) && w.type === type);
 
     // Atualizar estado local otimisticamente
     setWatched((prev) => {
       const newWatched = prev.filter(
-        (item) => !(item.id === id && item.type === type)
+        (item) => !(Number(item.id) === Number(id) && item.type === type)
       );
       // Atualizar localStorage imediatamente
       safeLocalStorageSetItem('cine-explorer-watched', JSON.stringify(newWatched));
@@ -524,7 +524,7 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const isWatched = (id: number, type: string) => {
-    return watched.some((item) => item.id === id && item.type === type);
+    return watched.some((item) => Number(item.id) === Number(id) && item.type === type);
   };
 
   const exportWatchedList = () => {

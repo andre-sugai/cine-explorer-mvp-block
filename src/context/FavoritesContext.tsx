@@ -134,7 +134,7 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
         (item, index, self) =>
           index ===
           self.findIndex(
-            (f) => f.id === item.id && f.type === item.type
+            (f) => Number(f.id) === Number(item.id) && f.type === item.type
           )
       );
 
@@ -149,7 +149,7 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
       localFavorites.forEach((localItem) => {
         const existsInSupabase = uniqueFavorites.some(
           (supabaseItem) =>
-            supabaseItem.id === localItem.id &&
+            Number(supabaseItem.id) === Number(localItem.id) &&
             supabaseItem.type === localItem.type
         );
         if (!existsInSupabase) {
@@ -165,7 +165,7 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
       const finalFavorites = mergedFavorites.filter(
         (item, index, self) =>
           index ===
-          self.findIndex((f) => f.id === item.id && f.type === item.type)
+          self.findIndex((f) => Number(f.id) === Number(item.id) && f.type === item.type)
       );
 
       setFavorites(finalFavorites);
@@ -182,7 +182,7 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
         const itemsToSync = localFavorites.filter((localItem) =>
           !uniqueFavorites.some(
             (supabaseItem) =>
-              supabaseItem.id === localItem.id &&
+              Number(supabaseItem.id) === Number(localItem.id) &&
               supabaseItem.type === localItem.type
           )
         );
@@ -246,7 +246,7 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
           // Se falhar, reverter estado local
           setFavorites((prev) =>
             prev.filter(
-              (fav) => !(fav.id === item.id && fav.type === item.type)
+              (fav) => !(Number(fav.id) === Number(item.id) && fav.type === item.type)
             )
           );
           console.error('Error adding to favorites in Supabase:', error);
@@ -266,7 +266,7 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
         reportSyncError('favorites_add', error);
         // Reverter estado local em caso de erro
         setFavorites((prev) =>
-          prev.filter((fav) => !(fav.id === item.id && fav.type === item.type))
+          prev.filter((fav) => !(Number(fav.id) === Number(item.id) && fav.type === item.type))
         );
         throw error; // Propagar erro para componente tratar
       }
@@ -285,12 +285,12 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
   const removeFromFavorites = async (id: number, type: string) => {
     // Backup do item antes de remover
     const itemToRemove = favorites.find(
-      (fav) => fav.id === id && fav.type === type
+      (fav) => Number(fav.id) === Number(id) && fav.type === type
     );
 
     // Remover do estado local otimisticamente
     setFavorites((prev) =>
-      prev.filter((fav) => !(fav.id === id && fav.type === type))
+      prev.filter((fav) => !(Number(fav.id) === Number(id) && fav.type === type))
     );
 
 
@@ -399,7 +399,7 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const isFavorite = (id: number, type: string) => {
-    return favorites.some((fav) => fav.id === id && fav.type === type);
+    return favorites.some((fav) => Number(fav.id) === Number(id) && fav.type === type);
   };
 
   // Expose load function for manual sync
