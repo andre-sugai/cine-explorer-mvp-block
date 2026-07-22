@@ -152,11 +152,15 @@ const StatisticsPage: React.FC = () => {
     const dates: Record<string, number> = {};
     watched.forEach(w => {
       if (w.watchedAt) {
-        const d = new Date(w.watchedAt).toISOString().split('T')[0];
-        dates[d] = (dates[d] || 0) + 1;
+        const d = new Date(w.watchedAt);
+        const dateString = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        dates[dateString] = (dates[dateString] || 0) + 1;
       }
     });
-    return Object.entries(dates).map(([d, c]) => ({ date: new Date(d), count: c }));
+    return Object.entries(dates).map(([d, c]) => {
+      const [year, month, day] = d.split('-').map(Number);
+      return { date: new Date(year, month - 1, day), count: c };
+    });
   }, [watched]);
 
   const hallOfFame = React.useMemo(() => {
