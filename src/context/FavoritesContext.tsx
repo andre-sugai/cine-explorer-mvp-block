@@ -204,7 +204,17 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
               if (error) throw error;
               console.log(`Sincronizados ${batch.length} favoritos em background (lote ${i / BATCH_SIZE + 1}).`);
             } catch (error) {
-              console.error('Erro ao sincronizar lote de favoritos:', error);
+              console.warn(`Lote ${i / BATCH_SIZE + 1} de favoritos falhou. Tentando um por um...`);
+              let successCount = 0;
+              for (const row of rowsToInsert) {
+                 const { error: singleError } = await supabase.from('user_favorites').insert(row);
+                 if (!singleError) {
+                     successCount++;
+                 } else if (singleError.code !== '23505') {
+                     console.error('Erro ao inserir favorito individual:', singleError);
+                 }
+              }
+              console.log(`Recuperados ${successCount} de ${batch.length} favoritos do lote falho.`);
             }
           }
         }

@@ -256,15 +256,21 @@ export const WatchedProvider = ({ children }: { children: ReactNode }) => {
                 try {
                   const { error } = await supabase.from('user_watched').insert(rowsToInsert);
                   if (error) {
-                    if (error.code === '23505') {
-                        console.log('Alguns itens já existem no Supabase (conflito de unique), ignorando lote.');
-                    } else {
-                        throw error;
-                    }
+                    throw error;
                   }
                   console.log(`Sincronizados ${batch.length} itens assistidos (lote ${i / BATCH_SIZE + 1}).`);
-                } catch (error) {
-                  console.error('Erro ao sincronizar lote de itens assistidos:', error);
+                } catch (error: any) {
+                  console.warn(`Lote ${i / BATCH_SIZE + 1} falhou. Tentando inserir itens um por um para contornar duplicatas...`);
+                  let successCount = 0;
+                  for (const row of rowsToInsert) {
+                     const { error: singleError } = await supabase.from('user_watched').insert(row);
+                     if (!singleError) {
+                         successCount++;
+                     } else if (singleError.code !== '23505') {
+                         console.error('Erro ao inserir item individual:', singleError);
+                     }
+                  }
+                  console.log(`Recuperados ${successCount} de ${batch.length} itens do lote falho.`);
                 }
             }
         }

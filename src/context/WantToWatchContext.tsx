@@ -198,7 +198,17 @@ export const WantToWatchProvider = ({ children }: { children: ReactNode }) => {
               if (error) throw error;
               console.log(`Sincronizados ${batch.length} itens da watchlist em background (lote ${i / BATCH_SIZE + 1}).`);
             } catch (error) {
-              console.error('Erro ao sincronizar lote da watchlist:', error);
+              console.warn(`Lote ${i / BATCH_SIZE + 1} da watchlist falhou. Tentando um por um...`);
+              let successCount = 0;
+              for (const row of rowsToInsert) {
+                 const { error: singleError } = await supabase.from('user_watchlist').insert(row);
+                 if (!singleError) {
+                     successCount++;
+                 } else if (singleError.code !== '23505') {
+                     console.error('Erro ao inserir item da watchlist individual:', singleError);
+                 }
+              }
+              console.log(`Recuperados ${successCount} de ${batch.length} itens do lote falho da watchlist.`);
             }
           }
         }
