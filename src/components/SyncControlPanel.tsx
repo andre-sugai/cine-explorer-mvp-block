@@ -39,28 +39,52 @@ export const SyncControlPanel: React.FC<SyncControlPanelProps> = ({
   onOpenChange,
 }) => {
   const {
-    status,
+    status: syncStatus,
     syncHistory,
     scheduledSyncTime,
     isScheduledSyncEnabled,
     stats,
+    activeSyncs,
     setScheduledSync,
     refreshStats,
     clearHistory,
     triggerManualSync,
-    status: syncStatus,
+    triggerSingleSync,
   } = useSyncContext();
 
   const [localTime, setLocalTime] = useState(scheduledSyncTime);
 
+  // Manter horário sincronizado caso mude externamente
+  useEffect(() => {
+    setLocalTime(scheduledSyncTime);
+  }, [scheduledSyncTime]);
+
+  // Atualizar quando abrir
   useEffect(() => {
     if (open) {
       refreshStats();
     }
-  }, [open]);
+  }, [open, refreshStats]);
+
+  // Polling para atualizar estatísticas enquanto sincroniza
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (open && activeSyncs.size > 0) {
+      interval = setInterval(() => {
+        refreshStats();
+      }, 3000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [open, activeSyncs.size, refreshStats]);
 
   const handleSyncNow = async () => {
     await triggerManualSync();
+  };
+
+  const handleSyncCategory = async (category: string) => {
+    await triggerSingleSync(category);
   };
 
   const getStatusIcon = (status: SyncLogEntry['status']) => {
@@ -157,20 +181,41 @@ export const SyncControlPanel: React.FC<SyncControlPanelProps> = ({
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/5">
-                        {Object.keys(stats.local).map((key) => (
-                          <tr key={key}>
-                            <td className="py-3 px-4 capitalize">{getServiceLabel(key)}</td>
-                            <td className="py-3 px-4 text-center font-mono">{stats.local[key]}</td>
-                            <td className="py-3 px-4 text-center font-mono">{stats.remote[key]}</td>
-                            <td className="py-3 px-4 text-right">
-                              {stats.local[key] === stats.remote[key] ? (
-                                <Badge variant="outline" className="text-green-500 border-green-500/20 bg-green-500/5">Igual</Badge>
-                              ) : (
-                                <Badge variant="outline" className="text-amber-500 border-amber-500/20 bg-amber-500/5">Divergente</Badge>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
+                        {Object.keys(stats.local).map((key) => {
+                          const isSyncingThis = activeSyncs.has(key);
+                          const isDivergent = stats.local[key] !== stats.remote[key];
+                          
+                          return (
+                            <tr key={key}>
+                              <td className="py-3 px-4 capitalize flex items-center gap-2">
+                                {isSyncingThis && <RefreshCw className="w-3 h-3 text-blue-400 animate-spin" />}
+                                {getServiceLabel(key)}
+                              </td>
+                              <td className="py-3 px-4 text-center font-mono">{stats.local[key]}</td>
+                              <td className="py-3 px-4 text-center font-mono">{stats.remote[key]}</td>
+                              <td className="py-3 px-4 flex justify-end gap-2 items-center">
+                                {!isSyncingThis && isDivergent && (
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-6 px-2 text-[10px] bg-white/5 hover:bg-white/10"
+                                    onClick={() => handleSyncCategory(key)}
+                                    title="Sincronizar apenas esta categoria"
+                                  >
+                                    <Cloud className="w-3 h-3 mr-1" /> Resolver
+                                  </Button>
+                                )}
+                                {isSyncingThis ? (
+                                  <Badge variant="outline" className="text-blue-400 border-blue-400/20 bg-blue-400/5">Sincronizando</Badge>
+                                ) : isDivergent ? (
+                                  <Badge variant="outline" className="text-amber-500 border-amber-500/20 bg-amber-500/5">Divergente</Badge>
+                                ) : (
+                                  <Badge variant="outline" className="text-green-500 border-green-500/20 bg-green-500/5">Igual</Badge>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>

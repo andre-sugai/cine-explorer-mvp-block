@@ -40,6 +40,7 @@ interface SyncContextData {
   refreshStats: () => Promise<void>;
   clearHistory: () => void;
   triggerManualSync: () => Promise<void>;
+  triggerSingleSync: (service: string) => Promise<void>;
 }
 
 const SyncContext = createContext<SyncContextData | undefined>(undefined);
@@ -371,6 +372,32 @@ export const SyncProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     await refreshStats();
   };
 
+  const triggerSingleSync = async (service: string) => {
+    console.log(`🔄 [SyncContext] Single manual sync triggered for ${service}`);
+    if (syncMode === 'suspended') {
+      setSyncMode('persistence');
+    }
+
+    toast({
+      title: 'Sincronizando...',
+      description: `Atualizando ${service} com a nuvem.`,
+    });
+
+    const syncFn = registry.current.get(service);
+    if (syncFn) {
+      try {
+        console.log(`🔄 [SyncContext] Starting single sync for ${service}`);
+        await syncFn();
+        console.log(`🔄 [SyncContext] Sync success for ${service}`);
+      } catch (e) {
+        console.error(`🔄 [SyncContext] Sync failed for ${service}:`, e);
+      }
+    }
+
+    console.log(`🔄 [SyncContext] Single service finished, refreshing stats`);
+    await refreshStats();
+  };
+
   // Scheduled Sync Effect
   useEffect(() => {
     if (!isScheduledSyncEnabled) return;
@@ -411,7 +438,8 @@ export const SyncProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         registerSyncService,
         refreshStats,
         clearHistory,
-        triggerManualSync
+        triggerManualSync,
+        triggerSingleSync
       }}
     >
       {children}
