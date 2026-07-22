@@ -1893,4 +1893,42 @@ export const getTVShowReviews = async (id: number, page: number = 1): Promise<TM
     throw error;
   }
 };
-// Dummy append to trigger file change for next tool if needed, but I will use replace_file_content next.
+
+/**
+ * Função auxiliar para obter nome do gênero (Filmes e Séries)
+ */
+export const getGenreNameById = (genreId: number): string => {
+  const genres: { [key: number]: string } = {
+    // Filmes & Comuns
+    28: 'Ação',
+    12: 'Aventura',
+    16: 'Animação',
+    35: 'Comédia',
+    80: 'Crime',
+    99: 'Documentário',
+    18: 'Drama',
+    10751: 'Família',
+    14: 'Fantasia',
+    36: 'História',
+    27: 'Terror',
+    10402: 'Música',
+    9648: 'Mistério',
+    10749: 'Romance',
+    878: 'Ficção Científica',
+    10770: 'Cinema TV',
+    53: 'Thriller',
+    10752: 'Guerra',
+    37: 'Faroeste',
+    // Séries (Específicos do TMDB para TV)
+    10759: 'Ação e Aventura',
+    10762: 'Kids',
+    10763: 'News',
+    10764: 'Reality',
+    10765: 'Ficção e Fantasia',
+    10766: 'Soap',
+    10767: 'Talk',
+    10768: 'Guerra e Política',
+  };
+
+  return genres[genreId] || 'Filme/Série';
+};

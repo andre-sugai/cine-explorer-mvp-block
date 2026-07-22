@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -11,15 +11,22 @@ import {
   RefreshCw,
   Info,
   Heart,
+  Frown,
+  Angry,
+  Coffee,
+  Zap,
+  Ghost,
+  Film,
+  TrendingUp
 } from 'lucide-react';
 import {
   useRecommendations,
   RecommendationItem,
 } from '@/hooks/useRecommendations';
-import { useFavoritesContext } from '@/context/FavoritesContext';
 import { useNavigate } from 'react-router-dom';
 import { RecommendationExplanationModal } from './RecommendationExplanationModal';
 import { ContentCard } from '@/components/home/ContentCard';
+import { getGenreNameById } from '@/utils/tmdb';
 
 interface RecommendedContentProps {
   className?: string;
@@ -30,75 +37,69 @@ export const RecommendedContent: React.FC<RecommendedContentProps> = ({
 }) => {
   const {
     recommendations,
+    filteredRecommendations,
     userPreferences,
     isLoading,
-    getRecommendationsByMood,
-    getRecommendationsByOccasion,
+    isFiltering,
+    applyFilters,
     refreshRecommendations,
   } = useRecommendations();
 
-  const navigate = useNavigate();
-
   const [selectedMood, setSelectedMood] = useState<string>('');
   const [selectedOccasion, setSelectedOccasion] = useState<string>('');
-  const [moodRecommendations, setMoodRecommendations] = useState<
-    RecommendationItem[]
-  >([]);
-  const [occasionRecommendations, setOccasionRecommendations] = useState<
-    RecommendationItem[]
-  >([]);
 
   const moods = [
-    { id: 'feliz', label: 'Feliz', icon: Smile },
-    { id: 'triste', label: 'Triste', icon: Smile },
-    { id: 'estressado', label: 'Estressado', icon: Smile },
-    { id: 'inspirado', label: 'Inspirado', icon: Sparkles },
-    { id: 'relaxado', label: 'Relaxado', icon: Smile },
-    { id: 'motivado', label: 'Motivado', icon: Star },
-    { id: 'romantico', label: 'Romântico', icon: Heart },
-    { id: 'assustado', label: 'Assustado', icon: Smile },
+    { id: 'feliz', label: 'Feliz', icon: Smile, color: 'text-yellow-500', activeBg: 'bg-yellow-500/20 border-yellow-500/50 shadow-[0_0_15px_rgba(234,179,8,0.3)]', inactiveBg: 'hover:bg-yellow-500/10 hover:border-yellow-500/30' },
+    { id: 'triste', label: 'Triste', icon: Frown, color: 'text-blue-400', activeBg: 'bg-blue-400/20 border-blue-400/50 shadow-[0_0_15px_rgba(96,165,250,0.3)]', inactiveBg: 'hover:bg-blue-400/10 hover:border-blue-400/30' },
+    { id: 'estressado', label: 'Estressado', icon: Angry, color: 'text-red-500', activeBg: 'bg-red-500/20 border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.3)]', inactiveBg: 'hover:bg-red-500/10 hover:border-red-500/30' },
+    { id: 'inspirado', label: 'Inspirado', icon: Sparkles, color: 'text-purple-400', activeBg: 'bg-purple-400/20 border-purple-400/50 shadow-[0_0_15px_rgba(192,132,252,0.3)]', inactiveBg: 'hover:bg-purple-400/10 hover:border-purple-400/30' },
+    { id: 'relaxado', label: 'Relaxado', icon: Coffee, color: 'text-teal-400', activeBg: 'bg-teal-400/20 border-teal-400/50 shadow-[0_0_15px_rgba(45,212,191,0.3)]', inactiveBg: 'hover:bg-teal-400/10 hover:border-teal-400/30' },
+    { id: 'motivado', label: 'Motivado', icon: Zap, color: 'text-orange-500', activeBg: 'bg-orange-500/20 border-orange-500/50 shadow-[0_0_15px_rgba(249,115,22,0.3)]', inactiveBg: 'hover:bg-orange-500/10 hover:border-orange-500/30' },
+    { id: 'romantico', label: 'Romântico', icon: Heart, color: 'text-pink-400', activeBg: 'bg-pink-400/20 border-pink-400/50 shadow-[0_0_15px_rgba(244,114,182,0.3)]', inactiveBg: 'hover:bg-pink-400/10 hover:border-pink-400/30' },
+    { id: 'assustado', label: 'Assustado', icon: Ghost, color: 'text-slate-300', activeBg: 'bg-slate-300/20 border-slate-300/50 shadow-[0_0_15px_rgba(203,213,225,0.3)]', inactiveBg: 'hover:bg-slate-300/10 hover:border-slate-300/30' },
   ];
 
   const occasions = [
-    { id: 'familia', label: 'Com Família', icon: Users },
-    { id: 'encontro', label: 'Encontro', icon: Heart },
-    { id: 'amigos', label: 'Com Amigos', icon: Users },
-    { id: 'sozinho', label: 'Sozinho', icon: Smile },
-    { id: 'fim-de-semana', label: 'Fim de Semana', icon: Clock },
-    { id: 'noite', label: 'À Noite', icon: Clock },
-    { id: 'tarde', label: 'À Tarde', icon: Clock },
-    { id: 'manha', label: 'De Manhã', icon: Clock },
+    { id: 'familia', label: 'Com Família', icon: Users, color: 'text-green-400', activeBg: 'bg-green-400/20 border-green-400/50 shadow-[0_0_15px_rgba(74,222,128,0.3)]', inactiveBg: 'hover:bg-green-400/10 hover:border-green-400/30' },
+    { id: 'encontro', label: 'Encontro', icon: Heart, color: 'text-rose-400', activeBg: 'bg-rose-400/20 border-rose-400/50 shadow-[0_0_15px_rgba(251,113,133,0.3)]', inactiveBg: 'hover:bg-rose-400/10 hover:border-rose-400/30' },
+    { id: 'amigos', label: 'Com Amigos', icon: Users, color: 'text-cyan-400', activeBg: 'bg-cyan-400/20 border-cyan-400/50 shadow-[0_0_15px_rgba(34,211,238,0.3)]', inactiveBg: 'hover:bg-cyan-400/10 hover:border-cyan-400/30' },
+    { id: 'sozinho', label: 'Sozinho', icon: Smile, color: 'text-indigo-400', activeBg: 'bg-indigo-400/20 border-indigo-400/50 shadow-[0_0_15px_rgba(129,140,248,0.3)]', inactiveBg: 'hover:bg-indigo-400/10 hover:border-indigo-400/30' },
+    { id: 'fim-de-semana', label: 'Fim de Semana', icon: Clock, color: 'text-fuchsia-400', activeBg: 'bg-fuchsia-400/20 border-fuchsia-400/50 shadow-[0_0_15px_rgba(232,121,249,0.3)]', inactiveBg: 'hover:bg-fuchsia-400/10 hover:border-fuchsia-400/30' },
+    { id: 'noite', label: 'À Noite', icon: Clock, color: 'text-indigo-600', activeBg: 'bg-indigo-600/20 border-indigo-600/50 shadow-[0_0_15px_rgba(79,70,229,0.3)]', inactiveBg: 'hover:bg-indigo-600/10 hover:border-indigo-600/30' },
+    { id: 'tarde', label: 'À Tarde', icon: Clock, color: 'text-amber-500', activeBg: 'bg-amber-500/20 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.3)]', inactiveBg: 'hover:bg-amber-500/10 hover:border-amber-500/30' },
+    { id: 'manha', label: 'De Manhã', icon: Clock, color: 'text-sky-400', activeBg: 'bg-sky-400/20 border-sky-400/50 shadow-[0_0_15px_rgba(56,189,248,0.3)]', inactiveBg: 'hover:bg-sky-400/10 hover:border-sky-400/30' },
   ];
 
-  const handleMoodSelect = async (mood: string) => {
-    setSelectedMood(mood);
-    setSelectedOccasion('');
-    const recommendations = await getRecommendationsByMood(mood);
-    setMoodRecommendations(recommendations);
-    setOccasionRecommendations([]);
+  const handleMoodSelect = (moodId: string) => {
+    const newMood = selectedMood === moodId ? '' : moodId;
+    setSelectedMood(newMood);
+    applyFilters(newMood, selectedOccasion);
   };
 
-  const handleOccasionSelect = async (occasion: string) => {
-    setSelectedOccasion(occasion);
-    setSelectedMood('');
-    const recommendations = await getRecommendationsByOccasion(occasion);
-    setOccasionRecommendations(recommendations);
-    setMoodRecommendations([]);
+  const handleOccasionSelect = (occasionId: string) => {
+    const newOccasion = selectedOccasion === occasionId ? '' : occasionId;
+    setSelectedOccasion(newOccasion);
+    applyFilters(selectedMood, newOccasion);
   };
 
-  const renderRecommendationCard = (item: RecommendationItem) => {
+  const renderRecommendationCard = (item: RecommendationItem, index: number) => {
     return (
-      <ContentCard
+      <div 
         key={`${item.id}-${item.type}`}
-        item={item as any}
-        category={item.type === 'movie' ? 'movies' : 'tv'}
-      />
+        className="animate-in fade-in zoom-in-95 duration-500 fill-mode-backwards"
+        style={{ animationDelay: `${index * 75}ms` }}
+      >
+        <ContentCard
+          item={item as any}
+          category={item.type === 'movie' ? 'movies' : 'tv'}
+        />
+      </div>
     );
   };
 
   const renderSkeleton = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      {Array.from({ length: 10 }).map((_, index) => (
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+      {Array.from({ length: 6 }).map((_, index) => (
         <Card key={index} className="bg-card/50">
           <CardContent className="p-0">
             <Skeleton className="w-full h-64 rounded-t-lg" />
@@ -118,51 +119,65 @@ export const RecommendedContent: React.FC<RecommendedContentProps> = ({
   }
 
   return (
-    <div className={`space-y-6 ${className}`}>
-      {/* Ações */}
-      <div className="flex items-center justify-end gap-2">
-        <RecommendationExplanationModal userPreferences={userPreferences}>
-          <Button variant="outline" size="sm">
-            <Info className="w-4 h-4 mr-2" />
-            Como funciona?
-          </Button>
-        </RecommendationExplanationModal>
-
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={refreshRecommendations}
-          disabled={isLoading}
-        >
-          <RefreshCw
-            className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`}
-          />
-          Atualizar
-        </Button>
-      </div>
-
-      {/* Informações do usuário */}
+    <div className={`space-y-8 ${className}`}>
+      {/* Informações do usuário (Cartões VIP) e Ações */}
       {userPreferences && userPreferences.totalWatched > 0 && (
-        <div className="bg-card/50 rounded-lg p-4 border border-primary/20">
-          <h3 className="font-semibold text-foreground mb-2">
-            Seu Perfil Cinematográfico
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div>
-              <span className="text-muted-foreground">Total assistido:</span>
-              <p className="font-medium">
-                {userPreferences.totalWatched} itens
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-lg text-foreground flex items-center gap-2">
+              <Star className="w-5 h-5 text-yellow-500" />
+              Seu Perfil Cinematográfico
+            </h3>
+            <div className="flex items-center gap-2">
+              <RecommendationExplanationModal userPreferences={userPreferences}>
+                <Button variant="outline" size="sm" className="bg-card/50 backdrop-blur-sm">
+                  <Info className="w-4 h-4 mr-2" />
+                  Como funciona?
+                </Button>
+              </RecommendationExplanationModal>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="bg-card/50 backdrop-blur-sm"
+                onClick={refreshRecommendations}
+                disabled={isLoading}
+              >
+                <RefreshCw
+                  className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`}
+                />
+                Atualizar
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-gradient-to-br from-card to-card/50 rounded-xl p-5 border border-primary/10 shadow-sm relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                <Film className="w-16 h-16 text-primary" />
+              </div>
+              <span className="text-sm text-muted-foreground font-medium">Total assistido</span>
+              <p className="text-3xl font-extrabold text-foreground mt-1">
+                {userPreferences.totalWatched}
               </p>
             </div>
-            <div>
-              <span className="text-muted-foreground">Avaliação média:</span>
-              <p className="font-medium">
-                {userPreferences.averageRating.toFixed(1)}/10
+            
+            <div className="bg-gradient-to-br from-card to-card/50 rounded-xl p-5 border border-primary/10 shadow-sm relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                <Star className="w-16 h-16 text-yellow-500" />
+              </div>
+              <span className="text-sm text-muted-foreground font-medium">Avaliação média</span>
+              <p className="text-3xl font-extrabold text-foreground mt-1 flex items-baseline gap-1">
+                {userPreferences.averageRating.toFixed(1)} <span className="text-base font-normal text-muted-foreground">/10</span>
               </p>
             </div>
-            <div>
-              <span className="text-muted-foreground">Preferência:</span>
-              <p className="font-medium">
+
+            <div className="bg-gradient-to-br from-card to-card/50 rounded-xl p-5 border border-primary/10 shadow-sm relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                <TrendingUp className="w-16 h-16 text-green-500" />
+              </div>
+              <span className="text-sm text-muted-foreground font-medium">Preferência</span>
+              <p className="text-2xl font-bold text-foreground mt-2">
                 {userPreferences.preferredType === 'movie'
                   ? 'Filmes'
                   : userPreferences.preferredType === 'tv'
@@ -170,11 +185,15 @@ export const RecommendedContent: React.FC<RecommendedContentProps> = ({
                   : 'Ambos'}
               </p>
             </div>
-            <div>
-              <span className="text-muted-foreground">Gênero favorito:</span>
-              <p className="font-medium">
+
+            <div className="bg-gradient-to-br from-card to-card/50 rounded-xl p-5 border border-primary/10 shadow-sm relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                <Heart className="w-16 h-16 text-pink-500" />
+              </div>
+              <span className="text-sm text-muted-foreground font-medium">Gênero favorito</span>
+              <p className="text-2xl font-bold text-foreground mt-2 truncate">
                 {userPreferences.favoriteGenres.length > 0
-                  ? getGenreName(userPreferences.favoriteGenres[0])
+                  ? getGenreNameById(userPreferences.favoriteGenres[0])
                   : 'Variado'}
               </p>
             </div>
@@ -182,140 +201,116 @@ export const RecommendedContent: React.FC<RecommendedContentProps> = ({
         </div>
       )}
 
-      {/* Filtros de humor */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-foreground">
-          Como você está se sentindo?
-        </h3>
-        <div className="flex flex-wrap gap-2">
-          {moods.map((mood) => {
-            const Icon = mood.icon;
-            return (
-              <Button
-                key={mood.id}
-                variant={selectedMood === mood.id ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => handleMoodSelect(mood.id)}
-                className="flex items-center gap-2"
-              >
-                <Icon className="w-4 h-4" />
-                {mood.label}
-              </Button>
-            );
-          })}
+      <div className="bg-card/20 rounded-2xl p-6 border border-primary/10 space-y-6">
+        {/* Filtros de humor */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+            <Smile className="w-5 h-5 text-primary" />
+            Como você está se sentindo?
+          </h3>
+          <div className="flex flex-wrap gap-3">
+            {moods.map((mood) => {
+              const Icon = mood.icon;
+              const isActive = selectedMood === mood.id;
+              return (
+                <button
+                  key={mood.id}
+                  onClick={() => handleMoodSelect(mood.id)}
+                  className={`
+                    flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-300 border
+                    hover:scale-105 active:scale-95
+                    ${isActive 
+                      ? `${mood.activeBg} text-foreground font-semibold` 
+                      : `bg-card border-border/50 text-muted-foreground ${mood.inactiveBg} hover:text-foreground`
+                    }
+                  `}
+                >
+                  <Icon className={`w-4 h-4 ${isActive ? mood.color : ''}`} />
+                  {mood.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
 
-      {/* Filtros de ocasião */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-foreground">
-          Para que ocasião?
-        </h3>
-        <div className="flex flex-wrap gap-2">
-          {occasions.map((occasion) => {
-            const Icon = occasion.icon;
-            return (
-              <Button
-                key={occasion.id}
-                variant={
-                  selectedOccasion === occasion.id ? 'default' : 'outline'
-                }
-                size="sm"
-                onClick={() => handleOccasionSelect(occasion.id)}
-                className="flex items-center gap-2"
-              >
-                <Icon className="w-4 h-4" />
-                {occasion.label}
-              </Button>
-            );
-          })}
+        {/* Filtros de ocasião */}
+        <div className="space-y-4 pt-4 border-t border-border/50">
+          <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+            <Clock className="w-5 h-5 text-primary" />
+            Para que ocasião?
+          </h3>
+          <div className="flex flex-wrap gap-3">
+            {occasions.map((occasion) => {
+              const Icon = occasion.icon;
+              const isActive = selectedOccasion === occasion.id;
+              return (
+                <button
+                  key={occasion.id}
+                  onClick={() => handleOccasionSelect(occasion.id)}
+                  className={`
+                    flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-300 border
+                    hover:scale-105 active:scale-95
+                    ${isActive 
+                      ? `${occasion.activeBg} text-foreground font-semibold` 
+                      : `bg-card border-border/50 text-muted-foreground ${occasion.inactiveBg} hover:text-foreground`
+                    }
+                  `}
+                >
+                  <Icon className={`w-4 h-4 ${isActive ? occasion.color : ''}`} />
+                  {occasion.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
       {/* Grid de recomendações */}
-      <div className="space-y-4">
-        {selectedMood && (
+      <div className="space-y-6 pt-4">
+        {(selectedMood || selectedOccasion) ? (
           <div>
-            <h3 className="text-lg font-semibold text-foreground mb-4">
-              Para quando você está{' '}
-              {moods.find((m) => m.id === selectedMood)?.label.toLowerCase()}
+            <h3 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-2">
+              <Sparkles className="w-6 h-6 text-primary" />
+              Recomendações Personalizadas
             </h3>
-            {moodRecommendations.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                {moodRecommendations.map(renderRecommendationCard)}
+            {isFiltering ? (
+              renderSkeleton()
+            ) : filteredRecommendations.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5">
+                {filteredRecommendations.map((item, index) => renderRecommendationCard(item, index))}
               </div>
             ) : (
-              <p className="text-muted-foreground">
-                Carregando recomendações...
-              </p>
-            )}
-          </div>
-        )}
-
-        {selectedOccasion && (
-          <div>
-            <h3 className="text-lg font-semibold text-foreground mb-4">
-              {occasions.find((o) => o.id === selectedOccasion)?.label}
-            </h3>
-            {occasionRecommendations.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                {occasionRecommendations.map(renderRecommendationCard)}
+              <div className="bg-card/30 border border-border rounded-xl p-12 text-center flex flex-col items-center justify-center">
+                <Ghost className="w-16 h-16 text-muted-foreground/30 mb-4 animate-bounce" />
+                <p className="text-lg font-medium text-foreground">Nada encontrado por aqui!</p>
+                <p className="text-muted-foreground max-w-md mt-2">
+                  Não encontramos recomendações perfeitas que você ainda não tenha visto para essa combinação. Tente outros filtros!
+                </p>
               </div>
-            ) : (
-              <p className="text-muted-foreground">
-                Carregando recomendações...
-              </p>
             )}
           </div>
-        )}
-
-        {!selectedMood && !selectedOccasion && (
+        ) : (
           <div>
-            <h3 className="text-lg font-semibold text-foreground mb-4">
+            <h3 className="text-2xl font-bold text-foreground mb-6">
               Baseado no seu histórico
             </h3>
             {recommendations.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                {recommendations.slice(0, 10).map(renderRecommendationCard)}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5">
+                {recommendations.slice(0, 10).map((item, index) => renderRecommendationCard(item, index))}
               </div>
             ) : (
-              <p className="text-muted-foreground">
-                Adicione alguns filmes aos favoritos ou marque como assistidos
-                para receber recomendações personalizadas!
-              </p>
+              <div className="bg-card/30 border border-border rounded-xl p-12 text-center flex flex-col items-center justify-center">
+                <Film className="w-16 h-16 text-muted-foreground/30 mb-4" />
+                <p className="text-lg font-medium text-foreground">Seu catálogo está vazio</p>
+                <p className="text-muted-foreground max-w-md mt-2">
+                  Adicione alguns filmes aos favoritos ou marque como assistidos
+                  para receber recomendações personalizadas!
+                </p>
+              </div>
             )}
           </div>
         )}
       </div>
     </div>
   );
-};
-
-/**
- * Função auxiliar para obter nome do gênero
- */
-const getGenreName = (genreId: number): string => {
-  const genres: { [key: number]: string } = {
-    28: 'Ação',
-    12: 'Aventura',
-    16: 'Animação',
-    35: 'Comédia',
-    80: 'Crime',
-    99: 'Documentário',
-    18: 'Drama',
-    10751: 'Família',
-    14: 'Fantasia',
-    36: 'História',
-    27: 'Terror',
-    10402: 'Música',
-    9648: 'Mistério',
-    10749: 'Romance',
-    878: 'Ficção Científica',
-    10770: 'Cinema TV',
-    53: 'Thriller',
-    10752: 'Guerra',
-    37: 'Faroeste',
-  };
-
-  return genres[genreId] || 'Filme';
 };

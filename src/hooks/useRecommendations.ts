@@ -14,6 +14,7 @@ import {
   TMDBMovie,
   TMDBTVShow,
   TMDBPerson,
+  getGenreNameById
 } from '@/utils/tmdb';
 
 export interface RecommendationItem {
@@ -44,25 +45,19 @@ export const useRecommendations = () => {
   const { watched, getStats } = useWatchedContext();
   const { isAuthenticated } = useAuth();
 
-  const [recommendations, setRecommendations] = useState<RecommendationItem[]>(
-    []
-  );
+  const [recommendations, setRecommendations] = useState<RecommendationItem[]>([]);
+  const [filteredRecommendations, setFilteredRecommendations] = useState<RecommendationItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [userPreferences, setUserPreferences] =
-    useState<UserPreferences | null>(null);
+  const [isFiltering, setIsFiltering] = useState(false);
+  const [userPreferences, setUserPreferences] = useState<UserPreferences | null>(null);
 
-  // Cache para evitar requisições repetidas
   const [cache, setCache] = useState<{
     [key: string]: { data: RecommendationItem[]; timestamp: number };
   }>({});
 
-  /**
-   * Analisa os dados do usuário para extrair preferências
-   */
   const analyzeUserPreferences = useMemo((): UserPreferences => {
     const allItems = [...favorites, ...watched];
 
-    // Análise de gêneros
     const genreCount: { [key: number]: number } = {};
     allItems.forEach((item) => {
       item.genre_ids?.forEach((genreId) => {
@@ -75,7 +70,6 @@ export const useRecommendations = () => {
       .slice(0, 5)
       .map(([genreId]) => Number(genreId));
 
-    // Análise de décadas
     const decadeCount: { [key: number]: number } = {};
     allItems.forEach((item) => {
       const year = item.release_date
@@ -95,7 +89,6 @@ export const useRecommendations = () => {
       .slice(0, 3)
       .map(([decade]) => Number(decade));
 
-    // Análise de avaliações
     const ratings = allItems
       .filter((item) => item.vote_average)
       .map((item) => item.vote_average!);
@@ -105,7 +98,6 @@ export const useRecommendations = () => {
         ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length
         : 7.0;
 
-    // Análise de tipo preferido
     const movieCount =
       getFavoritesByType('movie').length +
       watched.filter((w) => w.type === 'movie').length;
@@ -115,7 +107,6 @@ export const useRecommendations = () => {
     const preferredType =
       movieCount > tvCount ? 'movie' : tvCount > movieCount ? 'tv' : 'both';
 
-    // Gênero mais assistido
     const watchedStats = getStats();
     const mostWatchedGenre =
       watchedStats.mostWatchedGenre || favoriteGenres[0] || 28;
@@ -124,15 +115,12 @@ export const useRecommendations = () => {
       favoriteGenres,
       favoriteDecades,
       averageRating,
-      totalWatched: watched.length, // Corrigido: conta apenas assistidos
+      totalWatched: watched.length,
       mostWatchedGenre,
       preferredType,
     };
   }, [favorites, watched, getFavoritesByType, getStats]);
 
-  /**
-   * Verifica se há dados em cache válidos (menos de 5 minutos)
-   */
   const getCachedData = (key: string): RecommendationItem[] | null => {
     const cached = cache[key];
     if (cached && Date.now() - cached.timestamp < 5 * 60 * 1000) {
@@ -141,9 +129,6 @@ export const useRecommendations = () => {
     return null;
   };
 
-  /**
-   * Salva dados no cache
-   */
   const setCachedData = (key: string, data: RecommendationItem[]) => {
     setCache((prev) => ({
       ...prev,
@@ -151,12 +136,7 @@ export const useRecommendations = () => {
     }));
   };
 
-  /**
-   * Remove duplicatas de recomendações baseado no ID e tipo
-   */
-  const removeDuplicates = (
-    items: RecommendationItem[]
-  ): RecommendationItem[] => {
+  const removeDuplicates = (items: RecommendationItem[]): RecommendationItem[] => {
     const seen = new Set<string>();
     return items.filter((item) => {
       const key = `${item.id}-${item.type}`;
@@ -168,9 +148,6 @@ export const useRecommendations = () => {
     });
   };
 
-  /**
-   * Adiciona itens únicos à lista de recomendações, evitando duplicatas
-   */
   const addUniqueItems = (
     currentItems: RecommendationItem[],
     newItems: RecommendationItem[]
@@ -185,21 +162,13 @@ export const useRecommendations = () => {
     return [...currentItems, ...uniqueNewItems];
   };
 
-  /**
-   * Gera recomendações baseadas nas preferências do usuário
-   */
-  const generateRecommendations = async (
-    limit: number = 20
-  ): Promise<RecommendationItem[]> => {
+  const generateRecommendations = async (limit: number = 20): Promise<RecommendationItem[]> => {
     setIsLoading(true);
 
     try {
       const prefs = analyzeUserPreferences;
-      const cacheKey = `general-${
-        prefs.totalWatched
-      }-${prefs.favoriteGenres.join(',')}`;
+      const cacheKey = `general-${prefs.totalWatched}-${prefs.favoriteGenres.join(',')}`;
 
-      // Verificar cache primeiro
       const cached = getCachedData(cacheKey);
       if (cached) {
         return cached.slice(0, limit);
@@ -207,8 +176,6 @@ export const useRecommendations = () => {
 
       let recommendations: RecommendationItem[] = [];
 
-      // Se o usuário tem poucos dados assistidos, usar recomendações populares
-      // Considera também favoritos para ter uma base mínima de preferências
       const totalUserData = favorites.length + watched.length;
       if (totalUserData < 5) {
         const popularMovies = await getPopularMovies(1);
@@ -233,7 +200,6 @@ export const useRecommendations = () => {
         return uniqueItems.slice(0, limit);
       }
 
-      // Buscar filmes similares baseados em gêneros favoritos
       if (prefs.favoriteGenres.length > 0) {
         for (const genreId of prefs.favoriteGenres.slice(0, 3)) {
           try {
@@ -244,23 +210,21 @@ export const useRecommendations = () => {
               ...genreMovies.results.map((movie) => ({
                 ...movie,
                 type: 'movie' as const,
-                reason: `Baseado no seu gosto por ${getGenreName(genreId)}`,
+                reason: `Baseado no seu gosto por ${getGenreNameById(genreId)}`,
                 confidence: 0.8,
               })),
               ...genreTV.results.map((tv) => ({
                 ...tv,
                 type: 'tv' as const,
-                reason: `Baseado no seu gosto por ${getGenreName(genreId)}`,
+                reason: `Baseado no seu gosto por ${getGenreNameById(genreId)}`,
                 confidence: 0.8,
               })),
             ];
 
-            // Adicionar apenas itens únicos
             const uniqueGenreItems = removeDuplicates(genreItems);
             recommendations = addUniqueItems(recommendations, uniqueGenreItems);
           } catch (error) {
             console.error(`Erro ao buscar gênero ${genreId}:`, error);
-            // Fallback para filmes populares se a busca por gênero falhar
             const popularMovies = await getPopularMovies(1);
             const popularTV = await getPopularTVShows(1);
 
@@ -268,27 +232,23 @@ export const useRecommendations = () => {
               ...popularMovies.results.slice(0, 5).map((movie) => ({
                 ...movie,
                 type: 'movie' as const,
-                reason: `Baseado no seu gosto por ${getGenreName(genreId)}`,
+                reason: `Baseado no seu gosto por ${getGenreNameById(genreId)}`,
                 confidence: 0.6,
               })),
               ...popularTV.results.slice(0, 5).map((tv) => ({
                 ...tv,
                 type: 'tv' as const,
-                reason: `Baseado no seu gosto por ${getGenreName(genreId)}`,
+                reason: `Baseado no seu gosto por ${getGenreNameById(genreId)}`,
                 confidence: 0.6,
               })),
             ];
 
             const uniqueFallbackItems = removeDuplicates(fallbackItems);
-            recommendations = addUniqueItems(
-              recommendations,
-              uniqueFallbackItems
-            );
+            recommendations = addUniqueItems(recommendations, uniqueFallbackItems);
           }
         }
       }
 
-      // Buscar conteúdo da década favorita
       if (prefs.favoriteDecades.length > 0) {
         const decade = prefs.favoriteDecades[0];
         try {
@@ -314,7 +274,6 @@ export const useRecommendations = () => {
           recommendations = addUniqueItems(recommendations, uniqueDecadeItems);
         } catch (error) {
           console.error(`Erro ao buscar década ${decade}:`, error);
-          // Fallback para filmes populares se a busca por década falhar
           const popularMovies = await getPopularMovies(1);
           const popularTV = await getPopularTVShows(1);
 
@@ -333,20 +292,15 @@ export const useRecommendations = () => {
             })),
           ];
 
-          const uniqueFallbackDecadeItems =
-            removeDuplicates(fallbackDecadeItems);
-          recommendations = addUniqueItems(
-            recommendations,
-            uniqueFallbackDecadeItems
-          );
+          const uniqueFallbackDecadeItems = removeDuplicates(fallbackDecadeItems);
+          recommendations = addUniqueItems(recommendations, uniqueFallbackDecadeItems);
         }
       }
 
-      // Filtrar itens já assistidos ou favoritados
       const watchedIds = new Set(watched.map((w) => `${w.id}-${w.type}`));
       const favoriteIds = new Set(favorites.map((f) => `${f.id}-${f.type}`));
 
-      const filteredRecommendations = recommendations
+      const filtered = recommendations
         .filter((item) => {
           const itemKey = `${item.id}-${item.type}`;
           return !watchedIds.has(itemKey) && !favoriteIds.has(itemKey);
@@ -354,10 +308,8 @@ export const useRecommendations = () => {
         .sort((a, b) => b.confidence - a.confidence)
         .slice(0, limit);
 
-      // Salvar no cache
-      setCachedData(cacheKey, filteredRecommendations);
-
-      return filteredRecommendations;
+      setCachedData(cacheKey, filtered);
+      return filtered;
     } catch (error) {
       console.error('Erro ao gerar recomendações:', error);
       return [];
@@ -366,187 +318,128 @@ export const useRecommendations = () => {
     }
   };
 
-  /**
-   * Gera recomendações por humor/ocasião
-   */
-  const getRecommendationsByMood = async (
-    mood: string
-  ): Promise<RecommendationItem[]> => {
-    const cacheKey = `mood-${mood}`;
-
-    // Verificar cache primeiro
-    const cached = getCachedData(cacheKey);
-    if (cached) {
-      return cached;
+  const applyFilters = async (mood?: string, occasion?: string) => {
+    if (!mood && !occasion) {
+      setFilteredRecommendations([]);
+      return;
     }
-
-    const moodGenres: { [key: string]: number[] } = {
-      feliz: [35, 10751, 16], // Comédia, Família, Animação
-      triste: [18, 10749, 10402], // Drama, Romance, Música
-      estressado: [35, 16, 10751], // Comédia, Animação, Família
-      inspirado: [12, 14, 36], // Aventura, Fantasia, História
-      relaxado: [16, 10751, 10402], // Animação, Família, Música
-      motivado: [12, 28, 36], // Aventura, Ação, História
-      romantico: [10749, 18, 35], // Romance, Drama, Comédia
-      assustado: [27, 53, 9648], // Terror, Thriller, Mistério
-    };
-
-    const genres = moodGenres[mood] || moodGenres['feliz'];
-    const recommendations: RecommendationItem[] = [];
-
-    for (const genreId of genres) {
-      try {
-        const movies = await getMoviesByGenre(genreId, 1);
-        const tv = await getTVShowsByGenre(genreId, 1);
-
-        recommendations.push(
-          ...movies.results.slice(0, 3).map((movie) => ({
-            ...movie,
-            type: 'movie' as const,
-            reason: `Perfeito para quando você está ${mood}`,
-            confidence: 0.9,
-          })),
-          ...tv.results.slice(0, 3).map((show) => ({
-            ...show,
-            type: 'tv' as const,
-            reason: `Perfeito para quando você está ${mood}`,
-            confidence: 0.9,
-          }))
-        );
-      } catch (error) {
-        console.error(
-          `Erro ao buscar gênero ${genreId} para humor ${mood}:`,
-          error
-        );
-        // Fallback para filmes populares
-        const popularMovies = await getPopularMovies(1);
-        const popularTV = await getPopularTVShows(1);
-
-        recommendations.push(
-          ...popularMovies.results.slice(0, 2).map((movie) => ({
-            ...movie,
-            type: 'movie' as const,
-            reason: `Perfeito para quando você está ${mood}`,
-            confidence: 0.7,
-          })),
-          ...popularTV.results.slice(0, 2).map((show) => ({
-            ...show,
-            type: 'tv' as const,
-            reason: `Perfeito para quando você está ${mood}`,
-            confidence: 0.7,
-          }))
-        );
+    
+    setIsFiltering(true);
+    const cacheKey = `filter-${mood || 'none'}-${occasion || 'none'}`;
+    
+    try {
+      const cached = getCachedData(cacheKey);
+      if (cached) {
+        setFilteredRecommendations(cached);
+        return;
       }
-    }
 
-    const uniqueRecommendations = removeDuplicates(recommendations);
-    const result = uniqueRecommendations.slice(0, 10);
-    setCachedData(cacheKey, result);
-    return result;
-  };
+      const moodGenres: { [key: string]: number[] } = {
+        feliz: [35, 10751, 16],
+        triste: [18, 10749, 10402],
+        estressado: [35, 16, 10751],
+        inspirado: [12, 14, 36],
+        relaxado: [16, 10751, 10402],
+        motivado: [12, 28, 36],
+        romantico: [10749, 18, 35],
+        assustado: [27, 53, 9648],
+      };
 
-  /**
-   * Gera recomendações por ocasião
-   */
-  const getRecommendationsByOccasion = async (
-    occasion: string
-  ): Promise<RecommendationItem[]> => {
-    const cacheKey = `occasion-${occasion}`;
+      const occasionGenres: { [key: string]: { genres: number[]; type: 'movie' | 'tv' | 'both' } } = {
+        familia: { genres: [10751, 16, 35], type: 'both' },
+        encontro: { genres: [10749, 35, 18], type: 'both' },
+        amigos: { genres: [35, 28, 12], type: 'both' },
+        sozinho: { genres: [18, 9648, 53], type: 'both' },
+        'fim-de-semana': { genres: [28, 12, 35], type: 'both' },
+        noite: { genres: [27, 53, 9648], type: 'both' },
+        tarde: { genres: [16, 10751, 35], type: 'both' },
+        manha: { genres: [16, 10751, 10402], type: 'both' },
+      };
 
-    // Verificar cache primeiro
-    const cached = getCachedData(cacheKey);
-    if (cached) {
-      return cached;
-    }
+      let targetGenres = new Set<number>();
+      let filterType: 'movie' | 'tv' | 'both' = 'both';
+      
+      let reason = '';
+      if (mood && occasion) {
+        reason = `Combinação de humor e ocasião escolhida`;
+        const mG = moodGenres[mood] || [];
+        const oG = occasionGenres[occasion]?.genres || [];
+        mG.forEach(g => targetGenres.add(g));
+        oG.forEach(g => targetGenres.add(g));
+        filterType = occasionGenres[occasion]?.type || 'both';
+      } else if (mood) {
+        reason = `Perfeito para quando você está se sentindo assim`;
+        (moodGenres[mood] || []).forEach(g => targetGenres.add(g));
+      } else if (occasion) {
+        reason = `Ideal para esta ocasião`;
+        (occasionGenres[occasion]?.genres || []).forEach(g => targetGenres.add(g));
+        filterType = occasionGenres[occasion]?.type || 'both';
+      }
 
-    const occasionGenres: {
-      [key: string]: { genres: number[]; type: 'movie' | 'tv' | 'both' };
-    } = {
-      familia: { genres: [10751, 16, 35], type: 'both' },
-      encontro: { genres: [10749, 35, 18], type: 'both' },
-      amigos: { genres: [35, 28, 12], type: 'both' },
-      sozinho: { genres: [18, 9648, 53], type: 'both' },
-      'fim-de-semana': { genres: [28, 12, 35], type: 'both' },
-      noite: { genres: [27, 53, 9648], type: 'both' },
-      tarde: { genres: [16, 10751, 35], type: 'both' },
-      manha: { genres: [16, 10751, 10402], type: 'both' },
-    };
+      if (targetGenres.size === 0) {
+        targetGenres.add(28).add(35);
+      }
 
-    const config = occasionGenres[occasion] || occasionGenres['familia'];
-    const recommendations: RecommendationItem[] = [];
+      const recs: RecommendationItem[] = [];
+      const genresToFetch = Array.from(targetGenres).slice(0, 4);
 
-    for (const genreId of config.genres) {
-      try {
-        if (config.type === 'movie' || config.type === 'both') {
-          const movies = await getMoviesByGenre(genreId, 1);
-          recommendations.push(
-            ...movies.results.slice(0, 3).map((movie) => ({
-              ...movie,
-              type: 'movie' as const,
-              reason: `Ideal para ${occasion}`,
-              confidence: 0.85,
-            }))
-          );
-        }
-
-        if (config.type === 'tv' || config.type === 'both') {
-          const tv = await getTVShowsByGenre(genreId, 1);
-          recommendations.push(
-            ...tv.results.slice(0, 3).map((show) => ({
-              ...show,
-              type: 'tv' as const,
-              reason: `Ideal para ${occasion}`,
-              confidence: 0.85,
-            }))
-          );
-        }
-      } catch (error) {
-        console.error(
-          `Erro ao buscar gênero ${genreId} para ocasião ${occasion}:`,
-          error
-        );
-        // Fallback para filmes populares
-        if (config.type === 'movie' || config.type === 'both') {
-          const popularMovies = await getPopularMovies(1);
-          recommendations.push(
-            ...popularMovies.results.slice(0, 2).map((movie) => ({
-              ...movie,
-              type: 'movie' as const,
-              reason: `Ideal para ${occasion}`,
-              confidence: 0.7,
-            }))
-          );
-        }
-
-        if (config.type === 'tv' || config.type === 'both') {
-          const popularTV = await getPopularTVShows(1);
-          recommendations.push(
-            ...popularTV.results.slice(0, 2).map((show) => ({
-              ...show,
-              type: 'tv' as const,
-              reason: `Ideal para ${occasion}`,
-              confidence: 0.7,
-            }))
-          );
+      for (const genreId of genresToFetch) {
+        try {
+          if (filterType === 'movie' || filterType === 'both') {
+            const movies = await getMoviesByGenre(genreId, 1);
+            recs.push(
+              ...movies.results.slice(0, 4).map((movie) => ({
+                ...movie,
+                type: 'movie' as const,
+                reason,
+                confidence: 0.9,
+              }))
+            );
+          }
+          if (filterType === 'tv' || filterType === 'both') {
+            const tv = await getTVShowsByGenre(genreId, 1);
+            recs.push(
+              ...tv.results.slice(0, 4).map((show) => ({
+                ...show,
+                type: 'tv' as const,
+                reason,
+                confidence: 0.9,
+              }))
+            );
+          }
+        } catch (error) {
+          console.error(`Erro ao buscar gênero ${genreId} para filtro`, error);
         }
       }
-    }
 
-    const uniqueRecommendations = removeDuplicates(recommendations);
-    const result = uniqueRecommendations.slice(0, 10);
-    setCachedData(cacheKey, result);
-    return result;
+      const uniqueRecs = removeDuplicates(recs);
+      
+      // Filter watched and favorites!
+      const watchedIds = new Set(watched.map((w) => `${w.id}-${w.type}`));
+      const favoriteIds = new Set(favorites.map((f) => `${f.id}-${f.type}`));
+
+      const finalFiltered = uniqueRecs
+        .filter((item) => {
+          const itemKey = `${item.id}-${item.type}`;
+          return !watchedIds.has(itemKey) && !favoriteIds.has(itemKey);
+        })
+        .slice(0, 15);
+
+      setCachedData(cacheKey, finalFiltered);
+      setFilteredRecommendations(finalFiltered);
+    } catch (error) {
+      console.error('Error applying filters', error);
+      setFilteredRecommendations([]);
+    } finally {
+      setIsFiltering(false);
+    }
   };
 
-  /**
-   * Atualiza as recomendações
-   */
   const refreshRecommendations = async () => {
     const newRecommendations = await generateRecommendations();
     setRecommendations(newRecommendations);
   };
 
-  // Atualizar recomendações quando os dados do usuário mudarem
   useEffect(() => {
     setUserPreferences(analyzeUserPreferences);
     refreshRecommendations();
@@ -554,40 +447,12 @@ export const useRecommendations = () => {
 
   return {
     recommendations,
+    filteredRecommendations,
     userPreferences,
     isLoading,
+    isFiltering,
+    applyFilters,
     generateRecommendations,
-    getRecommendationsByMood,
-    getRecommendationsByOccasion,
     refreshRecommendations,
   };
-};
-
-/**
- * Função auxiliar para obter nome do gênero
- */
-const getGenreName = (genreId: number): string => {
-  const genres: { [key: number]: string } = {
-    28: 'Ação',
-    12: 'Aventura',
-    16: 'Animação',
-    35: 'Comédia',
-    80: 'Crime',
-    99: 'Documentário',
-    18: 'Drama',
-    10751: 'Família',
-    14: 'Fantasia',
-    36: 'História',
-    27: 'Terror',
-    10402: 'Música',
-    9648: 'Mistério',
-    10749: 'Romance',
-    878: 'Ficção Científica',
-    10770: 'Cinema TV',
-    53: 'Thriller',
-    10752: 'Guerra',
-    37: 'Faroeste',
-  };
-
-  return genres[genreId] || 'Filme';
 };
