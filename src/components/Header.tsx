@@ -149,7 +149,11 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
 
   const handleAuthSuccess = () => {
     setShowAuthModal(false);
-    setShowMigrationModal(true);
+    // Verificar se já migrou ou pulou a migração
+    const hasMigrated = localStorage.getItem('cine-explorer-migrated');
+    if (!hasMigrated) {
+      setShowMigrationModal(true);
+    }
   };
 
   useEffect(() => {
@@ -635,7 +639,9 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
       <DataMigrationModal
         isOpen={showMigrationModal}
         onClose={() => setShowMigrationModal(false)}
-        onMigrationComplete={() => {}}
+        onMigrationComplete={() => {
+          localStorage.setItem('cine-explorer-migrated', 'true');
+        }}
       />
       <QuickSearchModal
         open={showQuickSearch}

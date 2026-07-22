@@ -17,9 +17,9 @@ interface DataMigrationModalProps {
 }
 
 interface LocalData {
-  favorites: any[];
-  watchlist: any[];
-  watched: any[];
+  favorites: Record<string, any>[];
+  watchlist: Record<string, any>[];
+  watched: Record<string, any>[];
 }
 
 export const DataMigrationModal: React.FC<DataMigrationModalProps> = ({
@@ -46,7 +46,8 @@ export const DataMigrationModal: React.FC<DataMigrationModalProps> = ({
         watched,
       });
     }
-  }, [isOpen, favorites, wantToWatchList, watched]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   const getTotalItems = () => {
     return localData.favorites.length + localData.watchlist.length + localData.watched.length;
@@ -64,26 +65,37 @@ export const DataMigrationModal: React.FC<DataMigrationModalProps> = ({
 
       // Helper para processar em chunks
       const processInChunks = async (tableName: string, items: any[], mapFn: (item: any) => any) => {
-         const CHUNK_SIZE = 50;
+         const CHUNK_SIZE = 500;
+         let errors = 0;
+         
+         const chunks = [];
          for (let i = 0; i < items.length; i += CHUNK_SIZE) {
-            const chunk = items.slice(i, i + CHUNK_SIZE);
+            chunks.push(items.slice(i, i + CHUNK_SIZE));
+         }
+
+         for (const chunk of chunks) {
             const rows = chunk.map(mapFn);
             
             const { error } = await supabase.from(tableName).insert(rows);
             
             if (error) {
                 console.error(`Erro ao migrar chunk para ${tableName}:`, error);
+                errors++;
             } else {
                 processedItems += chunk.length;
                 setProgress((processedItems / totalItems) * 100);
             }
          }
+         
+         return errors;
       };
+
+      let totalErrors = 0;
 
       // Migrar favoritos
       if (localData.favorites.length > 0) {
         setCurrentStep(`Migrando ${localData.favorites.length} favoritos...`);
-        await processInChunks('user_favorites', localData.favorites, (favorite) => ({
+        totalErrors += await processInChunks('user_favorites', localData.favorites, (favorite) => ({
             user_id: user.id,
             item_id: favorite.id,
             item_type: favorite.type,
@@ -94,7 +106,7 @@ export const DataMigrationModal: React.FC<DataMigrationModalProps> = ({
       // Migrar lista de desejos
       if (localData.watchlist.length > 0) {
         setCurrentStep(`Migrando ${localData.watchlist.length} itens da lista de desejos...`);
-        await processInChunks('user_watchlist', localData.watchlist, (item) => ({
+        totalErrors += await processInChunks('user_watchlist', localData.watchlist, (item) => ({
             user_id: user.id,
             item_id: item.id,
             item_type: item.type,
@@ -105,7 +117,7 @@ export const DataMigrationModal: React.FC<DataMigrationModalProps> = ({
       // Migrar assistidos
       if (localData.watched.length > 0) {
         setCurrentStep(`Migrando ${localData.watched.length} itens assistidos...`);
-        await processInChunks('user_watched', localData.watched, (item) => ({
+        totalErrors += await processInChunks('user_watched', localData.watched, (item) => ({
             user_id: user.id,
             item_id: item.id,
             item_type: item.type,
@@ -114,13 +126,21 @@ export const DataMigrationModal: React.FC<DataMigrationModalProps> = ({
         }));
       }
 
-      setCurrentStep('Migração concluída com sucesso!');
+      setCurrentStep('Migração concluída!');
       setIsComplete(true);
       
-      toast({
-        title: "Dados migrados com sucesso!",
-        description: `${totalItems} itens foram sincronizados com sua conta.`,
-      });
+      if (totalErrors > 0) {
+        toast({
+          title: "Migração parcial",
+          description: "A migração terminou, mas houve erro em alguns itens.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Dados migrados com sucesso!",
+          description: `${totalItems} itens foram sincronizados com sua conta.`,
+        });
+      }
 
       // Aguardar um pouco antes de fechar
       setTimeout(() => {
