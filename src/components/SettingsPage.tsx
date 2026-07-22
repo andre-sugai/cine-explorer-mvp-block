@@ -43,6 +43,8 @@ import {
   Tv,
   LogOut,
   Bell,
+  Heart,
+  Clock,
 } from 'lucide-react';
 import { getWatchProviders, buildImageUrl } from '@/utils/tmdb';
 import { useDataManager } from '@/hooks/useDataManager';
@@ -54,6 +56,7 @@ import { ProfileImageUpload } from '@/components/profile/ProfileImageUpload';
 import { useSettingsContext } from '@/context/SettingsContext';
 import { useSyncContext } from '@/context/SyncContext';
 import { ImprovedCheckboxSetting } from '@/components/settings/ImprovedCheckboxSetting';
+import { HeroHeader } from '@/components/ui/HeroHeader';
 
 import { toast } from '@/hooks/use-toast';
 
@@ -544,23 +547,16 @@ export const SettingsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8">
-      <div className="text-center">
-        <h2 className="text-3xl font-bold text-primary mb-4">Configurações</h2>
-        <p className="text-muted-foreground">
-          Gerencie seus dados, configurações e preferências do Cine Explorer
-        </p>
-      </div>
+    <div className="space-y-8 pb-10">
+      <HeroHeader 
+        title="Configurações"
+        description="Gerencie seus dados, configurações e preferências do Cine Explorer"
+        icon={Cog}
+        colorScheme="primary"
+      />
 
-      <Tabs defaultValue="stats" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 bg-gradient-cinema border-primary/20">
-          <TabsTrigger
-            value="stats"
-            className="flex items-center gap-2 data-[state=active]:bg-gradient-gold data-[state=active]:text-cinema-dark"
-          >
-            <BarChart3 className="w-4 h-4" />
-            Estatísticas
-          </TabsTrigger>
+      <Tabs defaultValue="settings" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 bg-gradient-cinema border-primary/20">
           <TabsTrigger
             value="settings"
             className="flex items-center gap-2 data-[state=active]:bg-gradient-gold data-[state=active]:text-cinema-dark"
@@ -585,114 +581,6 @@ export const SettingsPage: React.FC = () => {
           </TabsTrigger>
         </TabsList>
 
-        {/* Aba de Estatísticas do Usuário */}
-        <TabsContent value="stats" className="space-y-6">
-          <Card className="bg-gradient-cinema border-primary/20">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-primary">
-                <BarChart3 className="w-5 h-5" />
-                Estatísticas do Usuário
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Estatísticas gerais */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card className="bg-secondary/30 border-primary/20">
-                  <CardContent className="p-6 text-center">
-                    <div className="text-3xl font-bold text-primary mb-2">
-                      {favoritesStats.total}
-                    </div>
-                    <div className="text-muted-foreground">
-                      Total de Favoritos
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-secondary/30 border-primary/20">
-                  <CardContent className="p-6 text-center">
-                    <div className="text-3xl font-bold text-primary mb-2">
-                      {watchedStats.total}
-                    </div>
-                    <div className="text-muted-foreground">
-                      Itens Assistidos
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-secondary/30 border-primary/20">
-                  <CardContent className="p-6 text-center">
-                    <div className="text-3xl font-bold text-primary mb-2">
-                      {watchedStats.totalHours}h
-                    </div>
-                    <div className="text-muted-foreground">Tempo Total</div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Estatísticas detalhadas */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card className="bg-secondary/30 border-primary/20">
-                  <CardHeader>
-                    <CardTitle className="text-lg text-primary">
-                      Favoritos
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Filmes:</span>
-                      <span className="font-medium">
-                        {favoritesStats.movies}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Séries:</span>
-                      <span className="font-medium">
-                        {favoritesStats.series}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Pessoas:</span>
-                      <span className="font-medium">
-                        {favoritesStats.people}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-secondary/30 border-primary/20">
-                  <CardHeader>
-                    <CardTitle className="text-lg text-primary">
-                      Assistidos
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Filmes:</span>
-                      <span className="font-medium">{watchedStats.movies}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Séries:</span>
-                      <span className="font-medium">{watchedStats.series}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">
-                        Tempo médio por item:
-                      </span>
-                      <span className="font-medium">
-                        {watchedStats.total > 0
-                          ? (
-                              watchedStats.totalHours / watchedStats.total
-                            ).toFixed(1)
-                          : 0}
-                        h
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         {/* Aba de Configurações de Funcionamento */}
         <TabsContent value="settings" className="space-y-6">
