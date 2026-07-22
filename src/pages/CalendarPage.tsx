@@ -7,6 +7,7 @@ import { CalendarItem } from '@/components/calendar/CalendarItem';
 import { CalendarFilters } from '@/components/calendar/CalendarFilters';
 import { useWatchProviders } from '@/hooks/useWatchProviders';
 import { CalendarDayModal } from '@/components/calendar/CalendarDayModal';
+import { HeroHeader } from '@/components/ui/HeroHeader';
 
 const CalendarPage = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -160,14 +161,13 @@ const CalendarPage = () => {
         
         <main className="pt-24 pb-12 px-4 container mx-auto">
             <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold flex items-center gap-3">
-                        <CalendarIcon className="w-8 h-8 text-primary" />
-                        Calendário de Lançamentos
-                    </h1>
-                    <p className="text-gray-400 mt-2">
-                        Confira as estreias de filmes e séries deste mês
-                    </p>
+                <div className="flex-1 w-full md:w-auto">
+                    <HeroHeader 
+                      title="Calendário de Lançamentos"
+                      description="Confira as estreias de filmes e séries deste mês"
+                      icon={CalendarIcon}
+                      colorScheme="primary"
+                    />
                 </div>
 
                 <div className="flex items-center gap-4 bg-white/5 rounded-full p-1 border border-white/10">

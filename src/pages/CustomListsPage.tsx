@@ -11,7 +11,8 @@ import { buildImageUrl, searchMulti } from '@/utils/tmdb';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { MovieCard } from '@/components/search/cards/MovieCard';
-
+import { HeroHeader } from '@/components/ui/HeroHeader';
+import { ListVideo } from 'lucide-react';
 const CustomListsPage: React.FC = () => {
   const { lists, createList, deleteList, addItemToList, removeItemFromList } = useCustomListsContext();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -84,9 +85,13 @@ const CustomListsPage: React.FC = () => {
     <Layout>
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-primary mb-2">Minhas Listas</h1>
-            <p className="text-muted-foreground">Crie e organize suas coleções personalizadas</p>
+          <div className="w-full flex-1">
+            <HeroHeader 
+              title="Minhas Listas"
+              description="Crie e organize suas coleções personalizadas"
+              icon={ListVideo}
+              colorScheme="primary"
+            />
           </div>
           
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
@@ -192,11 +197,12 @@ const CustomListsPage: React.FC = () => {
         </div>
 
         {lists.length === 0 ? (
-          <div className="text-center py-20 bg-secondary/20 rounded-lg border border-dashed border-primary/20">
-            <Film className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+          <div className="text-center py-20 bg-card/30 rounded-xl border border-border flex flex-col items-center">
+            <ListVideo className="w-16 h-16 text-muted-foreground/30 mb-4 animate-bounce" />
             <h3 className="text-xl font-semibold mb-2">Nenhuma lista criada</h3>
-            <p className="text-muted-foreground mb-6">Comece criando sua primeira lista personalizada!</p>
-            <Button onClick={() => setIsCreateOpen(true)} variant="outline">
+            <p className="text-muted-foreground mb-6 max-w-md">Comece criando sua primeira lista personalizada para organizar seus filmes e séries favoritos do seu jeito!</p>
+            <Button onClick={() => setIsCreateOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
               Criar Lista
             </Button>
           </div>
@@ -241,9 +247,13 @@ const CustomListsPage: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   {list.items.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                      {list.items.map((item) => (
-                        <div key={item.id} className="relative group">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 mt-2">
+                      {list.items.map((item, index) => (
+                        <div 
+                          key={item.id} 
+                          className="relative group animate-in fade-in zoom-in-95 duration-500 fill-mode-backwards"
+                          style={{ animationDelay: `${index * 50}ms` }}
+                        >
                           <MovieCard 
                             movie={{
                               ...item, 

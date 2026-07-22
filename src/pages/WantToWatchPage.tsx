@@ -6,13 +6,12 @@ import { Badge } from '@/components/ui/badge';
 import { useWantToWatchContext } from '@/context/WantToWatchContext';
 import { useWatchedContext } from '@/context/WatchedContext';
 import { buildImageUrl } from '@/utils/tmdb';
-import { Calendar, Eye, Trash2, ExternalLink, Search } from 'lucide-react';
+import { Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/components/ui/sonner';
-import { Input } from '@/components/ui/input';
 import { ContentCard } from '@/components/home/ContentCard';
 import { WantToWatchFiltersTabs } from '@/components/WantToWatchFiltersTabs';
-import { StreamingOptimizer } from '@/components/StreamingOptimizer';
+import { HeroHeader } from '@/components/ui/HeroHeader';
 
 const WantToWatchPage: React.FC = () => {
   const { wantToWatchList, removeFromWantToWatch } = useWantToWatchContext();
@@ -54,16 +53,13 @@ const WantToWatchPage: React.FC = () => {
 
   return (
     <Layout>
-      <div className="space-y-8">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-primary mb-4">
-            Filmes e Séries que Quero Assistir
-          </h1>
-          <p className="text-muted-foreground mb-4">
-            Gerencie sua lista de filmes e séries para assistir
-          </p>
-          <StreamingOptimizer />
-        </div>
+      <div className="space-y-8 pb-10">
+        <HeroHeader 
+          title="Quero Assistir"
+          description="Gerencie sua lista de filmes e séries para assistir e saiba onde eles estão disponíveis."
+          icon={Eye}
+          colorScheme="blue"
+        />
         <WantToWatchFiltersTabs
           items={wantToWatchList}
           getItemsByType={getItemsByType}

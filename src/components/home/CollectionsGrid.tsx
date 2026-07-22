@@ -84,9 +84,10 @@ export const CollectionsGrid: React.FC<CollectionsGridProps> = ({
             <div
               key={collection.id}
               ref={isObserverTarget ? lastElementRefCallback : null}
-              className="relative rounded-lg overflow-hidden cursor-pointer group border border-primary/20 hover:border-primary/40 transition-all duration-300"
+              className="relative rounded-lg overflow-hidden cursor-pointer group border border-primary/20 hover:border-primary/40 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 fill-mode-backwards"
               style={{
                 minHeight: '140px',
+                animationDelay: `${index * 50}ms`
               }}
               onClick={() => navigate(`/colecao/${collection.id}`)}
             >

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { HeroHeader } from '@/components/ui/HeroHeader';
 import { Layout } from '@/components/Layout';
 import { useWatchedContext } from '@/context/WatchedContext';
 import { useAuth } from '@/context/AuthContext';
@@ -215,15 +216,13 @@ const StatisticsPage: React.FC = () => {
 
   return (
     <Layout>
-      <div className="space-y-8">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-primary mb-2">
-            Estatísticas do Cinéfilo
-          </h1>
-          <p className="text-muted-foreground">
-            Acompanhe seu progresso e hábitos de visualização
-          </p>
-        </div>
+      <div className="space-y-8 pb-10">
+        <HeroHeader 
+          title="Estatísticas do Cinéfilo"
+          description="Acompanhe seu progresso e hábitos de visualização"
+          icon={Activity}
+          colorScheme="purple"
+        />
 
         <CreditsSyncModal />
 
@@ -364,155 +363,154 @@ const StatisticsPage: React.FC = () => {
             )}
           </div>
         )}
-        {/* Stats Cards */}
+        {/* Stats Cards VIP */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="bg-card border-primary/20">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total Assistido
-              </CardTitle>
-              <Film className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold flex items-baseline gap-1">
-                {stats.total}
-                <span className="text-sm font-normal text-muted-foreground">títulos</span>
-              </div>
-              <p className="text-xs text-muted-foreground mb-4">
-                {stats.movies} filmes, {stats.series} séries/eps
+          <div className="bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl p-5 border border-primary/10 shadow-sm relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <Film className="w-16 h-16 text-primary" />
+            </div>
+            <div className="flex flex-col h-full">
+              <span className="text-sm text-primary/80 font-medium">Total Assistido</span>
+              <p className="text-3xl font-extrabold text-foreground mt-1 flex items-baseline gap-1">
+                {stats.total} <span className="text-sm font-normal text-muted-foreground">títulos</span>
               </p>
-              <p className="text-xs text-primary/80 italic pt-2 border-t border-border/50">
+              <p className="text-xs text-muted-foreground mt-1 mb-4 flex-grow">
+                {stats.movies} filmes, {stats.series} séries
+              </p>
+              <p className="text-xs text-primary/80 italic pt-2 border-t border-primary/10">
                 {getTotalWatchedFact(stats.total)}
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card className="bg-card border-primary/20 flex flex-col">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Tempo Total</CardTitle>
-              <Clock className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold flex items-baseline gap-1">
-                {stats.totalHours}
-                <span className="text-sm font-normal text-muted-foreground">horas</span>
-              </div>
-              <p className="text-xs text-muted-foreground mb-4">
+          <div className="bg-gradient-to-br from-blue-500/20 to-blue-500/5 rounded-xl p-5 border border-blue-500/10 shadow-sm relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <Clock className="w-16 h-16 text-blue-500" />
+            </div>
+            <div className="flex flex-col h-full">
+              <span className="text-sm text-blue-500/80 font-medium">Tempo Total</span>
+              <p className="text-3xl font-extrabold text-foreground mt-1 flex items-baseline gap-1">
+                {stats.totalHours} <span className="text-sm font-normal text-muted-foreground">horas</span>
+              </p>
+              <p className="text-xs text-muted-foreground mt-1 mb-4 flex-grow">
                 Horas de entretenimento
               </p>
-              <p className="text-xs text-primary/80 italic pt-2 border-t border-border/50">
+              <p className="text-xs text-blue-500/80 italic pt-2 border-t border-blue-500/10">
                 {getTotalTimeFact(stats.totalHours)}
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card className="bg-card border-primary/20 flex flex-col">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Gênero Favorito
-              </CardTitle>
-              <Star className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold truncate">
-                {genres.find((g) => g.id === stats.mostWatchedGenre)?.name ||
-                  '-'}
-              </div>
-              <p className="text-xs text-muted-foreground mb-4">
+          <div className="bg-gradient-to-br from-purple-500/20 to-purple-500/5 rounded-xl p-5 border border-purple-500/10 shadow-sm relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <Star className="w-16 h-16 text-purple-500" />
+            </div>
+            <div className="flex flex-col h-full">
+              <span className="text-sm text-purple-500/80 font-medium">Gênero Favorito</span>
+              <p className="text-2xl font-extrabold text-foreground mt-1 truncate">
+                {genres.find((g) => g.id === stats.mostWatchedGenre)?.name || '-'}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1 mb-4 flex-grow">
                 Baseado no histórico
               </p>
-              <p className="text-xs text-primary/80 italic pt-2 border-t border-border/50">
+              <p className="text-xs text-purple-500/80 italic pt-2 border-t border-purple-500/10">
                 {getGenreFact(genres.find((g) => g.id === stats.mostWatchedGenre)?.name || '-')}
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card className="bg-card border-primary/20 flex flex-col">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Este Mês</CardTitle>
-              <Tv className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.thisMonth}</div>
-              <p className="text-xs text-muted-foreground mb-4">
+          <div className="bg-gradient-to-br from-green-500/20 to-green-500/5 rounded-xl p-5 border border-green-500/10 shadow-sm relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <Tv className="w-16 h-16 text-green-500" />
+            </div>
+            <div className="flex flex-col h-full">
+              <span className="text-sm text-green-500/80 font-medium">Este Mês</span>
+              <p className="text-3xl font-extrabold text-foreground mt-1">
+                {stats.thisMonth}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1 mb-4 flex-grow">
                 Títulos assistidos
               </p>
-              <div className="text-xs text-primary/80 italic pt-2 border-t border-border/50 max-h-24 overflow-y-auto scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent">
+              <div className="text-xs text-green-500/80 italic pt-2 border-t border-green-500/10 max-h-16 overflow-y-auto scrollbar-thin scrollbar-thumb-green-500/20 scrollbar-track-transparent">
                 {thisMonthElements}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
 
-        {/* Additional Stats Cards */}
+        {/* Additional Stats Cards VIP */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="bg-card border-primary/20 flex flex-col">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Década Favorita</CardTitle>
-              <CalendarDays className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.favoriteDecade}</div>
-              <p className="text-xs text-muted-foreground mb-4">
+          <div className="bg-gradient-to-br from-pink-500/20 to-pink-500/5 rounded-xl p-5 border border-pink-500/10 shadow-sm relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <CalendarDays className="w-16 h-16 text-pink-500" />
+            </div>
+            <div className="flex flex-col h-full">
+              <span className="text-sm text-pink-500/80 font-medium">Década Favorita</span>
+              <p className="text-3xl font-extrabold text-foreground mt-1">
+                {stats.favoriteDecade}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1 mb-4 flex-grow">
                 Lançamentos mais assistidos
               </p>
-              <p className="text-xs text-primary/80 italic pt-2 border-t border-border/50">
+              <p className="text-xs text-pink-500/80 italic pt-2 border-t border-pink-500/10">
                 {getDecadeFact(stats.favoriteDecade)}
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card className="bg-card border-primary/20 flex flex-col">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Dia da Pipoca</CardTitle>
-              <CalendarClock className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold truncate">{stats.favoriteWeekday}</div>
-              <p className="text-xs text-muted-foreground mb-4">
+          <div className="bg-gradient-to-br from-orange-500/20 to-orange-500/5 rounded-xl p-5 border border-orange-500/10 shadow-sm relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <CalendarClock className="w-16 h-16 text-orange-500" />
+            </div>
+            <div className="flex flex-col h-full">
+              <span className="text-sm text-orange-500/80 font-medium">Dia da Pipoca</span>
+              <p className="text-2xl font-extrabold text-foreground mt-1 truncate">
+                {stats.favoriteWeekday}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1 mb-4 flex-grow">
                 Dia em que mais assiste
               </p>
-              <p className="text-xs text-primary/80 italic pt-2 border-t border-border/50">
+              <p className="text-xs text-orange-500/80 italic pt-2 border-t border-orange-500/10">
                 {getWeekdayFact(stats.favoriteWeekday)}
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card className="bg-card border-primary/20 flex flex-col">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Nota Média</CardTitle>
-              <StarHalf className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
+          <div className="bg-gradient-to-br from-yellow-500/20 to-yellow-500/5 rounded-xl p-5 border border-yellow-500/10 shadow-sm relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <StarHalf className="w-16 h-16 text-yellow-500" />
+            </div>
+            <div className="flex flex-col h-full">
+              <span className="text-sm text-yellow-500/80 font-medium">Nota Média</span>
+              <p className="text-3xl font-extrabold text-foreground mt-1">
                 {stats.averageRating ? stats.averageRating.toFixed(1) : '-'}
-              </div>
-              <p className="text-xs text-muted-foreground mb-4">
+              </p>
+              <p className="text-xs text-muted-foreground mt-1 mb-4 flex-grow">
                 Avaliação do TMDB
               </p>
-              <p className="text-xs text-primary/80 italic pt-2 border-t border-border/50">
+              <p className="text-xs text-yellow-500/80 italic pt-2 border-t border-yellow-500/10">
                 {getRatingFact(stats.averageRating)}
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card className="bg-card border-primary/20 flex flex-col">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Filmes vs Séries</CardTitle>
-              <PieChartIcon className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {stats.moviePercent > 0 ? `${stats.moviePercent.toFixed(0)}% Filmes` : '-'}
-              </div>
-              <p className="text-xs text-muted-foreground mb-4">
-                Proporção do catálogo
+          <div className="bg-gradient-to-br from-cyan-500/20 to-cyan-500/5 rounded-xl p-5 border border-cyan-500/10 shadow-sm relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <PieChartIcon className="w-16 h-16 text-cyan-500" />
+            </div>
+            <div className="flex flex-col h-full">
+              <span className="text-sm text-cyan-500/80 font-medium">Filmes vs Séries</span>
+              <p className="text-3xl font-extrabold text-foreground mt-1">
+                {stats.moviePercent > 0 ? `${stats.moviePercent.toFixed(0)}%` : '-'}
               </p>
-              <p className="text-xs text-primary/80 italic pt-2 border-t border-border/50">
+              <p className="text-xs text-muted-foreground mt-1 mb-4 flex-grow">
+                Catálogo ({stats.moviePercent > 0 ? 'Filmes' : '-'})
+              </p>
+              <p className="text-xs text-cyan-500/80 italic pt-2 border-t border-cyan-500/10">
                 {getMovieVsTvFact(stats.moviePercent)}
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
 
         {/* API Quota Card */}

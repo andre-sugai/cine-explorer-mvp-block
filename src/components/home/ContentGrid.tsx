@@ -103,6 +103,7 @@ export const ContentGrid: React.FC<ContentGridProps> = ({
             return (
               <div
                 key={`${item.id}-${index}`}
+                className="animate-in fade-in zoom-in-95 duration-500 fill-mode-backwards"
                 style={{
                   animationDelay: `${index * 50}ms`,
                 }}

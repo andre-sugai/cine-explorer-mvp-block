@@ -9,6 +9,7 @@ import { ContentCard } from '@/components/home/ContentCard';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { PersonalListFiltersTabs } from '@/components/FavoritesPage';
+import { HeroHeader } from '@/components/ui/HeroHeader';
 
 export const WatchedPage: React.FC = () => {
   const { watched, removeFromWatched, clearAllWatched, cleanInvalidWatched } =
@@ -58,17 +59,14 @@ export const WatchedPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-10">
       {/* Header */}
-      <div className="text-center">
-        <h2 className="text-3xl font-bold text-primary mb-4">
-          Meus Filmes e Séries Assistidos
-        </h2>
-        <p className="text-muted-foreground">
-          Acompanhe seu progresso e mantenha um registro de tudo que você
-          assistiu
-        </p>
-      </div>
+      <HeroHeader 
+        title="Meus Filmes e Séries Assistidos"
+        description="Acompanhe seu progresso e mantenha um registro de tudo que você assistiu"
+        icon={CheckCircle}
+        colorScheme="green"
+      />
 
       <PersonalListFiltersTabs
         items={watched}
