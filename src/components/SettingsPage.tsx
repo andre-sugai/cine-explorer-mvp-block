@@ -685,7 +685,7 @@ export const SettingsPage: React.FC = () => {
               </div>
 
               {/* Limpeza de Dados */}
-              <div className="space-y-4 p-6 bg-gradient-to-br from-red-500/10 to-red-500/5 backdrop-blur-md rounded-xl border border-red-500/20 relative overflow-hidden">
+              <div className="space-y-4 p-4 md:p-6 bg-gradient-to-br from-red-500/10 to-red-500/5 backdrop-blur-md rounded-xl border border-red-500/20 relative overflow-hidden">
                 <div className="relative z-10">
                   <h3 className="text-lg font-semibold text-red-400 mb-4">
                     Área de Risco

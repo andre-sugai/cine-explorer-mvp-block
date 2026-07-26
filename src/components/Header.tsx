@@ -289,13 +289,13 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
 
           {/* Campo de busca centralizado - Mobile */}
           <div className="md:hidden flex-1 flex justify-center px-4">
-            <form onSubmit={handleSearch} className="relative w-full max-w-xs">
+            <form onSubmit={handleSearch} className="relative w-full max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Buscar..."
-                className="pl-10 pr-16 h-9 text-sm bg-secondary/50 border-none focus:bg-background focus:ring-2 focus:ring-primary/50 text-foreground placeholder:text-muted-foreground"
+                className="pl-10 pr-16 h-10 text-base bg-secondary/50 border-none focus:bg-background focus:ring-2 focus:ring-primary/50 text-foreground placeholder:text-muted-foreground"
               />
 
               {/* Botão de busca por voz - Mobile */}

@@ -61,7 +61,7 @@ const TVShowDetails: React.FC = () => {
       <Layout>
         <div className="space-y-6">
           <Skeleton className="h-8 w-24" />
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-6 md:gap-8">
             <Skeleton className="h-96 rounded-lg" />
             <div className="md:col-span-2 space-y-4">
               <Skeleton className="h-12 w-3/4" />
@@ -82,7 +82,7 @@ const TVShowDetails: React.FC = () => {
     return (
       <Layout>
         <Card className="bg-gradient-cinema border-destructive/20">
-          <CardContent className="p-8 text-center">
+          <CardContent className="p-4 md:p-8 text-center">
             <h3 className="text-lg font-semibold text-foreground mb-2">
               Erro ao carregar série
             </h3>
@@ -99,10 +99,6 @@ const TVShowDetails: React.FC = () => {
   return (
     <Layout>
       <div className="space-y-8">
-        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-6">
-          <ChevronLeft className="w-4 h-4 mr-2" />
-          Voltar
-        </Button>
 
         {/* Hero Section */}
         <div
@@ -118,8 +114,8 @@ const TVShowDetails: React.FC = () => {
             backgroundPosition: 'center',
           }}
         >
-          <div className="p-8">
-            <div className="grid md:grid-cols-4 gap-8 items-start">
+          <div className="p-4 md:p-8">
+            <div className="grid md:grid-cols-4 gap-6 md:gap-8 items-start">
               <div className="md:col-span-1">
                 <img
                   src={buildImageUrl(show.poster_path, 'w500')}
@@ -131,7 +127,7 @@ const TVShowDetails: React.FC = () => {
 
               <div className="md:col-span-3 space-y-6">
                 <div>
-                  <h1 className="text-4xl font-bold text-primary mb-2">
+                  <h1 className="text-3xl md:text-4xl font-bold text-primary mb-2">
                     {show.name}
                   </h1>
                   {show.original_name !== show.name && (
@@ -408,10 +404,7 @@ const TVShowDetails: React.FC = () => {
         {/* Galeria de Imagens Extras */}
         {images &&
           (images.backdrops.length > 0 || images.posters.length > 0) && (
-            <div className="mb-8">
-              <h2 className="text-xl font-bold text-primary mb-4">
-                Galeria de Imagens
-              </h2>
+            <>
               <ImageGallery
                 images={[...images.backdrops, ...images.posters]}
                 maxThumbs={15}
@@ -424,10 +417,10 @@ const TVShowDetails: React.FC = () => {
                 title={show.name}
                 type="tv"
               />
-            </div>
+            </>
           )}
 
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-3 gap-6 md:gap-8">
           {/* Informações da Série */}
           <div className="space-y-6">
             <Card className="bg-gradient-cinema border-primary/20">

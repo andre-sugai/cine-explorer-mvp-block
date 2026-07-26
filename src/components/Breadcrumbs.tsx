@@ -1,6 +1,6 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { ChevronRight, Home } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ChevronRight, Home, ChevronLeft } from 'lucide-react';
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -9,6 +9,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
+import { Button } from '@/components/ui/button';
 
 export interface BreadcrumbItem {
   label: string;
@@ -25,6 +26,7 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
   items,
   className = '',
 }) => {
+  const navigate = useNavigate();
   // Sempre incluir Home como primeiro item se não estiver presente
   const breadcrumbItems =
     items[0]?.label === 'Home'
@@ -33,7 +35,17 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
 
   return (
     <div className={`bg-secondary/30 border-b border-primary/10 ${className}`}>
-      <div className="container mx-auto px-4 py-3">
+      <div className="container mx-auto px-4 py-2 flex items-center gap-4">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={() => navigate(-1)} 
+          className="flex items-center gap-1 text-muted-foreground hover:text-primary px-3 -ml-2 h-8 bg-secondary/50 hover:bg-secondary/80 border border-primary/10 hover:border-primary/30 rounded-full transition-all shadow-sm"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          <span className="hidden sm:inline">Voltar</span>
+        </Button>
+        <div className="h-4 w-px bg-border/50 hidden sm:block"></div>
         <Breadcrumb>
           <BreadcrumbList>
             {breadcrumbItems.map((item, index) => (

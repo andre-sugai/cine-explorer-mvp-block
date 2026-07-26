@@ -91,10 +91,6 @@ const PersonDetails: React.FC = () => {
   return (
     <Layout>
       <div className="space-y-8">
-        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-6">
-          <ChevronLeft className="w-4 h-4 mr-2" />
-          Voltar
-        </Button>
 
         <div className="grid md:grid-cols-3 gap-8">
           {/* Foto e Informações Básicas */}
@@ -208,12 +204,7 @@ const PersonDetails: React.FC = () => {
 
         {/* Galeria de Imagens Extras */}
         {images && images.profiles.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-xl font-bold text-primary mb-4">
-              Galeria de Fotos
-            </h2>
-            <ImageGallery images={images.profiles} maxThumbs={15} />
-          </div>
+          <ImageGallery images={images.profiles} maxThumbs={15} title="Galeria de Fotos" />
         )}
       </div>
     </Layout>

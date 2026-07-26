@@ -83,10 +83,6 @@ const CollectionDetails: React.FC = () => {
   return (
     <Layout>
       <div className="space-y-8">
-        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-6">
-          <ChevronLeft className="w-4 h-4 mr-2" />
-          Voltar
-        </Button>
 
         {/* Hero Section */}
         <div

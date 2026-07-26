@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -7,9 +7,8 @@ import {
   DialogDescription,
   DialogClose,
 } from '@/components/ui/dialog';
-import { getMovieImages, getTVShowImages } from '@/utils/tmdb';
-import { Loader, Play, Square, X, Maximize2, Minimize2 } from 'lucide-react';
-import { FeaturedGallery } from '@/components/FeaturedGallery';
+import { getMovieImages, getTVShowImages, buildImageUrl } from '@/utils/tmdb';
+import { Loader, Play, Square, X, Maximize2, Minimize2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -19,7 +18,9 @@ interface ImageGalleryModalProps {
   movieId?: number;
   tvShowId?: number;
   title: string;
-  type: 'movie' | 'tv';
+  type?: 'movie' | 'tv';
+  prefetchedImages?: any[];
+  initialIndex?: number;
 }
 
 export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
@@ -29,78 +30,71 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
   tvShowId,
   title,
   type,
+  prefetchedImages,
+  initialIndex = 0,
 }) => {
   const [images, setImages] = useState<any[]>([]);
-  const [selectedImage, setSelectedImage] = useState<any>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (open) {
-      const fetchImages = async () => {
-        setLoading(true);
-        try {
-          let data;
-          if (type === 'movie' && movieId) {
-            data = await getMovieImages(movieId);
-          } else if (type === 'tv' && tvShowId) {
-            data = await getTVShowImages(tvShowId);
-          }
-
-          if (data) {
-            // Combinar backdrops e posters, priorizando backdrops
-            const allImages = [
-              ...(data.backdrops || []),
-              ...(data.posters || []),
-            ];
-            setImages(allImages);
-            if (allImages.length > 0) {
-              setSelectedImage(allImages[0]);
+      if (prefetchedImages && prefetchedImages.length > 0) {
+        setImages(prefetchedImages);
+        setCurrentIndex(initialIndex);
+      } else if (type && (movieId || tvShowId)) {
+        const fetchImages = async () => {
+          setLoading(true);
+          try {
+            let data;
+            if (type === 'movie' && movieId) {
+              data = await getMovieImages(movieId);
+            } else if (type === 'tv' && tvShowId) {
+              data = await getTVShowImages(tvShowId);
             }
-          }
-        } catch (error) {
-          console.error('Erro ao carregar imagens:', error);
-        } finally {
-          setLoading(false);
-        }
-      };
 
-      fetchImages();
+            if (data) {
+              const allImages = [
+                ...(data.backdrops || []),
+                ...(data.posters || []),
+              ];
+              setImages(allImages);
+              setCurrentIndex(0);
+            }
+          } catch (error) {
+            console.error('Erro ao carregar imagens:', error);
+          } finally {
+            setLoading(false);
+          }
+        };
+        fetchImages();
+      }
     } else {
-      setImages([]);
-      setSelectedImage(null);
       setIsPlaying(false);
       setIsFullscreen(false);
     }
-  }, [open, movieId, tvShowId, type]);
+  }, [open, movieId, tvShowId, type, prefetchedImages, initialIndex]);
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (!images || images.length === 0) return;
-    const currentIndex = images.findIndex(
-      (img) => img.file_path === selectedImage?.file_path
-    );
-    const nextIndex = (currentIndex + 1) % images.length;
-    setSelectedImage(images[nextIndex]);
-  };
+    setCurrentIndex((prev) => (prev + 1) % images.length);
+  }, [images]);
 
-  const handlePrev = () => {
+  const handlePrev = useCallback(() => {
     if (!images || images.length === 0) return;
-    const currentIndex = images.findIndex(
-      (img) => img.file_path === selectedImage?.file_path
-    );
-    const prevIndex = (currentIndex - 1 + images.length) % images.length;
-    setSelectedImage(images[prevIndex]);
-  };
+    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
+  }, [images]);
 
   // Slideshow logic
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (isPlaying) {
+    if (isPlaying && open) {
       interval = setInterval(handleNext, 3000);
     }
     return () => clearInterval(interval);
-  }, [isPlaying, images, selectedImage]);
+  }, [isPlaying, handleNext, open]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -116,7 +110,7 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [open, images, selectedImage]);
+  }, [open, handleNext, handlePrev]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -129,11 +123,11 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        <DialogHeader className="flex flex-row items-center justify-between p-6 pb-2 flex-shrink-0">
+        <DialogHeader className="flex flex-row items-center justify-between p-6 pb-2 flex-shrink-0 relative z-50 bg-background/80 backdrop-blur-sm">
           <div className="flex flex-col gap-1">
             <DialogTitle className="text-primary text-xl">Galeria: {title}</DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              Imagens oficiais e posters
+              {currentIndex + 1} de {images.length}
             </DialogDescription>
           </div>
           
@@ -178,18 +172,87 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
           </div>
         </DialogHeader>
 
-        <div className="flex-1 min-h-0 flex flex-col p-6 pt-2 gap-4">
+        <div className="flex-1 min-h-0 flex items-center justify-center p-6 relative overflow-hidden perspective-1000">
           {loading ? (
             <div className="flex justify-center items-center h-full">
               <Loader className="w-8 h-8 animate-spin text-primary" />
             </div>
+          ) : images.length > 0 ? (
+            <>
+              {images.map((img, idx) => {
+                const total = images.length;
+                let diff = idx - currentIndex;
+                
+                if (total > 2) {
+                  if (diff > total / 2) diff -= total;
+                  else if (diff < -total / 2) diff += total;
+                }
+
+                let positionClasses = "z-0 scale-50 opacity-0 translate-x-0 pointer-events-none";
+                let isVisible = false;
+
+                if (diff === 0) {
+                  positionClasses = "z-30 scale-100 translate-x-0 opacity-100 shadow-2xl shadow-black/80 ring-1 ring-white/20";
+                  isVisible = true;
+                } else if (diff === 1) {
+                  positionClasses = "z-20 scale-[0.80] translate-x-[75%] md:translate-x-[85%] opacity-40 hover:opacity-100 cursor-pointer shadow-xl";
+                  isVisible = true;
+                } else if (diff === -1) {
+                  positionClasses = "z-20 scale-[0.80] -translate-x-[75%] md:-translate-x-[85%] opacity-40 hover:opacity-100 cursor-pointer shadow-xl";
+                  isVisible = true;
+                }
+
+                return (
+                  <div
+                    key={img.file_path + idx}
+                    className={cn(
+                      "absolute transition-all duration-500 ease-out flex items-center justify-center",
+                      isFullscreen ? "w-[90%] md:w-[75%] h-[85%]" : "w-[85%] md:w-[65%] max-w-[900px] h-[80%]",
+                      positionClasses
+                    )}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (diff === 1) handleNext();
+                      if (diff === -1) handlePrev();
+                    }}
+                  >
+                    {isVisible && (
+                      <div className="w-full h-full rounded-2xl overflow-hidden bg-black/50 backdrop-blur-sm flex items-center justify-center relative">
+                        <img
+                          src={buildImageUrl(img.file_path, 'original')}
+                          alt={`Imagem ${idx + 1}`}
+                          className="max-w-full max-h-full object-contain transition-transform duration-700"
+                          loading={diff === 0 ? "eager" : "lazy"}
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {images.length > 1 && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute left-8 z-40 h-12 w-12 rounded-full bg-black/20 backdrop-blur-md border border-white/10 text-white/70 hover:text-white hover:bg-white/20 hidden md:flex"
+                    onClick={handlePrev}
+                  >
+                    <ChevronLeft className="w-6 h-6" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-8 z-40 h-12 w-12 rounded-full bg-black/20 backdrop-blur-md border border-white/10 text-white/70 hover:text-white hover:bg-white/20 hidden md:flex"
+                    onClick={handleNext}
+                  >
+                    <ChevronRight className="w-6 h-6" />
+                  </Button>
+                </>
+              )}
+            </>
           ) : (
-            <FeaturedGallery 
-              images={images} 
-              title={title} 
-              selectedImage={selectedImage}
-              onSelectImage={setSelectedImage}
-            />
+            <div className="text-muted-foreground">Nenhuma imagem encontrada.</div>
           )}
         </div>
       </DialogContent>

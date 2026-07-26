@@ -59,7 +59,7 @@ export const SearchGrid: React.FC<SearchGridProps> = ({
   });
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6">
       {filteredResults.map((item) => {
         // Movie
         if ('title' in item && 'release_date' in item) {
