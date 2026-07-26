@@ -26,7 +26,6 @@ const TVShowDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { setDetailName } = useDetailNameContext();
-  const [showGalleryModal, setShowGalleryModal] = useState(false);
   const [selectedSeason, setSelectedSeason] = useState<{
     number: number;
     name: string;
@@ -402,23 +401,22 @@ const TVShowDetails: React.FC = () => {
         )}
 
         {/* Galeria de Imagens Extras */}
-        {images &&
-          (images.backdrops.length > 0 || images.posters.length > 0) && (
-            <>
-              <ImageGallery
-                images={[...images.backdrops, ...images.posters]}
-                maxThumbs={15}
-                onImageClick={() => setShowGalleryModal(true)}
-              />
-              <ImageGalleryModal
-                open={showGalleryModal}
-                onOpenChange={setShowGalleryModal}
-                tvShowId={Number(id)}
-                title={show.name}
-                type="tv"
-              />
-            </>
-          )}
+        {images && images.backdrops.length > 0 && (
+          <ImageGallery
+            images={images.backdrops}
+            maxThumbs={15}
+            title="Cenas e Imagens"
+          />
+        )}
+
+        {/* Galeria de Cartazes */}
+        {images && images.posters.length > 0 && (
+          <ImageGallery
+            images={images.posters}
+            maxThumbs={15}
+            title="Cartazes Oficiais"
+          />
+        )}
 
         <div className="grid md:grid-cols-3 gap-6 md:gap-8">
           {/* Informações da Série */}

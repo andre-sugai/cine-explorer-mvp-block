@@ -36,7 +36,6 @@ const MovieDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { setDetailName } = useDetailNameContext();
-  const [showGalleryModal, setShowGalleryModal] = React.useState(false);
 
   const {
     data: movie,
@@ -292,23 +291,22 @@ const MovieDetails: React.FC = () => {
         </div>
 
         {/* Galeria de Imagens Extras */}
-        {images &&
-          (images.backdrops.length > 0 || images.posters.length > 0) && (
-            <>
-              <ImageGallery
-                images={[...images.backdrops, ...images.posters]}
-                maxThumbs={15}
-                onImageClick={() => setShowGalleryModal(true)}
-              />
-              <ImageGalleryModal
-                open={showGalleryModal}
-                onOpenChange={setShowGalleryModal}
-                movieId={Number(id)}
-                title={movie.title}
-                type="movie"
-              />
-            </>
-          )}
+        {images && images.backdrops.length > 0 && (
+          <ImageGallery
+            images={images.backdrops}
+            maxThumbs={15}
+            title="Cenas e Imagens"
+          />
+        )}
+
+        {/* Galeria de Cartazes */}
+        {images && images.posters.length > 0 && (
+          <ImageGallery
+            images={images.posters}
+            maxThumbs={15}
+            title="Cartazes Oficiais"
+          />
+        )}
 
         {/* Galeria de Vídeos (Carrossel Otimizado) */}
         {movie.videos?.results?.length > 0 && (
