@@ -13,7 +13,7 @@ import {
 } from '@/utils/tmdb';
 import { translateJob } from '@/utils/translations';
 import ActionButtons from '@/components/ActionButtons';
-import TrailerPlayer from '@/components/TrailerPlayer';
+import VideoCarousel from '@/components/VideoCarousel';
 import { SimilarMovies } from '@/components/SimilarMovies';
 import { Layout } from '@/components/Layout';
 import {
@@ -76,6 +76,26 @@ const MovieDetails: React.FC = () => {
   }, [movie, setDetailName]);
 
   // Onde Assistir é carregado por um componente dedicado
+
+  const getCertification = () => {
+    if (!movie?.release_dates?.results) return null;
+    
+    // Procura pela classificação do Brasil
+    const brRelease = movie.release_dates.results.find((r: any) => r.iso_3166_1 === 'BR');
+    if (brRelease && brRelease.release_dates.length > 0) {
+      const cert = brRelease.release_dates.find((d: any) => d.certification !== '');
+      if (cert) return cert.certification;
+    }
+    
+    // Fallback para US
+    const usRelease = movie.release_dates.results.find((r: any) => r.iso_3166_1 === 'US');
+    if (usRelease && usRelease.release_dates.length > 0) {
+      const cert = usRelease.release_dates.find((d: any) => d.certification !== '');
+      if (cert) return cert.certification;
+    }
+    
+    return null;
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -169,9 +189,14 @@ const MovieDetails: React.FC = () => {
 
               <div className="md:col-span-3 space-y-6">
                 <div>
-                  <h1 className="text-4xl font-bold text-primary mb-2">
+                  <h1 className="text-4xl font-bold text-primary mb-2 drop-shadow-lg">
                     {movie.title}
                   </h1>
+                  {movie.tagline && (
+                    <p className="text-xl italic text-foreground/90 mb-2 font-light">
+                      "{movie.tagline}"
+                    </p>
+                  )}
                   {movie.original_title !== movie.title && (
                     <p className="text-lg text-muted-foreground mb-4">
                       Título Original: {movie.original_title}
@@ -195,6 +220,11 @@ const MovieDetails: React.FC = () => {
                       <Clock className="w-4 h-4" />
                       {formatRuntime(movie.runtime)}
                     </div>
+                    {getCertification() && (
+                      <Badge variant="outline" className="border-primary/40 text-primary bg-primary/10 px-2 py-0.5 font-bold text-xs">
+                        {getCertification()}
+                      </Badge>
+                    )}
                     <div className="flex items-center gap-2">
                       <Star className="w-4 h-4 text-primary" />
                       {movie.vote_average.toFixed(1)} ({movie.vote_count}{' '}
@@ -287,23 +317,10 @@ const MovieDetails: React.FC = () => {
             </div>
           )}
 
-        {/* Galeria de Vídeos (todos os vídeos disponíveis) */}
+        {/* Galeria de Vídeos (Carrossel Otimizado) */}
         {movie.videos?.results?.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xl font-bold text-primary mb-4">Vídeos</h2>
-            <div className="flex flex-wrap gap-4 overflow-x-auto pb-2">
-              {movie.videos.results.map((video: any) => (
-                <iframe
-                  key={video.key}
-                  width="320"
-                  height="180"
-                  src={`https://www.youtube.com/embed/${video.key}`}
-                  title={video.name}
-                  className="rounded-lg shadow-cinema"
-                  allowFullScreen
-                />
-              ))}
-            </div>
+            <VideoCarousel videos={movie.videos.results} />
           </div>
         )}
 
@@ -385,7 +402,7 @@ const MovieDetails: React.FC = () => {
                     {movie.credits.cast.slice(0, 12).map((person: any) => (
                       <div
                         key={person.id}
-                        className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50 hover:bg-secondary/70 transition-colors cursor-pointer"
+                        className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-br from-secondary/50 to-secondary/10 backdrop-blur-md border border-primary/20 hover:border-primary/40 hover:shadow-md transition-all cursor-pointer group"
                         onClick={() =>
                           navigate(
                             `/pessoa/${person.id}?name=${encodeURIComponent(
@@ -434,7 +451,7 @@ const MovieDetails: React.FC = () => {
                       .map((person: any, index: number) => (
                         <div
                           key={`${person.id}-${index}`}
-                          className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50 hover:bg-secondary/70 transition-colors cursor-pointer"
+                          className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-br from-secondary/50 to-secondary/10 backdrop-blur-md border border-primary/20 hover:border-primary/40 hover:shadow-md transition-all cursor-pointer group"
                           onClick={() =>
                             navigate(
                               `/pessoa/${person.id}?name=${encodeURIComponent(
@@ -462,8 +479,6 @@ const MovieDetails: React.FC = () => {
                 </CardContent>
               </Card>
             )}
-
-            <TrailerPlayer videos={movie.videos} />
 
             {/* Reviews Section */}
             <ReviewsList id={Number(id)} type="movie" />

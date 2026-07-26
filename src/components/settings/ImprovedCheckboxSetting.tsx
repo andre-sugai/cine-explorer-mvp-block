@@ -49,7 +49,7 @@ export const ImprovedCheckboxSetting: React.FC<ImprovedCheckboxSettingProps> = (
   };
 
   return (
-    <div className="p-4 bg-secondary/30 rounded-lg border border-primary/20 transition-all duration-200 hover:bg-secondary/40">
+    <div className="p-4 bg-gradient-to-br from-secondary/50 to-secondary/10 backdrop-blur-md rounded-xl border border-primary/20 transition-all duration-300 hover:bg-secondary/40 hover:shadow-md hover:border-primary/40 group">
       <div className="flex items-center justify-between gap-4">
         {/* Conteúdo à esquerda */}
         <div className="flex-1 space-y-1">

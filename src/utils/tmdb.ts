@@ -355,6 +355,8 @@ export interface TMDBMovie {
   adult: boolean;
   original_language: string;
   popularity: number;
+  tagline?: string;
+  release_dates?: any;
 }
 
 export interface TMDBTVShow {
@@ -541,7 +543,7 @@ export const getMovieDetails = async (id: number) => {
     }
 
     const url = buildApiUrl(`/movie/${id}`, {
-      append_to_response: 'credits,videos,recommendations,similar,keywords',
+      append_to_response: 'credits,videos,recommendations,similar,keywords,release_dates',
     });
 
     const response = await fetchWithQuota(url);

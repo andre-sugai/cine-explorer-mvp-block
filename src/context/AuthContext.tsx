@@ -12,6 +12,7 @@ interface AuthContextData {
   register: (email: string, password: string) => Promise<{ error: any }>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: any }>;
+  updatePassword: (password: string) => Promise<{ error: any }>;
 }
 
 const AuthContext = createContext<AuthContextData | undefined>(undefined);
@@ -165,6 +166,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const updatePassword = async (password: string) => {
+    try {
+      setIsLoading(true);
+      const { error } = await supabase.auth.updateUser({
+        password: password
+      });
+
+      if (error) {
+        toast({
+          title: "Erro ao atualizar senha",
+          description: getErrorMessage(error.message),
+          variant: "destructive",
+        });
+      }
+
+      return { error };
+    } catch (error: any) {
+      toast({
+        title: "Erro inesperado",
+        description: "Ocorreu um erro ao atualizar sua senha.",
+        variant: "destructive",
+      });
+      return { error };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const getErrorMessage = (error: string): string => {
     switch (error) {
       case 'Invalid login credentials':
@@ -197,6 +226,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         register,
         logout,
         resetPassword,
+        updatePassword,
       }}
     >
       {children}

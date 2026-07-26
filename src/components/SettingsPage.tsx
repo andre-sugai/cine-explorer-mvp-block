@@ -132,7 +132,7 @@ export const SettingsPage: React.FC = () => {
     clearAllWatched,
     getStats: getWatchedStats,
   } = useWatchedContext();
-  const { user, logout } = useAuth();
+  const { user, logout, updatePassword } = useAuth();
   const { deleteProfileImage, extractFileNameFromUrl } = useProfileImage();
   const { settings, updateSetting, updateSettings } = useSettingsContext();
   const { isSyncEnabled, setSyncMode } = useSyncContext();
@@ -277,8 +277,8 @@ export const SettingsPage: React.FC = () => {
   const removeProfileImage = async () => {
     try {
       // Se há uma imagem atual, remove do Supabase Storage
-      if (profile.profileImage && profile.profileImage.includes('supabase')) {
-        const fileName = extractFileNameFromUrl(profile.profileImage);
+      if (localProfile.profileImage && localProfile.profileImage.includes('supabase')) {
+        const fileName = extractFileNameFromUrl(localProfile.profileImage);
         if (fileName) {
           await deleteProfileImage(fileName);
         }
@@ -286,7 +286,7 @@ export const SettingsPage: React.FC = () => {
 
       // Atualiza o estado
       const newProfile = {
-        ...profile,
+        ...localProfile,
         profileImage: '',
       };
       updateSetting('user_profile', newProfile);
@@ -304,19 +304,11 @@ export const SettingsPage: React.FC = () => {
     }
   };
 
-  /**
-   * Atualiza a imagem de perfil
-   */
   const updateProfileImage = (imageUrl: string) => {
     const newProfile = {
-      ...profile,
+      ...localProfile,
       profileImage: imageUrl,
     };
-    // We don't save immediately here, just update local state if we were using local state
-    // But since we are using context, we should probably update context
-    // Ideally we might want a local state for the form and only save on "Save", 
-    // but for image upload it usually saves immediately.
-    // Let's update the setting immediately for image upload as it is a separate action
     updateSetting('user_profile', newProfile);
   };
 
@@ -358,21 +350,21 @@ export const SettingsPage: React.FC = () => {
 
     setIsChangingPassword(true);
     try {
-      // Aqui você implementaria a lógica real de troca de senha
-      // Por enquanto, apenas simula o processo
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const { error } = await updatePassword(passwordForm.newPassword);
 
-      toast({
-        title: 'Senha alterada!',
-        description: 'Sua senha foi atualizada com sucesso.',
-      });
+      if (!error) {
+        toast({
+          title: 'Senha alterada!',
+          description: 'Sua senha foi atualizada com sucesso.',
+        });
 
-      setPasswordForm({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-      });
-      setShowPasswordDialog(false);
+        setPasswordForm({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: '',
+        });
+        setShowPasswordDialog(false);
+      }
     } catch (error) {
       toast({
         title: 'Erro ao alterar senha',
@@ -693,46 +685,48 @@ export const SettingsPage: React.FC = () => {
               </div>
 
               {/* Limpeza de Dados */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-primary">
-                  Limpeza de Dados
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Button
-                    onClick={() => {
-                      setClearType('favorites');
-                      setShowClearDialog(true);
-                    }}
-                    variant="outline"
-                    className="flex items-center gap-2 text-red-500 hover:text-red-600"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Limpar Favoritos
-                  </Button>
+              <div className="space-y-4 p-6 bg-gradient-to-br from-red-500/10 to-red-500/5 backdrop-blur-md rounded-xl border border-red-500/20 relative overflow-hidden">
+                <div className="relative z-10">
+                  <h3 className="text-lg font-semibold text-red-400 mb-4">
+                    Área de Risco
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Button
+                      onClick={() => {
+                        setClearType('favorites');
+                        setShowClearDialog(true);
+                      }}
+                      variant="outline"
+                      className="flex items-center gap-2 text-red-400 border-red-500/30 hover:bg-red-500/10 hover:text-red-300"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Limpar Favoritos
+                    </Button>
 
-                  <Button
-                    onClick={() => {
-                      setClearType('watched');
-                      setShowClearDialog(true);
-                    }}
-                    variant="outline"
-                    className="flex items-center gap-2 text-red-500 hover:text-red-600"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Limpar Assistidos
-                  </Button>
+                    <Button
+                      onClick={() => {
+                        setClearType('watched');
+                        setShowClearDialog(true);
+                      }}
+                      variant="outline"
+                      className="flex items-center gap-2 text-red-400 border-red-500/30 hover:bg-red-500/10 hover:text-red-300"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Limpar Assistidos
+                    </Button>
 
-                  <Button
-                    onClick={() => {
-                      setClearType('all');
-                      setShowClearDialog(true);
-                    }}
-                    variant="outline"
-                    className="flex items-center gap-2 text-red-500 hover:text-red-600"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Limpar Tudo
-                  </Button>
+                    <Button
+                      onClick={() => {
+                        setClearType('all');
+                        setShowClearDialog(true);
+                      }}
+                      variant="outline"
+                      className="flex items-center gap-2 text-red-400 border-red-500/30 hover:bg-red-500/20 hover:text-red-300 font-bold"
+                    >
+                      <AlertTriangle className="w-4 h-4" />
+                      Limpar Tudo
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -843,7 +837,7 @@ export const SettingsPage: React.FC = () => {
                   Foto de Perfil
                 </h3>
                 <ProfileImageUpload
-                  currentImage={profile.profileImage}
+                  currentImage={localProfile.profileImage}
                   onImageUpdate={updateProfileImage}
                   onImageRemove={removeProfileImage}
                 />
@@ -861,7 +855,7 @@ export const SettingsPage: React.FC = () => {
                       id="email"
                       value={user?.email || 'Não logado'}
                       disabled
-                      className="bg-secondary/30"
+                      className="bg-secondary/10 border-primary/10 text-muted-foreground opacity-70"
                     />
                   </div>
                   <div className="space-y-2">
@@ -873,6 +867,7 @@ export const SettingsPage: React.FC = () => {
                       onChange={(e) =>
                         handleLocalProfileChange('nickname', e.target.value)
                       }
+                      className="bg-secondary/20 border-primary/10 hover:border-primary/30 focus:border-primary/50 focus:ring-primary/20 transition-all backdrop-blur-sm"
                     />
                   </div>
                 </div>
@@ -886,6 +881,7 @@ export const SettingsPage: React.FC = () => {
                       handleLocalProfileChange('bio', e.target.value)
                     }
                     rows={4}
+                    className="bg-secondary/20 border-primary/10 hover:border-primary/30 focus:border-primary/50 focus:ring-primary/20 transition-all backdrop-blur-sm resize-none"
                   />
                 </div>
               </div>
@@ -911,7 +907,7 @@ export const SettingsPage: React.FC = () => {
                       onChange={(e) =>
                         handleLocalSocialMediaChange('instagram', e.target.value)
                       }
-                      className="bg-secondary/30 border-primary/20"
+                      className="bg-secondary/20 border-primary/10 hover:border-primary/30 focus:border-primary/50 focus:ring-primary/20 transition-all backdrop-blur-sm"
                     />
                   </div>
                   <div className="space-y-2">
@@ -929,7 +925,7 @@ export const SettingsPage: React.FC = () => {
                       onChange={(e) =>
                         handleLocalSocialMediaChange('twitter', e.target.value)
                       }
-                      className="bg-secondary/30 border-primary/20"
+                      className="bg-secondary/20 border-primary/10 hover:border-primary/30 focus:border-primary/50 focus:ring-primary/20 transition-all backdrop-blur-sm"
                     />
                   </div>
                   <div className="space-y-2">
@@ -947,7 +943,7 @@ export const SettingsPage: React.FC = () => {
                       onChange={(e) =>
                         handleLocalSocialMediaChange('facebook', e.target.value)
                       }
-                      className="bg-secondary/30 border-primary/20"
+                      className="bg-secondary/20 border-primary/10 hover:border-primary/30 focus:border-primary/50 focus:ring-primary/20 transition-all backdrop-blur-sm"
                     />
                   </div>
                   <div className="space-y-2">
@@ -965,7 +961,7 @@ export const SettingsPage: React.FC = () => {
                       onChange={(e) =>
                         handleLocalSocialMediaChange('linkedin', e.target.value)
                       }
-                      className="bg-secondary/30 border-primary/20"
+                      className="bg-secondary/20 border-primary/10 hover:border-primary/30 focus:border-primary/50 focus:ring-primary/20 transition-all backdrop-blur-sm"
                     />
                   </div>
                   <div className="space-y-2">
@@ -983,7 +979,7 @@ export const SettingsPage: React.FC = () => {
                       onChange={(e) =>
                         handleLocalSocialMediaChange('youtube', e.target.value)
                       }
-                      className="bg-secondary/30 border-primary/20"
+                      className="bg-secondary/20 border-primary/10 hover:border-primary/30 focus:border-primary/50 focus:ring-primary/20 transition-all backdrop-blur-sm"
                     />
                   </div>
                   <div className="space-y-2">
@@ -1001,7 +997,7 @@ export const SettingsPage: React.FC = () => {
                       onChange={(e) =>
                         handleLocalSocialMediaChange('website', e.target.value)
                       }
-                      className="bg-secondary/30 border-primary/20"
+                      className="bg-secondary/20 border-primary/10 hover:border-primary/30 focus:border-primary/50 focus:ring-primary/20 transition-all backdrop-blur-sm"
                     />
                   </div>
                 </div>
@@ -1071,7 +1067,7 @@ export const SettingsPage: React.FC = () => {
                   <Button
                     onClick={() => setShowPasswordDialog(true)}
                     variant="outline"
-                    className="flex items-center gap-2"
+                    className="flex items-center justify-center gap-2"
                   >
                     <Lock className="w-4 h-4" />
                     Trocar Senha
@@ -1079,16 +1075,21 @@ export const SettingsPage: React.FC = () => {
                   <Button
                     onClick={logout}
                     variant="outline"
-                    className="flex items-center gap-2"
+                    className="flex items-center justify-center gap-2"
                   >
                     <LogOut className="w-4 h-4" />
                     Sair da Conta
                   </Button>
-                </div>
-                <div className="flex justify-center">
                   <Button
+                    onClick={() => {
+                      toast({
+                        title: 'Excluir conta',
+                        description: 'Para excluir sua conta definitivamente, envie um e-mail para suporte@cineexplorer.com',
+                        variant: 'destructive',
+                      });
+                    }}
                     variant="outline"
-                    className="flex items-center gap-2 text-red-500 hover:text-red-600"
+                    className="flex items-center justify-center gap-2 text-red-400 border-red-500/30 hover:bg-red-500/10 hover:text-red-300"
                   >
                     <Trash2 className="w-4 h-4" />
                     Excluir Conta
