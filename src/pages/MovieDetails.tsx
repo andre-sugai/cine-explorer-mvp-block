@@ -305,6 +305,7 @@ const MovieDetails: React.FC = () => {
             images={images.posters}
             maxThumbs={15}
             title="Cartazes Oficiais"
+            isPoster={true}
           />
         )}
 

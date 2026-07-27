@@ -21,6 +21,7 @@ interface ImageGalleryModalProps {
   type?: 'movie' | 'tv';
   prefetchedImages?: any[];
   initialIndex?: number;
+  isPoster?: boolean;
 }
 
 export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
@@ -32,6 +33,7 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
   type,
   prefetchedImages,
   initialIndex = 0,
+  isPoster = false,
 }) => {
   const [images, setImages] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -195,10 +197,10 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
                   positionClasses = "z-30 scale-100 translate-x-0 opacity-100 shadow-2xl shadow-black/80 ring-1 ring-white/20";
                   isVisible = true;
                 } else if (diff === 1) {
-                  positionClasses = "z-20 scale-[0.80] translate-x-[75%] md:translate-x-[85%] opacity-40 hover:opacity-100 cursor-pointer shadow-xl";
+                  positionClasses = "z-20 scale-[0.80] translate-x-[75%] md:translate-x-[85%] opacity-25 brightness-50 hover:opacity-100 hover:brightness-100 cursor-pointer shadow-xl";
                   isVisible = true;
                 } else if (diff === -1) {
-                  positionClasses = "z-20 scale-[0.80] -translate-x-[75%] md:-translate-x-[85%] opacity-40 hover:opacity-100 cursor-pointer shadow-xl";
+                  positionClasses = "z-20 scale-[0.80] -translate-x-[75%] md:-translate-x-[85%] opacity-25 brightness-50 hover:opacity-100 hover:brightness-100 cursor-pointer shadow-xl";
                   isVisible = true;
                 }
 
@@ -207,7 +209,9 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
                     key={img.file_path + idx}
                     className={cn(
                       "absolute transition-all duration-500 ease-out flex items-center justify-center",
-                      isFullscreen ? "w-[90%] md:w-[75%] h-[85%]" : "w-[85%] md:w-[65%] max-w-[900px] h-[80%]",
+                      isFullscreen 
+                        ? (isPoster ? "w-[75%] md:w-[35%] max-w-[550px] h-[95%]" : "w-[95%] md:w-[80%] h-[90%]")
+                        : (isPoster ? "w-[75%] md:w-[45%] max-w-[600px] h-[90%]" : "w-[90%] md:w-[75%] max-w-[1000px] h-[85%]"),
                       positionClasses
                     )}
                     onClick={(e) => {

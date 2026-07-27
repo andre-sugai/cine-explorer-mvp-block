@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { buildImageUrl } from '@/utils/tmdb';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Image as ImageIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { ImageGalleryModal } from './ImageGalleryModal';
 
 interface ImageGalleryProps {
@@ -11,6 +12,7 @@ interface ImageGalleryProps {
   maxThumbs?: number;
   onImageClick?: (index: number) => void;
   title?: string;
+  isPoster?: boolean;
 }
 
 export const ImageGallery: React.FC<ImageGalleryProps> = ({
@@ -20,6 +22,7 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({
   maxThumbs = 10,
   onImageClick,
   title = 'Galeria',
+  isPoster = false,
 }) => {
   const [openModal, setOpenModal] = useState(false);
   const [initialIndex, setInitialIndex] = useState(0);
@@ -49,10 +52,13 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({
             {images.slice(0, maxThumbs).map((img, idx) => (
               <div
                 key={img.file_path + idx}
-                className="relative flex-none w-64 group cursor-pointer rounded-lg overflow-hidden snap-start"
+                className={cn(
+                  "relative flex-none group cursor-pointer rounded-lg overflow-hidden snap-start",
+                  isPoster ? "w-40 md:w-48" : "w-64 md:w-80"
+                )}
                 onClick={() => handleImageClick(idx)}
               >
-                <div className="aspect-video w-full bg-secondary/30 relative">
+                <div className={cn("w-full bg-secondary/30 relative", isPoster ? "aspect-[2/3]" : "aspect-video")}>
                   <img
                     src={buildImageUrl(img.file_path, size)}
                     alt={alt}
@@ -74,6 +80,7 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({
           title={title}
           prefetchedImages={images}
           initialIndex={initialIndex}
+          isPoster={isPoster}
         />
       )}
     </>
