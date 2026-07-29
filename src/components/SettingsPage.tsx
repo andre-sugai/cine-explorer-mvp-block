@@ -49,6 +49,7 @@ import {
 import { getWatchProviders, buildImageUrl } from '@/utils/tmdb';
 import { useDataManager } from '@/hooks/useDataManager';
 import { useFavoritesContext } from '@/context/FavoritesContext';
+import { supabase } from '@/integrations/supabase/client';
 import { useWatchedContext } from '@/context/WatchedContext';
 import { useAuth } from '@/context/AuthContext';
 import { useProfileImage } from '@/hooks/useProfileImage';
@@ -312,6 +313,42 @@ export const SettingsPage: React.FC = () => {
     updateSetting('user_profile', newProfile);
   };
 
+  const removeCoverImage = async () => {
+    if (!localProfile.coverImage) return;
+
+    try {
+      const fileName = extractFileNameFromUrl(localProfile.coverImage);
+      if (fileName) {
+        await deleteProfileImage(fileName);
+      }
+
+      const newProfile = {
+        ...localProfile,
+        coverImage: '',
+      };
+      updateSetting('user_profile', newProfile);
+
+      toast({
+        title: 'Imagem de capa removida',
+        description: 'Sua capa foi removida.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Erro ao remover capa',
+        description: 'Não foi possível remover a capa do servidor.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const updateCoverImage = (imageUrl: string) => {
+    const newProfile = {
+      ...localProfile,
+      coverImage: imageUrl,
+    };
+    updateSetting('user_profile', newProfile);
+  };
+
   /**
    * Altera a senha do usuário
    */
@@ -420,16 +457,48 @@ export const SettingsPage: React.FC = () => {
     setIsSavingProfile(true);
     try {
       await updateSetting('user_profile', localProfile);
+      
+      // Save to public_profiles if user is logged in
+      if (user) {
+        const { error } = await supabase.from('public_profiles').upsert({
+          id: user.id,
+          username: localProfile.username || user.id.substring(0, 8),
+          nickname: localProfile.nickname,
+          bio: localProfile.bio,
+          profile_image: localProfile.profileImage,
+          cover_image: localProfile.coverImage,
+          social_media: localProfile.socialMedia,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'id' });
+
+        if (error) {
+          console.error("Erro ao salvar perfil público:", error);
+          if (error.code === '42P01') {
+            throw new Error("TABLE_MISSING");
+          }
+          throw error;
+        }
+      }
+
       toast({
         title: 'Perfil atualizado!',
         description: 'Suas informações foram salvas com sucesso.',
       });
-    } catch (error) {
-      toast({
-        title: 'Erro ao salvar perfil',
-        description: 'Não foi possível salvar suas informações.',
-        variant: 'destructive',
-      });
+    } catch (error: any) {
+      console.error("Erro capturado no saveLocalProfile:", error);
+      if (error?.message === "TABLE_MISSING") {
+        toast({
+          title: 'Falta configurar o Banco!',
+          description: 'Você precisa rodar o script SQL no Supabase para criar a tabela de perfis públicos.',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Erro ao salvar perfil',
+          description: `Erro: ${error?.message || error?.details || JSON.stringify(error) || 'Desconhecido'}`,
+          variant: 'destructive',
+        });
+      }
     } finally {
       setIsSavingProfile(false);
     }
@@ -547,15 +616,8 @@ export const SettingsPage: React.FC = () => {
         colorScheme="primary"
       />
 
-      <Tabs defaultValue="settings" className="w-full">
+      <Tabs defaultValue="profile" className="w-full">
         <TabsList className="grid w-full grid-cols-3 bg-gradient-cinema border-primary/20">
-          <TabsTrigger
-            value="settings"
-            className="flex items-center gap-2 data-[state=active]:bg-gradient-gold data-[state=active]:text-cinema-dark"
-          >
-            <Cog className="w-4 h-4" />
-            Configurações
-          </TabsTrigger>
           <TabsTrigger
             value="profile"
             className="flex items-center gap-2 data-[state=active]:bg-gradient-gold data-[state=active]:text-cinema-dark"
@@ -571,8 +633,15 @@ export const SettingsPage: React.FC = () => {
             <Tv className="w-4 h-4" />
             Meus Streamings
           </TabsTrigger>
-        </TabsList>
 
+          <TabsTrigger
+            value="settings"
+            className="flex items-center gap-2 data-[state=active]:bg-gradient-gold data-[state=active]:text-cinema-dark"
+          >
+            <Cog className="w-4 h-4" />
+            Configurações
+          </TabsTrigger>
+        </TabsList>
 
         {/* Aba de Configurações de Funcionamento */}
         <TabsContent value="settings" className="space-y-6">
@@ -831,6 +900,19 @@ export const SettingsPage: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Imagem de Capa */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-primary">
+                  Imagem de Capa
+                </h3>
+                <ProfileImageUpload
+                  currentImage={localProfile.coverImage}
+                  onImageUpdate={updateCoverImage}
+                  onImageRemove={removeCoverImage}
+                  type="cover"
+                />
+              </div>
+
               {/* Foto de Perfil */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-primary">
@@ -840,6 +922,7 @@ export const SettingsPage: React.FC = () => {
                   currentImage={localProfile.profileImage}
                   onImageUpdate={updateProfileImage}
                   onImageRemove={removeProfileImage}
+                  type="profile"
                 />
               </div>
 
@@ -850,6 +933,21 @@ export const SettingsPage: React.FC = () => {
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
+                    <Label htmlFor="username">Nome de Usuário (@username)</Label>
+                    <Input
+                      id="username"
+                      placeholder="seu_nome_de_usuario"
+                      value={localProfile.username || ''}
+                      onChange={(e) =>
+                        handleLocalProfileChange('username', e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))
+                      }
+                      className="bg-secondary/20 border-primary/10 hover:border-primary/30 focus:border-primary/50 focus:ring-primary/20 transition-all backdrop-blur-sm"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Link do perfil: {window.location.origin}/u/{localProfile.username || 'usuario'}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
                     <Input
                       id="email"
@@ -858,19 +956,21 @@ export const SettingsPage: React.FC = () => {
                       className="bg-secondary/10 border-primary/10 text-muted-foreground opacity-70"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="nickname">Apelido</Label>
-                    <Input
-                      id="nickname"
-                      placeholder="Como você quer ser chamado"
-                      value={localProfile.nickname}
-                      onChange={(e) =>
-                        handleLocalProfileChange('nickname', e.target.value)
-                      }
-                      className="bg-secondary/20 border-primary/10 hover:border-primary/30 focus:border-primary/50 focus:ring-primary/20 transition-all backdrop-blur-sm"
-                    />
-                  </div>
                 </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="nickname">Apelido</Label>
+                  <Input
+                    id="nickname"
+                    placeholder="Como você quer ser chamado"
+                    value={localProfile.nickname}
+                    onChange={(e) =>
+                      handleLocalProfileChange('nickname', e.target.value)
+                    }
+                    className="bg-secondary/20 border-primary/10 hover:border-primary/30 focus:border-primary/50 focus:ring-primary/20 transition-all backdrop-blur-sm"
+                  />
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="bio">Biografia</Label>
                   <Textarea

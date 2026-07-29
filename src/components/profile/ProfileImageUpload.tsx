@@ -9,12 +9,14 @@ interface ProfileImageUploadProps {
   currentImage?: string;
   onImageUpdate: (imageUrl: string) => void;
   onImageRemove: () => void;
+  type?: 'profile' | 'cover';
 }
 
 export const ProfileImageUpload: React.FC<ProfileImageUploadProps> = ({
   currentImage,
   onImageUpdate,
-  onImageRemove
+  onImageRemove,
+  type = 'profile'
 }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [preview, setPreview] = useState<string>('');
@@ -76,7 +78,7 @@ export const ProfileImageUpload: React.FC<ProfileImageUploadProps> = ({
 
     setIsUploading(true);
     try {
-      const imageUrl = await uploadProfileImage(file);
+      const imageUrl = await uploadProfileImage(file, type);
       onImageUpdate(imageUrl);
       
       toast({
@@ -114,11 +116,11 @@ export const ProfileImageUpload: React.FC<ProfileImageUploadProps> = ({
       {/* Preview da imagem atual ou nova */}
       <div className="flex items-center gap-4">
         <div className="relative">
-          <div className="w-20 h-20 rounded-full overflow-hidden bg-secondary/30 border-2 border-primary/20">
+          <div className={type === 'cover' ? "w-48 h-24 rounded-lg overflow-hidden bg-secondary/30 border-2 border-primary/20" : "w-20 h-20 rounded-full overflow-hidden bg-secondary/30 border-2 border-primary/20"}>
             {(preview || currentImage) ? (
               <img
                 src={preview || currentImage}
-                alt="Foto de perfil"
+                alt={type === 'cover' ? "Foto de capa" : "Foto de perfil"}
                 className="w-full h-full object-cover"
               />
             ) : (
@@ -205,8 +207,8 @@ export const ProfileImageUpload: React.FC<ProfileImageUploadProps> = ({
       {/* Informações */}
       <div className="text-xs text-muted-foreground text-center space-y-1">
         <p>Formatos: JPG, PNG, WebP</p>
-        <p>Tamanho máximo: 10MB (será comprimido para &lt;1MB)</p>
-        <p>Dimensões recomendadas: 400x400px</p>
+        <p>Tamanho máximo: 10MB (será comprimido)</p>
+        <p>Dimensões recomendadas: {type === 'cover' ? '1920x1080px' : '400x400px'}</p>
       </div>
     </div>
   );

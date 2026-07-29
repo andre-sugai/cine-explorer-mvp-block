@@ -9,11 +9,12 @@ export const useProfileImage = () => {
   const { user } = useAuth();
 
   /**
-   * Faz upload de uma imagem de perfil com compressão automática
+   * Faz upload de uma imagem de perfil ou capa com compressão automática
    * @param file - Arquivo de imagem original
+   * @param type - Tipo da imagem ('profile' ou 'cover')
    * @returns Promise<string> - URL pública da imagem
    */
-  const uploadProfileImage = async (file: File): Promise<string> => {
+  const uploadProfileImage = async (file: File, type: 'profile' | 'cover' = 'profile'): Promise<string> => {
     if (!user) throw new Error('Usuário não autenticado');
 
     // Validações iniciais
@@ -29,19 +30,22 @@ export const useProfileImage = () => {
 
     console.log(`📸 Imagem original: ${formatFileSize(file.size)}`);
 
-    // Comprime a imagem
+    // Comprime a imagem com dimensões diferentes baseadas no tipo
+    const maxWidth = type === 'cover' ? 1920 : 400;
+    const maxHeight = type === 'cover' ? 1080 : 400;
+
     const compressedFile = await compressImage(file, {
-      maxWidth: 400,
-      maxHeight: 400,
+      maxWidth,
+      maxHeight,
       quality: 0.8,
-      maxSizeMB: 1
+      maxSizeMB: type === 'cover' ? 2 : 1
     });
 
     console.log(`🔄 Imagem comprimida: ${formatFileSize(compressedFile.size)}`);
     console.log(`📊 Redução: ${calculateReduction(file.size, compressedFile.size)}`);
 
     // Nome único para o arquivo
-    const fileName = `${user.id}_${Date.now()}.jpg`;
+    const fileName = `${user.id}_${type}_${Date.now()}.jpg`;
 
     // Upload para Supabase Storage
     const { data, error } = await supabase.storage

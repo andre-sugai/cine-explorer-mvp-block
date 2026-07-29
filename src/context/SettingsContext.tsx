@@ -19,9 +19,11 @@ export interface UserSettings {
   recommendations_enabled?: boolean;
   analytics_enabled?: boolean;
   user_profile?: {
+    username?: string;
     nickname: string;
     bio: string;
     profileImage: string;
+    coverImage?: string;
     socialMedia: {
       instagram?: string;
       twitter?: string;

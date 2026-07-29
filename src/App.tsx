@@ -26,58 +26,70 @@ import { CustomListsProvider } from '@/context/CustomListsContext';
 import { SettingsProvider } from '@/context/SettingsContext';
 import { SyncProvider } from '@/context/SyncContext';
 import CustomListsPage from '@/pages/CustomListsPage';
+import PublicProfilePage from '@/pages/PublicProfilePage';
+import { useEffect } from 'react';
+import { syncBlacklistWithSupabase } from '@/utils/adultContentFilter';
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <AuthProvider>
-        <SyncProvider>
-          <DetailNameProvider>
-            <SettingsProvider>
-              <FavoritesProvider>
-                <WantToWatchProvider>
-                  <WatchedProvider>
-                    <CustomListsProvider>
-                      <BrowserRouter>
-                        <Routes>
-                          <Route path="/" element={<Index />} />
-                          <Route path="/busca/:term" element={<SearchResults />} />
-                          <Route path="/filme/:id" element={<MovieDetails />} />
-                          <Route path="/serie/:id" element={<TVShowDetails />} />
-                          <Route path="/colecao/:id" element={<CollectionDetails />} />
-                          <Route path="/pessoa/:id" element={<PersonDetails />} />
-                          <Route path="/favoritos" element={<FavoritesPage />} />
-                          <Route
-                            path="/quero-assistir"
-                            element={<WantToWatchPage />}
-                          />
-                          <Route path="/vistos" element={<WatchedPage />} />
-                          <Route path="/listas" element={<CustomListsPage />} />
-                          <Route
-                            path="/recomendacoes"
-                            element={<RecommendationsPage />}
-                          />
-                          <Route path="/calendario" element={<CalendarPage />} />
-                          <Route path="/configuracoes" element={<SettingsPage />} />
-                          <Route path="/estatisticas" element={<StatisticsPage />} />
-                          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                          <Route path="*" element={<NotFound />} />
-                        </Routes>
-                      </BrowserRouter>
-                    </CustomListsProvider>
-                  </WatchedProvider>
-                </WantToWatchProvider>
-              </FavoritesProvider>
-            </SettingsProvider>
-          </DetailNameProvider>
-        </SyncProvider>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const AppContent = () => {
+  useEffect(() => {
+    // Sincroniza a blacklist global na inicialização do app
+    syncBlacklistWithSupabase();
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <AuthProvider>
+          <SyncProvider>
+            <DetailNameProvider>
+              <SettingsProvider>
+                <FavoritesProvider>
+                  <WantToWatchProvider>
+                    <WatchedProvider>
+                      <CustomListsProvider>
+                        <BrowserRouter>
+                          <Routes>
+                            <Route path="/" element={<Index />} />
+                            <Route path="/busca/:term" element={<SearchResults />} />
+                            <Route path="/filme/:id" element={<MovieDetails />} />
+                            <Route path="/serie/:id" element={<TVShowDetails />} />
+                            <Route path="/colecao/:id" element={<CollectionDetails />} />
+                            <Route path="/pessoa/:id" element={<PersonDetails />} />
+                            <Route path="/favoritos" element={<FavoritesPage />} />
+                            <Route
+                              path="/quero-assistir"
+                              element={<WantToWatchPage />}
+                            />
+                            <Route path="/vistos" element={<WatchedPage />} />
+                            <Route path="/listas" element={<CustomListsPage />} />
+                            <Route
+                              path="/recomendacoes"
+                              element={<RecommendationsPage />}
+                            />
+                            <Route path="/calendario" element={<CalendarPage />} />
+                            <Route path="/configuracoes" element={<SettingsPage />} />
+                            <Route path="/estatisticas" element={<StatisticsPage />} />
+                            <Route path="/u/:username" element={<PublicProfilePage />} />
+                            <Route path="*" element={<NotFound />} />
+                          </Routes>
+                        </BrowserRouter>
+                      </CustomListsProvider>
+                    </WatchedProvider>
+                  </WantToWatchProvider>
+                </FavoritesProvider>
+              </SettingsProvider>
+            </DetailNameProvider>
+          </SyncProvider>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
+
+const App = () => <AppContent />;
 
 export default App;

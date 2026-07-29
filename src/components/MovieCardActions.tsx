@@ -23,6 +23,7 @@ import {
 import SignupInviteModal from '@/components/auth/SignupInviteModal';
 import { TrailerCardModal } from '@/components/TrailerCardModal';
 import { ImageGalleryModal } from '@/components/ImageGalleryModal';
+import { supabase } from '@/integrations/supabase/client';
 
 interface MovieCardActionsProps {
   id: number;
@@ -264,34 +265,63 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
     }
   };
 
-  const handleAddToBlacklist = (e: React.MouseEvent) => {
+  const handleAddToBlacklist = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
-    if (!isAdmin) {
-      toast.error(
-        'Acesso negado: apenas administradores podem modificar a blacklist'
-      );
-      return;
-    }
-
+    if (requireAuth(e)) return;
     if (type === 'person') return;
 
     try {
-      if (isBlacklisted) {
-        removeFromBlacklist(title, user?.email);
-        toast.success(`"${title}" foi removido da blacklist`, {
-          description: 'O filme não será mais bloqueado pelo filtro',
-        });
+      if (isAdmin) {
+        // Admin: gerencia banimento imediato
+        if (isBlacklisted) {
+          removeFromBlacklist(title, user?.email);
+          toast.success(`"${title}" foi removido da blacklist`, {
+            description: 'O filme não será mais bloqueado pelo filtro',
+          });
+        } else {
+          addToBlacklist(title, user?.email);
+          // Opcionalmente, pode salvar no Supabase como 'banned'
+          await supabase.from('reported_movies').upsert({
+            id,
+            title,
+            status: 'banned',
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'id' });
+
+          toast.success(`"${title}" foi banido`, {
+            description: 'O filme foi banido globalmente pelo administrador',
+          });
+        }
       } else {
-        addToBlacklist(title, user?.email);
-        toast.success(`"${title}" foi adicionado à blacklist`, {
-          description: 'O filme será bloqueado pelo filtro de conteúdo adulto',
+        // Usuário normal: apenas denuncia
+        const { data, error } = await supabase.rpc('increment_movie_report', {
+          p_movie_id: id,
+          p_title: title
+        });
+        
+        // Se a function RPC não existir (caso o admin ainda não tenha rodado o SQL),
+        // fazemos um fallback simples (embora sujeito a race conditions, serve como paliativo)
+        if (error) {
+           const { data: existing } = await supabase.from('reported_movies').select('reports_count').eq('id', id).single();
+           const newCount = (existing?.reports_count || 0) + 1;
+           await supabase.from('reported_movies').upsert({
+             id,
+             title,
+             reports_count: newCount,
+             status: newCount >= 2 ? 'banned' : 'pending',
+             updated_at: new Date().toISOString(),
+           }, { onConflict: 'id' });
+        }
+
+        toast.success(`Denúncia enviada!`, {
+          description: 'Agradecemos por ajudar a manter a plataforma limpa.',
         });
       }
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : 'Erro ao modificar blacklist'
+        error instanceof Error ? error.message : 'Erro ao enviar denúncia'
       );
     }
   };
@@ -374,8 +404,8 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
             </button>
           )}
 
-          {/* Botão Blacklist - apenas para administrador André Sugai */}
-          {isAdmin && showBlacklist && (
+          {/* Botão Denunciar / Blacklist */}
+          {showBlacklist && (
             <button
               onClick={handleAddToBlacklist}
               className={`${buttonClass} ${
@@ -384,9 +414,9 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
                   : 'text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20'
               }`}
               title={
-                isBlacklisted
-                  ? 'Remover da blacklist (admin)'
-                  : 'Adicionar à blacklist (admin)'
+                isAdmin
+                  ? (isBlacklisted ? 'Remover da blacklist (admin)' : 'Banir filme (admin)')
+                  : 'Denunciar conteúdo impróprio'
               }
             >
               <TriangleAlert className={iconClass} />

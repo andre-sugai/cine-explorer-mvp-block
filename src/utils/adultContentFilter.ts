@@ -2,6 +2,7 @@
  * Utilitário para filtrar conteúdo adulto (+18)
  * Baseado em padrões identificados em filmes eróticos/adultos
  */
+import { supabase } from '@/integrations/supabase/client';
 
 const ADULT_KEYWORDS = [
   'erotico',
@@ -415,11 +416,26 @@ export const isAdultContent = (item: any): boolean => {
     asianCountries.includes(country)
   );
 
-  if (isAsian) {
-    const popularity = item.popularity || 0;
-    const voteCount = item.vote_count || 0;
-    const voteAverage = item.vote_average || 0;
+  const popularity = item.popularity || 0;
+  const voteCount = item.vote_count || 0;
+  const voteAverage = item.vote_average || 0;
 
+  // FILTRO GERAL DE RELEVÂNCIA (Bloqueia filmes obscuros independentemente do país)
+  // Quase todos os filmes adultos/spam têm vote_count < 5 e popularidade muito baixa.
+  if (!skipKeywordChecks && popularity < 5 && voteCount < 5) {
+    // Para não bloquear filmes super recentes recém adicionados, validamos também a data
+    const releaseYear = item.release_date ? new Date(item.release_date).getFullYear() : 0;
+    const currentYear = new Date().getFullYear();
+    
+    // Se for filme antigo ou do ano passado e tiver < 5 votos, bloqueia.
+    // Se for do ano atual/futuro, damos uma chance a menos que tenha palavras suspeitas.
+    if (releaseYear < currentYear) {
+      console.log(`🔞 BLOQUEIO POR RELEVÂNCIA (Possível Spam/Adulto): "${title}" (pop: ${popularity}, votes: ${voteCount})`);
+      return true;
+    }
+  }
+
+  if (isAsian) {
     // DETECÇÃO para filmes asiáticos (menos agressiva)
     // Só bloqueia se tiver índices de popularidade MUITO baixos E for recente
     // OU se tiver palavras suspeitas (verificado adiante)
@@ -785,3 +801,35 @@ export const isInBlacklist = (title: string): boolean => {
     );
   });
 };
+
+/**
+ * Sincroniza a blacklist local com a do Supabase (tabela reported_movies)
+ * Traz filmes banidos pelo admin ou com 2 ou mais denúncias
+ */
+export const syncBlacklistWithSupabase = async (): Promise<void> => {
+  try {
+    const { data, error } = await supabase
+      .from('reported_movies')
+      .select('title, status, reports_count')
+      .or('status.eq.banned,reports_count.gte.2');
+
+    if (error) {
+      console.warn('Erro ao sincronizar blacklist global:', error);
+      return;
+    }
+
+    if (data && data.length > 0) {
+      const currentTitles = getBlacklistedTitles();
+      const dbTitles = data.map(d => d.title.toLowerCase().trim());
+      
+      // Mesclar listas, sem duplicatas
+      const mergedTitles = Array.from(new Set([...currentTitles, ...dbTitles]));
+      
+      localStorage.setItem('blacklisted_titles', JSON.stringify(mergedTitles));
+      console.log(`✅ Blacklist global sincronizada: ${data.length} filmes bloqueados recuperados.`);
+    }
+  } catch (error) {
+    console.error('Falha ao sincronizar blacklist:', error);
+  }
+};
+
