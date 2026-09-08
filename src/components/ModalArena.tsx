@@ -174,7 +174,7 @@ export const ModalArena: React.FC<{
       .map((m) => m!.id);
       
     if (hideWatched) {
-      const watchedIds = watched.map(w => w.movie_id);
+      const watchedIds = watched.filter(w => w.type === 'movie').map(w => w.id);
       excludeIds = [...excludeIds, ...watchedIds];
     }
     return excludeIds;
