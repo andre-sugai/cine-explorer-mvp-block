@@ -18,11 +18,17 @@ import {
   Tv,
   Film,
   Sparkles,
+  EyeOff,
 } from 'lucide-react';
 import { buildImageUrl, getWatchProviders, getAllGenres, TMDBMovie } from '@/utils/tmdb';
 import { filterAdultContent } from '@/utils/adultContentFilter';
 import confetti from 'canvas-confetti';
 import { MovieCardActions } from './MovieCardActions';
+import { ArenaSearchModal } from './ArenaSearchModal';
+import { Search } from 'lucide-react';
+import { useSettingsContext } from '@/context/SettingsContext';
+import { useWatchedContext } from '@/context/WatchedContext';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface ProviderOption {
   provider_id: number;
@@ -39,14 +45,21 @@ export const ModalArena: React.FC<{
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }> = ({ open, onOpenChange }) => {
+  const { settings } = useSettingsContext();
+  const { watched } = useWatchedContext();
   const [moviesCount, setMoviesCount] = useState<2 | 3 | 4>(2);
   const [movies, setMovies] = useState<(TMDBMovie | null)[]>([null, null, null, null]);
   const [loadingSlots, setLoadingSlots] = useState<boolean[]>([false, false, false, false]);
   const [winnerId, setWinnerId] = useState<number | null>(null);
 
+  // Controle do modal de busca manual
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const [currentSlotToEdit, setCurrentSlotToEdit] = useState<number | null>(null);
+
   // Filtros
   const [selectedGenre, setSelectedGenre] = useState<string>('');
   const [selectedProvider, setSelectedProvider] = useState<string>('');
+  const [hideWatched, setHideWatched] = useState(false);
 
   // Opções para filtros
   const [genres, setGenres] = useState<GenreOption[]>([]);
@@ -77,7 +90,7 @@ export const ModalArena: React.FC<{
   }, [open]);
 
   // Função robusta de busca de filme aleatório com filtros
-  const fetchRandomMovie = async (excludeIds: number[]): Promise<TMDBMovie | null> => {
+  const fetchRandomMovie = async (excludeIds: number[], retries = 3): Promise<TMDBMovie | null> => {
     const apiKey = localStorage.getItem('tmdb_api_key');
     if (!apiKey) return null;
 
@@ -91,7 +104,14 @@ export const ModalArena: React.FC<{
 
     if (selectedGenre) params.with_genres = selectedGenre;
     if (selectedProvider) {
-      params.with_watch_providers = selectedProvider;
+      if (selectedProvider === 'my_streamings') {
+        const myStreamings = settings.my_streamings || [];
+        if (myStreamings.length > 0) {
+          params.with_watch_providers = myStreamings.join('|');
+        }
+      } else {
+        params.with_watch_providers = selectedProvider;
+      }
       params.watch_region = 'BR';
     }
 
@@ -122,14 +142,20 @@ export const ModalArena: React.FC<{
         }
       }
 
-      // Filtrar itens sem pôster e duplicatas atuais
+      // Filtrar itens sem pôster e duplicatas atuais (ou assistidos)
       const available = results.filter(
         (m: TMDBMovie) => m.poster_path && !excludeIds.includes(m.id)
       );
 
       if (available.length > 0) {
         return available[Math.floor(Math.random() * available.length)];
+      } 
+      
+      // Se não sobrou nenhum filme disponível na página sorteada, tentar novamente (até 3 vezes)
+      if (retries > 0 && totalPages > 1) {
+        return fetchRandomMovie(excludeIds, retries - 1);
       } else if (results.length > 0) {
+        // Último fallback: retornar algo mesmo que esteja nos excludeIds (melhor que nada se for a última tentativa)
         const withPoster = results.filter((m: TMDBMovie) => m.poster_path);
         return withPoster.length > 0 ? withPoster[0] : results[0];
       }
@@ -141,6 +167,19 @@ export const ModalArena: React.FC<{
     }
   };
 
+  // Helper para pegar os IDs a excluir
+  const getExcludeIds = (currentMovies: (TMDBMovie | null)[], excludeIndex?: number) => {
+    let excludeIds = currentMovies
+      .filter((m, i) => m !== null && i !== excludeIndex)
+      .map((m) => m!.id);
+      
+    if (hideWatched) {
+      const watchedIds = watched.map(w => w.movie_id);
+      excludeIds = [...excludeIds, ...watchedIds];
+    }
+    return excludeIds;
+  };
+
   // Carregar um filme específico para um slot
   const loadSlot = async (index: number, currentMovies: (TMDBMovie | null)[]) => {
     setLoadingSlots((prev) => {
@@ -149,10 +188,7 @@ export const ModalArena: React.FC<{
       return next;
     });
 
-    const excludeIds = currentMovies
-      .filter((m, i) => m !== null && i !== index)
-      .map((m) => m!.id);
-
+    const excludeIds = getExcludeIds(currentMovies, index);
     const movie = await fetchRandomMovie(excludeIds);
 
     setMovies((prev) => {
@@ -172,6 +208,19 @@ export const ModalArena: React.FC<{
     });
   };
 
+  const handleManualMovieSelect = (movie: TMDBMovie) => {
+    if (currentSlotToEdit === null) return;
+    
+    setMovies((prev) => {
+      const next = [...prev];
+      if (next[currentSlotToEdit]?.id === winnerId) {
+        setWinnerId(null);
+      }
+      next[currentSlotToEdit] = movie;
+      return next;
+    });
+  };
+
   // Carregar todos os slots ativos de uma vez
   const loadAllSlots = async () => {
     setWinnerId(null);
@@ -181,7 +230,7 @@ export const ModalArena: React.FC<{
     const tempMovies: (TMDBMovie | null)[] = [null, null, null, null];
 
     for (let i = 0; i < activeSlotsCount; i++) {
-      const excludeIds = tempMovies.filter((m) => m !== null).map((m) => m!.id);
+      const excludeIds = getExcludeIds(tempMovies);
       const movie = await fetchRandomMovie(excludeIds);
       tempMovies[i] = movie;
     }
@@ -287,6 +336,9 @@ export const ModalArena: React.FC<{
                 className="bg-secondary/50 border border-primary/10 rounded-lg px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               >
                 <option value="">Todos Streamings</option>
+                {settings.my_streamings && settings.my_streamings.length > 0 && (
+                  <option value="my_streamings" className="font-bold text-primary">★ Meus Streamings</option>
+                )}
                 {providers.map((p) => (
                   <option key={p.provider_id} value={p.provider_id}>
                     {p.provider_name}
@@ -310,6 +362,23 @@ export const ModalArena: React.FC<{
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* Checkbox Ocultar Assistidos */}
+            <div className="flex items-center gap-2">
+              <Checkbox 
+                id="hide-watched" 
+                checked={hideWatched}
+                onCheckedChange={(checked) => setHideWatched(!!checked)}
+                className="border-primary/50 data-[state=checked]:bg-primary data-[state=checked]:text-black"
+              />
+              <label 
+                htmlFor="hide-watched" 
+                className="text-sm cursor-pointer hover:text-primary flex items-center gap-1.5"
+              >
+                <EyeOff className="w-3.5 h-3.5" />
+                Ocultar assistidos
+              </label>
             </div>
 
             {/* Botão Aplicar */}
@@ -349,16 +418,30 @@ export const ModalArena: React.FC<{
 
               return (
                 <div key={idx} className="flex flex-col h-full gap-2 min-h-0">
-                  {/* Botão superior para sortear este slot */}
-                  <Button
-                    variant="ghost"
-                    onClick={() => loadSlot(idx, movies)}
-                    disabled={isLoading}
-                    className="w-full bg-secondary/20 hover:bg-secondary/40 border border-primary/5 text-xs text-muted-foreground hover:text-foreground font-semibold py-1.5 h-8 gap-1.5 rounded-lg transition-all flex-shrink-0"
-                  >
-                    <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-                    Sortear Novo
-                  </Button>
+                  {/* Botões superiores para alterar o slot */}
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      onClick={() => loadSlot(idx, movies)}
+                      disabled={isLoading}
+                      className="flex-1 bg-secondary/20 hover:bg-secondary/40 border border-primary/5 text-xs text-muted-foreground hover:text-foreground font-semibold py-1.5 h-8 gap-1.5 rounded-lg transition-all"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+                      Sortear Novo
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        setCurrentSlotToEdit(idx);
+                        setSearchModalOpen(true);
+                      }}
+                      disabled={isLoading}
+                      className="bg-secondary/20 hover:bg-secondary/40 border border-primary/5 text-xs text-muted-foreground hover:text-foreground font-semibold py-1.5 h-8 px-3 rounded-lg transition-all"
+                      title="Definir filme manualmente"
+                    >
+                      <Search className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
 
                   {/* Card do Filme */}
                   <Card
@@ -422,7 +505,7 @@ export const ModalArena: React.FC<{
                             genre_ids={movie.genre_ids}
                             type="movie"
                             showBlacklist={false}
-                            showTrailer={false}
+                            showTrailer={true}
                             showGallery={false}
                             className="flex justify-center items-center gap-3 py-1 border-b border-primary/5"
                           />
@@ -482,6 +565,12 @@ export const ModalArena: React.FC<{
           </div>
         </div>
       </DialogContent>
+
+      <ArenaSearchModal
+        open={searchModalOpen}
+        onOpenChange={setSearchModalOpen}
+        onSelectMovie={handleManualMovieSelect}
+      />
     </Dialog>
   );
 };
