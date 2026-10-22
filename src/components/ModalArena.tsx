@@ -30,6 +30,8 @@ import { Search } from 'lucide-react';
 import { useSettingsContext } from '@/context/SettingsContext';
 import { useWatchedContext } from '@/context/WatchedContext';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Link } from 'react-router-dom';
+import { handleCardLinkClick } from '@/utils/cardNavigation';
 
 interface ProviderOption {
   provider_id: number;
@@ -296,6 +298,26 @@ export const ModalArena: React.FC<{
     handleChangeMoviesCount(moviesCount + 1);
   };
 
+  // Remover um card específico (mantendo no mínimo 2 cards na arena)
+  const handleRemoveSlot = (indexToRemove: number, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (moviesCount <= 2) return;
+
+    setMovies((prev) => {
+      const removedMovie = prev[indexToRemove];
+      if (removedMovie && removedMovie.id === winnerId) {
+        setWinnerId(null);
+      }
+      const next = prev.filter((_, i) => i !== indexToRemove);
+      moviesRef.current = next;
+      return next;
+    });
+
+    setLoadingSlots((prev) => prev.filter((_, i) => i !== indexToRemove));
+    setMoviesCount((prev) => Math.max(2, prev - 1));
+  };
+
   // Carregar os filmes ao abrir o modal
   useEffect(() => {
     if (open) {
@@ -533,6 +555,19 @@ export const ModalArena: React.FC<{
                       </div>
                     )}
 
+                    {/* Botão de Remover Card no canto superior direito (disponível quando há mais de 2 cards) */}
+                    {moviesCount > 2 && (
+                      <button
+                        type="button"
+                        onClick={(e) => handleRemoveSlot(idx, e)}
+                        className="absolute top-2 right-2 z-20 w-7 h-7 rounded-full bg-black/50 hover:bg-red-500/90 text-muted-foreground hover:text-white border border-white/10 hover:border-red-400 flex items-center justify-center transition-all duration-200 shadow-md"
+                        title="Remover este card da arena"
+                        aria-label="Remover este card da arena"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+
                     {isLoading ? (
                       /* Estado de Carregamento do Card */
                       <div className="flex-1 flex flex-col items-center justify-center p-8 bg-black/40">
@@ -541,28 +576,38 @@ export const ModalArena: React.FC<{
                       </div>
                     ) : movie ? (
                       /* Render do Filme */
-                      <div className="flex-1 flex flex-col min-h-0">
-                        {/* Nota IMDb/TMDB em Destaque (Acima do Pôster) */}
-                        {movie.vote_average !== undefined && (
-                          <div className="flex justify-center p-2 bg-secondary/10 border-b border-primary/5 flex-shrink-0">
-                            <Badge className="bg-secondary/40 text-yellow-400 font-black text-xs sm:text-sm border border-yellow-400/25 gap-1.5 py-1 px-3 shadow-md">
-                              <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
-                              {movie.vote_average.toFixed(1)}
-                            </Badge>
-                          </div>
-                        )}
+                      <div className="flex-1 flex flex-col min-h-0 group/arena-card">
+                        <Link
+                          to={`/filme/${movie.id}`}
+                          onClick={(e) =>
+                            handleCardLinkClick(e, `/filme/${movie.id}`, () =>
+                              onOpenChange(false)
+                            )
+                          }
+                          className="flex-1 flex flex-col min-h-0 cursor-pointer text-inherit no-underline after:content-[''] after:absolute after:inset-0 after:z-0"
+                        >
+                          {/* Nota IMDb/TMDB em Destaque (Acima do Pôster) */}
+                          {movie.vote_average !== undefined && (
+                            <div className="flex justify-center p-2 bg-secondary/10 border-b border-primary/5 flex-shrink-0">
+                              <Badge className="bg-secondary/40 text-yellow-400 font-black text-xs sm:text-sm border border-yellow-400/25 gap-1.5 py-1 px-3 shadow-md">
+                                <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
+                                {movie.vote_average.toFixed(1)}
+                              </Badge>
+                            </div>
+                          )}
 
-                        {/* Imagem de Pôster */}
-                        <div className="relative w-full flex-1 min-h-0 bg-secondary/5 flex items-center justify-center p-3">
-                          <div className="relative h-full max-h-[35vh] sm:max-h-[42vh] aspect-[2/3] rounded-md overflow-hidden shadow-lg bg-secondary/35 border border-primary/10">
-                            <img
-                              src={buildImageUrl(movie.poster_path, 'w300')}
-                              alt={movie.title}
-                              className="w-full h-full object-cover"
-                              loading="lazy"
-                            />
+                          {/* Imagem de Pôster */}
+                          <div className="relative w-full flex-1 min-h-0 bg-secondary/5 flex items-center justify-center p-3">
+                            <div className="relative h-full max-h-[35vh] sm:max-h-[42vh] aspect-[2/3] rounded-md overflow-hidden shadow-lg bg-secondary/35 border border-primary/10">
+                              <img
+                                src={buildImageUrl(movie.poster_path, 'w300')}
+                                alt={movie.title}
+                                className="w-full h-full object-cover transition-transform duration-300 group-hover/arena-card:scale-105"
+                                loading="lazy"
+                              />
+                            </div>
                           </div>
-                        </div>
+                        </Link>
 
                         {/* Conteúdo Textual */}
                         <CardContent className="p-4 pt-3 flex-shrink-0 flex flex-col justify-between gap-3">
@@ -582,8 +627,16 @@ export const ModalArena: React.FC<{
                             className="flex justify-center items-center gap-3 py-1 border-b border-primary/5"
                           />
 
-                          <div className="space-y-1 text-center">
-                            <h3 className="text-sm sm:text-base font-black text-foreground line-clamp-2 leading-tight">
+                          <Link
+                            to={`/filme/${movie.id}`}
+                            onClick={(e) =>
+                              handleCardLinkClick(e, `/filme/${movie.id}`, () =>
+                                onOpenChange(false)
+                              )
+                            }
+                            className="relative z-10 space-y-1 text-center cursor-pointer text-inherit no-underline"
+                          >
+                            <h3 className="text-sm sm:text-base font-black text-foreground group-hover/arena-card:text-primary transition-colors line-clamp-2 leading-tight">
                               {movie.title}
                             </h3>
                             {movie.release_date && (
@@ -591,14 +644,17 @@ export const ModalArena: React.FC<{
                                 Ano: {new Date(movie.release_date).getFullYear()}
                               </span>
                             )}
-                          </div>
+                          </Link>
 
                           {/* Botão de Elegibilidade de Vencedor */}
                           <Button
                             variant={isWinner ? 'default' : 'outline'}
-                            onClick={(e) => handleSetWinner(movie.id, e)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSetWinner(movie.id, e);
+                            }}
                             className={`
-                              w-full text-xs font-extrabold h-9 gap-1.5 rounded-lg border-primary/20
+                              relative z-10 w-full text-xs font-extrabold h-9 gap-1.5 rounded-lg border-primary/20
                               ${isWinner 
                                 ? 'bg-gradient-gold text-cinema-dark hover:opacity-95 shadow-glow' 
                                 : 'hover:bg-yellow-400/10 hover:text-yellow-400 hover:border-yellow-400/40'}
