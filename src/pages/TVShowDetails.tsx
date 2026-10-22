@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { handleCardLinkClick } from '@/utils/cardNavigation';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -490,27 +491,31 @@ const TVShowDetails: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {show.credits.cast.slice(0, 12).map((person: any) => (
-                      <div
-                        key={person.id}
-                        className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50 hover:bg-secondary/70 transition-colors cursor-pointer"
-                        onClick={() => navigate(`/pessoa/${person.id}`)}
-                      >
-                        <img
-                          src={buildImageUrl(person.profile_path, 'w185')}
-                          alt={person.name}
-                          className="w-12 h-12 rounded-full object-cover"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-foreground text-sm truncate">
-                            {person.name}
-                          </p>
-                          <p className="text-muted-foreground text-xs truncate">
-                            {person.character}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                    {show.credits.cast.slice(0, 12).map((person: any) => {
+                      const personUrl = `/pessoa/${person.id}`;
+                      return (
+                        <Link
+                          key={person.id}
+                          to={personUrl}
+                          onClick={(e) => handleCardLinkClick(e, personUrl)}
+                          className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50 hover:bg-secondary/70 transition-colors cursor-pointer text-inherit no-underline"
+                        >
+                          <img
+                            src={buildImageUrl(person.profile_path, 'w185')}
+                            alt={person.name}
+                            className="w-12 h-12 rounded-full object-cover"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-foreground text-sm truncate">
+                              {person.name}
+                            </p>
+                            <p className="text-muted-foreground text-xs truncate">
+                              {person.character}
+                            </p>
+                          </div>
+                        </Link>
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>
@@ -523,27 +528,31 @@ const TVShowDetails: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {show.created_by.map((creator: any) => (
-                      <div
-                        key={creator.id}
-                        className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50 hover:bg-secondary/70 transition-colors cursor-pointer"
-                        onClick={() => navigate(`/pessoa/${creator.id}`)}
-                      >
-                        <img
-                          src={buildImageUrl(creator.profile_path, 'w185')}
-                          alt={creator.name}
-                          className="w-12 h-12 rounded-full object-cover"
-                        />
-                        <div>
-                          <p className="font-semibold text-foreground">
-                            {creator.name}
-                          </p>
-                          <p className="text-muted-foreground text-sm">
-                            Criador
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                    {show.created_by.map((creator: any) => {
+                      const creatorUrl = `/pessoa/${creator.id}`;
+                      return (
+                        <Link
+                          key={creator.id}
+                          to={creatorUrl}
+                          onClick={(e) => handleCardLinkClick(e, creatorUrl)}
+                          className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50 hover:bg-secondary/70 transition-colors cursor-pointer text-inherit no-underline"
+                        >
+                          <img
+                            src={buildImageUrl(creator.profile_path, 'w185')}
+                            alt={creator.name}
+                            className="w-12 h-12 rounded-full object-cover"
+                          />
+                          <div>
+                            <p className="font-semibold text-foreground">
+                              {creator.name}
+                            </p>
+                            <p className="text-muted-foreground text-sm">
+                              Criador
+                            </p>
+                          </div>
+                        </Link>
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>

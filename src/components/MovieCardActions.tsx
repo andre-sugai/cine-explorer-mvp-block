@@ -83,8 +83,8 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
   const [galleryModalOpen, setGalleryModalOpen] = useState(false);
 
   const buttonClass = size === 'compact' 
-    ? 'p-1 rounded-full transition-colors min-w-[24px] min-h-[24px] flex items-center justify-center'
-    : 'p-1.5 rounded-full transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center';
+    ? 'relative z-10 p-1 rounded-full transition-colors min-w-[24px] min-h-[24px] flex items-center justify-center'
+    : 'relative z-10 p-1.5 rounded-full transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center';
     
   const iconClass = size === 'compact' ? 'w-3 h-3' : 'w-3.5 h-3.5';
 

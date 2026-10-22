@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { handleCardLinkClick } from '@/utils/cardNavigation';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -247,11 +248,15 @@ const MovieDetails: React.FC = () => {
 
                   {movie.belongs_to_collection && (
                     <div className="mt-6">
-                      <div
-                        className="relative rounded-lg overflow-hidden cursor-pointer group border border-primary/20"
-                        onClick={() =>
-                          navigate(`/colecao/${movie.belongs_to_collection.id}`)
+                      <Link
+                        to={`/colecao/${movie.belongs_to_collection.id}`}
+                        onClick={(e) =>
+                          handleCardLinkClick(
+                            e,
+                            `/colecao/${movie.belongs_to_collection.id}`
+                          )
                         }
+                        className="block text-inherit no-underline relative rounded-lg overflow-hidden cursor-pointer group border border-primary/20"
                       >
                         <div
                           className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
@@ -272,11 +277,11 @@ const MovieDetails: React.FC = () => {
                               {movie.belongs_to_collection.name}
                             </h3>
                           </div>
-                          <Button className="bg-gradient-gold text-cinema-dark hover:opacity-90 shrink-0">
+                          <Button className="bg-gradient-gold text-cinema-dark hover:opacity-90 shrink-0 pointer-events-none">
                             Ver Coleção
                           </Button>
                         </div>
-                      </div>
+                      </Link>
                     </div>
                   )}
 
@@ -391,33 +396,33 @@ const MovieDetails: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {movie.credits.cast.slice(0, 12).map((person: any) => (
-                      <div
-                        key={person.id}
-                        className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-br from-secondary/50 to-secondary/10 backdrop-blur-md border border-primary/20 hover:border-primary/40 hover:shadow-md transition-all cursor-pointer group"
-                        onClick={() =>
-                          navigate(
-                            `/pessoa/${person.id}?name=${encodeURIComponent(
-                              person.name
-                            )}`
-                          )
-                        }
-                      >
-                        <img
-                          src={buildImageUrl(person.profile_path, 'w185')}
-                          alt={person.name}
-                          className="w-12 h-12 rounded-full object-cover"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-foreground text-sm truncate">
-                            {person.name}
-                          </p>
-                          <p className="text-muted-foreground text-xs truncate">
-                            {person.character}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                    {movie.credits.cast.slice(0, 12).map((person: any) => {
+                      const personUrl = `/pessoa/${person.id}?name=${encodeURIComponent(
+                        person.name
+                      )}`;
+                      return (
+                        <Link
+                          key={person.id}
+                          to={personUrl}
+                          onClick={(e) => handleCardLinkClick(e, personUrl)}
+                          className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-br from-secondary/50 to-secondary/10 backdrop-blur-md border border-primary/20 hover:border-primary/40 hover:shadow-md transition-all cursor-pointer group text-inherit no-underline"
+                        >
+                          <img
+                            src={buildImageUrl(person.profile_path, 'w185')}
+                            alt={person.name}
+                            className="w-12 h-12 rounded-full object-cover"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-foreground text-sm truncate">
+                              {person.name}
+                            </p>
+                            <p className="text-muted-foreground text-xs truncate">
+                              {person.character}
+                            </p>
+                          </div>
+                        </Link>
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>
@@ -440,33 +445,33 @@ const MovieDetails: React.FC = () => {
                         ].includes(person.job)
                       )
                       .slice(0, 12)
-                      .map((person: any, index: number) => (
-                        <div
-                          key={`${person.id}-${index}`}
-                          className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-br from-secondary/50 to-secondary/10 backdrop-blur-md border border-primary/20 hover:border-primary/40 hover:shadow-md transition-all cursor-pointer group"
-                          onClick={() =>
-                            navigate(
-                              `/pessoa/${person.id}?name=${encodeURIComponent(
-                                person.name
-                              )}`
-                            )
-                          }
-                        >
-                          <img
-                            src={buildImageUrl(person.profile_path, 'w185')}
-                            alt={person.name}
-                            className="w-12 h-12 rounded-full object-cover"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-foreground text-sm truncate">
-                              {person.name}
-                            </p>
-                            <p className="text-muted-foreground text-xs truncate">
-                              {translateJob(person.job)}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
+                      .map((person: any, index: number) => {
+                        const personUrl = `/pessoa/${person.id}?name=${encodeURIComponent(
+                          person.name
+                        )}`;
+                        return (
+                          <Link
+                            key={`${person.id}-${index}`}
+                            to={personUrl}
+                            onClick={(e) => handleCardLinkClick(e, personUrl)}
+                            className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-br from-secondary/50 to-secondary/10 backdrop-blur-md border border-primary/20 hover:border-primary/40 hover:shadow-md transition-all cursor-pointer group text-inherit no-underline"
+                          >
+                            <img
+                              src={buildImageUrl(person.profile_path, 'w185')}
+                              alt={person.name}
+                              className="w-12 h-12 rounded-full object-cover"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-foreground text-sm truncate">
+                                {person.name}
+                              </p>
+                              <p className="text-muted-foreground text-xs truncate">
+                                {translateJob(person.job)}
+                              </p>
+                            </div>
+                          </Link>
+                        );
+                      })}
                   </div>
                 </CardContent>
               </Card>

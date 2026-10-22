@@ -2,7 +2,8 @@ import React, { useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { buildImageUrl } from '@/utils/tmdb';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { handleCardLinkClick } from '@/utils/cardNavigation';
 
 interface CollectionsGridProps {
   collections: any[];
@@ -17,12 +18,11 @@ export const CollectionsGrid: React.FC<CollectionsGridProps> = ({
   hasMore,
   onLoadMore,
 }) => {
-  const navigate = useNavigate();
   const observerRef = useRef<IntersectionObserver>();
 
   // Infinite scroll observer - dispara um pouco antes do final
   const lastElementRefCallback = useCallback(
-    (node: HTMLDivElement) => {
+    (node: HTMLElement | null) => {
       if (isLoading) return;
       if (observerRef.current) observerRef.current.disconnect();
 
@@ -80,16 +80,18 @@ export const CollectionsGrid: React.FC<CollectionsGridProps> = ({
         {collections.map((collection, index) => {
           // Colocar o observer no penúltimo item para carregar antes
           const isObserverTarget = index === collections.length - 3;
+          const targetUrl = `/colecao/${collection.id}`;
           return (
-            <div
+            <Link
               key={collection.id}
+              to={targetUrl}
+              onClick={(e) => handleCardLinkClick(e, targetUrl)}
               ref={isObserverTarget ? lastElementRefCallback : null}
-              className="relative rounded-lg overflow-hidden cursor-pointer group border border-primary/20 hover:border-primary/40 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 fill-mode-backwards"
+              className="block text-inherit no-underline relative rounded-lg overflow-hidden cursor-pointer group border border-primary/20 hover:border-primary/40 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 fill-mode-backwards"
               style={{
                 minHeight: '140px',
                 animationDelay: `${index * 50}ms`
               }}
-              onClick={() => navigate(`/colecao/${collection.id}`)}
             >
               {/* Background com backdrop da coleção */}
               <div
@@ -123,11 +125,11 @@ export const CollectionsGrid: React.FC<CollectionsGridProps> = ({
                     {collection.parts?.length === 1 ? 'filme' : 'filmes'}
                   </p>
                 </div>
-                <Button className="bg-gradient-gold text-cinema-dark hover:opacity-90 shrink-0 ml-4">
+                <Button className="bg-gradient-gold text-cinema-dark hover:opacity-90 shrink-0 ml-4 pointer-events-none">
                   Ver Coleção
                 </Button>
               </div>
-            </div>
+            </Link>
           );
         })}
 

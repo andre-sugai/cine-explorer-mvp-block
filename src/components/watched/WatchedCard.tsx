@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Star, Calendar, Clock, Trash2, ExternalLink, CheckCircle } from 'lucide-react';
 import { buildImageUrl } from '@/utils/tmdb';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { handleCardLinkClick } from '@/utils/cardNavigation';
 
 interface WatchedItem {
   id: number;
@@ -25,15 +26,7 @@ interface WatchedCardProps {
 }
 
 export const WatchedCard: React.FC<WatchedCardProps> = ({ item, onRemove }) => {
-  const navigate = useNavigate();
-
-  const navigateToDetails = () => {
-    if (item.type === 'movie') {
-      navigate(`/filme/${item.id}`);
-    } else if (item.type === 'tv') {
-      navigate(`/serie/${item.id}`);
-    }
-  };
+  const targetUrl = item.type === 'movie' ? `/filme/${item.id}` : `/serie/${item.id}`;
 
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const target = e.target as HTMLImageElement;
@@ -47,9 +40,10 @@ export const WatchedCard: React.FC<WatchedCardProps> = ({ item, onRemove }) => {
   return (
     <Card className="bg-gradient-cinema border-primary/20 hover:shadow-glow transition-all duration-300 group">
       <CardHeader className="pb-3">
-        <div 
-          className="w-full h-48 bg-secondary/50 rounded-md mb-3 cursor-pointer overflow-hidden relative"
-          onClick={navigateToDetails}
+        <Link 
+          to={targetUrl}
+          onClick={(e) => handleCardLinkClick(e, targetUrl)}
+          className="block w-full h-48 bg-secondary/50 rounded-md mb-3 cursor-pointer overflow-hidden relative text-inherit no-underline"
         >
           {item.poster_path ? (
             <>
@@ -70,12 +64,15 @@ export const WatchedCard: React.FC<WatchedCardProps> = ({ item, onRemove }) => {
               <span className="text-sm text-center px-2">{item.title}</span>
             </div>
           )}
-        </div>
-        <CardTitle 
-          className="text-lg text-primary line-clamp-2 cursor-pointer hover:text-primary/80 transition-colors"
-          onClick={navigateToDetails}
-        >
-          {item.title}
+        </Link>
+        <CardTitle className="text-lg text-primary line-clamp-2 hover:text-primary/80 transition-colors">
+          <Link
+            to={targetUrl}
+            onClick={(e) => handleCardLinkClick(e, targetUrl)}
+            className="text-inherit no-underline block"
+          >
+            {item.title}
+          </Link>
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -109,11 +106,16 @@ export const WatchedCard: React.FC<WatchedCardProps> = ({ item, onRemove }) => {
             <Button
               variant="outline"
               size="sm"
-              onClick={navigateToDetails}
+              asChild
               className="flex-1 text-primary border-primary/20 hover:bg-primary/10"
             >
-              <ExternalLink className="w-4 h-4 mr-2" />
-              Ver detalhes
+              <Link
+                to={targetUrl}
+                onClick={(e) => handleCardLinkClick(e, targetUrl)}
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Ver detalhes
+              </Link>
             </Button>
 
             <Button

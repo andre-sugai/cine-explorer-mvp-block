@@ -4,6 +4,7 @@ import { TMDBContent, buildImageUrl } from '@/utils/tmdb';
 import { useStreamingProvider } from '@/hooks/useStreamingProvider';
 import { Clapperboard } from 'lucide-react';
 import { MovieCardActions } from '@/components/MovieCardActions';
+import { handleCardLinkClick } from '@/utils/cardNavigation';
 
 interface CalendarItemProps {
   item: TMDBContent;
@@ -12,13 +13,15 @@ interface CalendarItemProps {
 // Memoize to prevent unnecessary re-renders during parent updates
 export const CalendarItem = React.memo(({ item }: CalendarItemProps) => {
   const type = item.media_type === 'tv' ? 'tv' : 'movie';
+  const targetUrl = `/${type === 'tv' ? 'serie' : 'filme'}/${item.id}`;
   const provider = useStreamingProvider(item.id, type);
 
   return (
     <div className="flex items-start gap-2 p-1 rounded hover:bg-white/10 transition-colors tooltip-trigger group">
       {/* Poster */}
       <Link
-        to={`/${type === 'tv' ? 'serie' : 'filme'}/${item.id}`}
+        to={targetUrl}
+        onClick={(e) => handleCardLinkClick(e, targetUrl)}
         className="flex-shrink-0"
         title={item.title || item.name}
       >
@@ -34,7 +37,8 @@ export const CalendarItem = React.memo(({ item }: CalendarItemProps) => {
       {/* Info & Actions */}
       <div className="flex-1 min-w-0 flex flex-col gap-0.5">
         <Link
-           to={`/${type === 'tv' ? 'serie' : 'filme'}/${item.id}`}
+           to={targetUrl}
+           onClick={(e) => handleCardLinkClick(e, targetUrl)}
            className="block min-w-0 hover:text-primary transition-colors"
            title={item.title || item.name}
         >

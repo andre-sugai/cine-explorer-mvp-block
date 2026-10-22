@@ -1,11 +1,12 @@
 
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { buildImageUrl } from '@/utils/tmdb';
 import { Film, Tv } from 'lucide-react';
 import { ContentCard } from '@/components/home/ContentCard';
 import { TMDBMovie, TMDBTVShow } from '@/utils/tmdb';
+import { handleCardLinkClick } from '@/utils/cardNavigation';
 
 interface PersonCreditsProps {
   movieCredits?: {
@@ -35,8 +36,6 @@ interface PersonCreditsProps {
 }
 
 const PersonCredits: React.FC<PersonCreditsProps> = ({ movieCredits, tvCredits }) => {
-  const navigate = useNavigate();
-
   const topMovies = movieCredits?.cast
     ?.sort((a, b) => b.popularity - a.popularity)
     ?.slice(0, 8) || [];
@@ -106,31 +105,35 @@ const PersonCredits: React.FC<PersonCreditsProps> = ({ movieCredits, tvCredits }
           </CardHeader>
           <CardContent>
             <div className="space-y-3 max-h-96 overflow-y-auto">
-              {allCredits.slice(0, 20).map((credit, index) => (
-                <div
-                  key={`${credit.id}-${index}`}
-                  className="flex items-center gap-4 p-3 rounded-lg bg-secondary/50 hover:bg-secondary/70 transition-colors cursor-pointer"
-                  onClick={() => navigate(`/${credit.media_type === 'movie' ? 'filme' : 'serie'}/${credit.id}`)}
-                >
-                  <img
-                    src={buildImageUrl(credit.poster_path, 'w185')}
-                    alt={credit.title}
-                    className="w-12 h-16 object-cover rounded"
-                  />
-                  <div className="flex-1">
-                    <p className="font-semibold text-foreground">{credit.title}</p>
-                    {credit.character && (
-                      <p className="text-sm text-muted-foreground">{credit.character}</p>
-                    )}
-                    <p className="text-xs text-muted-foreground">
-                      {credit.release_date ? new Date(credit.release_date).getFullYear() : 'N/A'}
-                    </p>
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {credit.media_type === 'movie' ? 'Filme' : 'Série'}
-                  </div>
-                </div>
-              ))}
+              {allCredits.slice(0, 20).map((credit, index) => {
+                const targetUrl = `/${credit.media_type === 'movie' ? 'filme' : 'serie'}/${credit.id}`;
+                return (
+                  <Link
+                    key={`${credit.id}-${index}`}
+                    to={targetUrl}
+                    onClick={(e) => handleCardLinkClick(e, targetUrl)}
+                    className="flex items-center gap-4 p-3 rounded-lg bg-secondary/50 hover:bg-secondary/70 transition-colors cursor-pointer text-inherit no-underline"
+                  >
+                    <img
+                      src={buildImageUrl(credit.poster_path, 'w185')}
+                      alt={credit.title}
+                      className="w-12 h-16 object-cover rounded"
+                    />
+                    <div className="flex-1">
+                      <p className="font-semibold text-foreground">{credit.title}</p>
+                      {credit.character && (
+                        <p className="text-sm text-muted-foreground">{credit.character}</p>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        {credit.release_date ? new Date(credit.release_date).getFullYear() : 'N/A'}
+                      </p>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {credit.media_type === 'movie' ? 'Filme' : 'Série'}
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
