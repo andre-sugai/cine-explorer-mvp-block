@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,7 @@ import {
   Film,
   Sparkles,
   EyeOff,
+  Plus,
 } from 'lucide-react';
 import { buildImageUrl, getWatchProviders, getAllGenres, TMDBMovie } from '@/utils/tmdb';
 import { filterAdultContent } from '@/utils/adultContentFilter';
@@ -47,9 +48,11 @@ export const ModalArena: React.FC<{
 }> = ({ open, onOpenChange }) => {
   const { settings } = useSettingsContext();
   const { watched } = useWatchedContext();
-  const [moviesCount, setMoviesCount] = useState<2 | 3 | 4>(2);
-  const [movies, setMovies] = useState<(TMDBMovie | null)[]>([null, null, null, null]);
-  const [loadingSlots, setLoadingSlots] = useState<boolean[]>([false, false, false, false]);
+  const [moviesCount, setMoviesCount] = useState<number>(2);
+  const [movies, setMovies] = useState<(TMDBMovie | null)[]>([null, null]);
+  const moviesRef = useRef<(TMDBMovie | null)[]>(movies);
+  moviesRef.current = movies;
+  const [loadingSlots, setLoadingSlots] = useState<boolean[]>([false, false]);
   const [winnerId, setWinnerId] = useState<number | null>(null);
 
   // Controle do modal de busca manual
@@ -198,6 +201,7 @@ export const ModalArena: React.FC<{
         setWinnerId(null);
       }
       next[index] = movie;
+      moviesRef.current = next;
       return next;
     });
 
@@ -217,17 +221,18 @@ export const ModalArena: React.FC<{
         setWinnerId(null);
       }
       next[currentSlotToEdit] = movie;
+      moviesRef.current = next;
       return next;
     });
   };
 
   // Carregar todos os slots ativos de uma vez
-  const loadAllSlots = async () => {
+  const loadAllSlots = async (targetCount = moviesCount) => {
     setWinnerId(null);
-    setLoadingSlots(Array(4).fill(true));
+    setLoadingSlots(Array(targetCount).fill(true));
 
-    const activeSlotsCount = moviesCount;
-    const tempMovies: (TMDBMovie | null)[] = [null, null, null, null];
+    const activeSlotsCount = targetCount;
+    const tempMovies: (TMDBMovie | null)[] = Array(activeSlotsCount).fill(null);
 
     for (let i = 0; i < activeSlotsCount; i++) {
       const excludeIds = getExcludeIds(tempMovies);
@@ -235,20 +240,72 @@ export const ModalArena: React.FC<{
       tempMovies[i] = movie;
     }
 
+    moviesRef.current = tempMovies;
     setMovies(tempMovies);
-    setLoadingSlots(Array(4).fill(false));
+    setLoadingSlots(Array(activeSlotsCount).fill(false));
   };
 
-  // Recarregar os filmes quando o número de slots selecionados mudar
+  // Alterar quantidade de cards preservando os já sorteados quando aumentar
+  const handleChangeMoviesCount = async (newCount: number) => {
+    if (newCount === moviesCount || newCount < 2) return;
+    const prevCount = moviesCount;
+    setMoviesCount(newCount);
+
+    if (newCount < prevCount) {
+      setMovies((prev) => {
+        const sliced = prev.slice(0, newCount);
+        moviesRef.current = sliced;
+        if (winnerId && !sliced.some((m) => m?.id === winnerId)) {
+          setWinnerId(null);
+        }
+        return sliced;
+      });
+      setLoadingSlots((prev) => prev.slice(0, newCount));
+      return;
+    }
+
+    const addedCount = newCount - prevCount;
+    setMovies((prev) => {
+      const next = [...prev.slice(0, prevCount), ...Array(addedCount).fill(null)];
+      moviesRef.current = next;
+      return next;
+    });
+    setLoadingSlots((prev) => [
+      ...prev.slice(0, prevCount),
+      ...Array(addedCount).fill(true),
+    ]);
+
+    for (let i = prevCount; i < newCount; i++) {
+      const excludeIds = getExcludeIds(moviesRef.current, i);
+      const movie = await fetchRandomMovie(excludeIds);
+      setMovies((prev) => {
+        const next = [...prev];
+        next[i] = movie;
+        moviesRef.current = next;
+        return next;
+      });
+      setLoadingSlots((prev) => {
+        const next = [...prev];
+        next[i] = false;
+        return next;
+      });
+    }
+  };
+
+  const handleAddSlot = () => {
+    handleChangeMoviesCount(moviesCount + 1);
+  };
+
+  // Carregar os filmes ao abrir o modal
   useEffect(() => {
     if (open) {
-      loadAllSlots();
+      loadAllSlots(moviesCount);
     }
-  }, [open, moviesCount]);
+  }, [open]);
 
   // Recarregar quando filtros forem alterados
   const handleApplyFilters = () => {
-    loadAllSlots();
+    loadAllSlots(moviesCount);
   };
 
   const handleSetWinner = (movieId: number, e: React.MouseEvent) => {
@@ -295,11 +352,11 @@ export const ModalArena: React.FC<{
           {/* Configuração da Quantidade de Filmes e Ações */}
           <div className="flex items-center gap-3 pr-12">
             <span className="text-sm font-semibold text-muted-foreground mr-1 hidden md:inline">Comparar:</span>
-            <div className="flex bg-secondary/50 rounded-lg p-0.5 border border-primary/5">
+            <div className="flex items-center bg-secondary/50 rounded-lg p-0.5 border border-primary/5">
               {([2, 3, 4] as const).map((count) => (
                 <button
                   key={count}
-                  onClick={() => setMoviesCount(count)}
+                  onClick={() => handleChangeMoviesCount(count)}
                   className={`px-4 py-1.5 rounded-md font-bold text-xs sm:text-sm transition-all duration-200 ${
                     moviesCount === count
                       ? 'bg-gradient-gold text-cinema-dark shadow-md'
@@ -309,6 +366,19 @@ export const ModalArena: React.FC<{
                   {count} Filmes
                 </button>
               ))}
+              {moviesCount > 4 && (
+                <span className="px-4 py-1.5 rounded-md font-bold text-xs sm:text-sm bg-gradient-gold text-cinema-dark shadow-md">
+                  {moviesCount} Filmes
+                </span>
+              )}
+              <button
+                onClick={handleAddSlot}
+                className="px-3 py-1.5 rounded-md font-bold text-xs sm:text-sm text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-200 flex items-center justify-center"
+                title="Adicionar mais um card"
+                aria-label="Adicionar mais um card"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
             </div>
           </div>
 
@@ -393,7 +463,7 @@ export const ModalArena: React.FC<{
 
           {/* Botão de Sortear Tudo */}
           <Button
-            onClick={loadAllSlots}
+            onClick={() => loadAllSlots(moviesCount)}
             className="bg-gradient-gold text-cinema-dark hover:opacity-90 font-bold gap-2 self-end shadow-glow"
           >
             <RefreshCw className="w-4 h-4" />
@@ -402,13 +472,15 @@ export const ModalArena: React.FC<{
         </div>
 
         {/* Gladiadores: Grid Principal preenchendo a tela */}
-        <div className="flex-1 overflow-y-auto md:overflow-hidden p-4 md:p-6 flex flex-col justify-center min-h-0 bg-gradient-cinema/20">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col min-h-0 bg-gradient-cinema/20">
           <div
             className={`
-              grid gap-4 md:gap-6 w-full max-w-7xl mx-auto items-stretch h-full min-h-0
-              ${moviesCount === 2 ? 'grid-cols-1 md:grid-cols-2 max-w-4xl' : ''}
-              ${moviesCount === 3 ? 'grid-cols-1 md:grid-cols-3' : ''}
-              ${moviesCount === 4 ? 'grid-cols-2 md:grid-cols-4' : ''}
+              grid gap-4 md:gap-5 w-full mx-auto items-stretch my-auto
+              ${moviesCount === 2 ? 'grid-cols-1 md:grid-cols-2 max-w-4xl h-full min-h-0' : ''}
+              ${moviesCount === 3 ? 'grid-cols-1 md:grid-cols-3 max-w-6xl h-full min-h-0' : ''}
+              ${moviesCount === 4 ? 'grid-cols-2 md:grid-cols-4 max-w-7xl h-full min-h-0' : ''}
+              ${moviesCount === 5 ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5 max-w-[1600px] h-full min-h-0' : ''}
+              ${moviesCount > 5 ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5 max-w-[1600px] auto-rows-fr' : ''}
             `}
           >
             {Array.from({ length: moviesCount }).map((_, idx) => {
