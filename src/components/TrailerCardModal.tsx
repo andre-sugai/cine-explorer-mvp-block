@@ -58,68 +58,9 @@ export const TrailerCardModal: React.FC<TrailerCardModalProps> = ({
   );
   const [trailerKey, setTrailerKey] = useState<string | null>(null);
   const [noTrailer, setNoTrailer] = useState(false);
-  const [isClosing, setIsClosing] = useState(false);
 
   const playerRef = useRef<any>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
-  const originalUrlRef = useRef<string>('');
-  const isClosingRef = useRef<boolean>(false);
-
-  // Salvar URL atual quando modal abre e bloquear navegação
-  useEffect(() => {
-    if (open) {
-      // Resetar flag de fechamento quando modal abre
-      isClosingRef.current = false;
-      originalUrlRef.current =
-        window.location.pathname + window.location.search;
-      console.log('📍 URL salva:', originalUrlRef.current);
-
-      // Bloquear QUALQUER tentativa de navegação
-      const blockNavigation = (e: Event) => {
-        console.log('🚫 Tentativa de navegação bloqueada!');
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        return false;
-      };
-
-      // Bloquear cliques em elementos abaixo do modal quando está fechando
-      const blockClicks = (e: MouseEvent) => {
-        if (isClosingRef.current) {
-          console.log('🚫 Clique bloqueado durante fechamento do modal');
-          e.preventDefault();
-          e.stopPropagation();
-          e.stopImmediatePropagation();
-          return false;
-        }
-      };
-
-      // Interceptar eventos de navegação
-      window.addEventListener('popstate', blockNavigation, true);
-
-      // Bloquear cliques durante o fechamento
-      document.addEventListener('click', blockClicks, true);
-      document.addEventListener('mousedown', blockClicks, true);
-
-      // Monitorar mudanças de URL
-      const checkUrl = () => {
-        const currentUrl = window.location.pathname + window.location.search;
-        if (currentUrl !== originalUrlRef.current) {
-          console.log('⚠️ URL mudou! Restaurando:', originalUrlRef.current);
-          navigate(originalUrlRef.current, { replace: true });
-        }
-      };
-
-      const intervalId = setInterval(checkUrl, 50);
-
-      return () => {
-        window.removeEventListener('popstate', blockNavigation, true);
-        document.removeEventListener('click', blockClicks, true);
-        document.removeEventListener('mousedown', blockClicks, true);
-        clearInterval(intervalId);
-      };
-    }
-  }, [open, navigate]);
 
   // Carregar YouTube Player API
   const { isReady: isYTReady } = useYouTubePlayer();
@@ -308,29 +249,17 @@ export const TrailerCardModal: React.FC<TrailerCardModalProps> = ({
     e?.preventDefault();
     e?.stopPropagation();
     const route = type === 'tv' ? `/serie/${tvShowId}` : `/filme/${movieId}`;
+    onOpenChange(false);
     navigate(route);
   };
 
   const handleModalClose = (e?: React.MouseEvent | React.KeyboardEvent) => {
-    // Bloquear propagação do evento imediatamente
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
 
-    // Marcar como fechando imediatamente para bloquear eventos
-    isClosingRef.current = true;
-
-    console.log('🚪 Iniciando fechamento do modal');
-    setIsClosing(true);
     setIsPlaying(false);
-
-    // Garantir que estamos na URL original
-    const currentUrl = window.location.pathname + window.location.search;
-    if (originalUrlRef.current && currentUrl !== originalUrlRef.current) {
-      console.log('🔄 Restaurando URL original:', originalUrlRef.current);
-      navigate(originalUrlRef.current, { replace: true });
-    }
 
     if (playerRef.current) {
       try {
@@ -341,18 +270,10 @@ export const TrailerCardModal: React.FC<TrailerCardModalProps> = ({
       }
     }
 
-    // Resetar estados
     setTrailerKey(null);
     setNoTrailer(false);
     setIsLoading(true);
-
-    // Aguardar um pouco antes de fechar para garantir que todos os eventos foram bloqueados
-    setTimeout(() => {
-      console.log('✅ Fechando modal agora');
-      onOpenChange(false);
-      setIsClosing(false);
-      isClosingRef.current = false;
-    }, 150);
+    onOpenChange(false);
   };
 
   return (

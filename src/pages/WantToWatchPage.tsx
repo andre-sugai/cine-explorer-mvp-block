@@ -28,12 +28,8 @@ const WantToWatchPage: React.FC = () => {
   };
 
   const handleRemove = (id: number, type: string, title: string) => {
-    if (
-      window.confirm(`Tem certeza que deseja remover "${title}" da sua lista?`)
-    ) {
-      removeFromWantToWatch(id, type as 'movie' | 'tv');
-      toast.success('Removido da lista');
-    }
+    removeFromWantToWatch(id, type as 'movie' | 'tv');
+    toast.success(`${title} foi removido da lista`);
   };
 
   const handleMarkAsWatched = (item: any) => {

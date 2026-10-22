@@ -20,3 +20,17 @@ Object.defineProperty(window, 'caches', {
   value: mockCaches,
   writable: true,
 });
+
+if (typeof window.crypto === 'undefined') {
+  Object.defineProperty(window, 'crypto', {
+    value: {
+      randomUUID: () => `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+    },
+    writable: true,
+  });
+} else if (typeof window.crypto.randomUUID !== 'function') {
+  Object.defineProperty(window.crypto, 'randomUUID', {
+    value: () => `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+    writable: true,
+  });
+}

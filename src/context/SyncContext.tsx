@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, useRef } from 'react';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export type SyncMode = 'persistence' | 'suspended';
 type SyncStatus = 'idle' | 'syncing' | 'error' | 'offline';
@@ -173,7 +174,10 @@ export const SyncProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const addHistoryEntry = (entry: Omit<SyncLogEntry, 'id' | 'timestamp'>) => {
     const newEntry: SyncLogEntry = {
       ...entry,
-      id: crypto.randomUUID(),
+      id:
+        typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       timestamp: new Date()
     };
     setSyncHistory(prev => {
@@ -306,16 +310,15 @@ export const SyncProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     try {
       console.log('🔄 [SyncContext] Fetching remote stats...');
-      const { supabase: supabaseClient } = await import('@/integrations/supabase/client');
-      const { data: { session } } = await supabaseClient.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       
       if (session?.user) {
         console.log('🔄 [SyncContext] Remote session found for user:', session.user.id);
         const [favs, watched, watchl, lists] = await Promise.all([
-          supabaseClient.from('user_favorites').select('*', { count: 'exact', head: true }).eq('user_id', session.user.id),
-          supabaseClient.from('user_watched').select('*', { count: 'exact', head: true }).eq('user_id', session.user.id),
-          supabaseClient.from('user_watchlist').select('*', { count: 'exact', head: true }).eq('user_id', session.user.id),
-          supabaseClient.from('user_custom_lists').select('*', { count: 'exact', head: true }).eq('user_id', session.user.id),
+          supabase.from('user_favorites').select('*', { count: 'exact', head: true }).eq('user_id', session.user.id),
+          supabase.from('user_watched').select('*', { count: 'exact', head: true }).eq('user_id', session.user.id),
+          supabase.from('user_watchlist').select('*', { count: 'exact', head: true }).eq('user_id', session.user.id),
+          supabase.from('user_custom_lists').select('*', { count: 'exact', head: true }).eq('user_id', session.user.id),
         ]);
 
         const remoteStats = {

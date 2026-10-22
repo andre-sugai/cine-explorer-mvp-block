@@ -6,6 +6,17 @@ import { Search, Loader2, MonitorPlay, Trash2, Ghost, LayoutGrid, Film, Tv } fro
 import { useWatchProviders } from '@/hooks/useWatchProviders';
 import { useWantToWatchFilters } from '@/hooks/useWantToWatchFilters';
 import { useWantToWatchScrollManager } from '@/hooks/useWantToWatchScrollManager';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface WantToWatchFiltersTabsProps {
   items: any[];
@@ -289,14 +300,36 @@ export const WantToWatchFiltersTabs: React.FC<WantToWatchFiltersTabsProps> = ({
           </div>
         </div>
         {onClearAll && items.length > 0 && (
-          <Button
-            variant="outline"
-            onClick={onClearAll}
-            className="text-red-500 border-red-500/20 hover:bg-red-500/10"
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Limpar todos
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                className="text-red-500 border-red-500/20 hover:bg-red-500/10"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Limpar todos
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="bg-gradient-cinema border-primary/20">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="text-primary">
+                  Limpar {contextLabel}
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  Tem certeza que deseja remover todos os itens de {contextLabel.toLowerCase()}? Esta ação não pode ser desfeita.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={onClearAll}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Sim, limpar tudo
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         )}
       </div>
 

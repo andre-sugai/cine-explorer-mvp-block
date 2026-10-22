@@ -200,16 +200,23 @@ export default function PublicProfilePage() {
             <TabsContent value="favorites" className="mt-6">
               {favorites.length > 0 ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                  {favorites.map((item) => (
-                    <MovieCard
-                      key={item.id}
-                      id={item.item_id}
-                      title={item.title}
-                      posterPath={item.poster_path}
-                      voteAverage={item.vote_average}
-                      type={item.item_type || 'movie'}
-                    />
-                  ))}
+                  {favorites.map((item) => {
+                    const itemData = item.item_data || {};
+                    return (
+                      <MovieCard
+                        key={item.id || item.item_id}
+                        movie={{
+                          id: item.item_id ?? item.id,
+                          title: item.title || itemData.title || itemData.name || '',
+                          poster_path: item.poster_path || itemData.poster_path || '',
+                          release_date: item.release_date || itemData.release_date || itemData.first_air_date,
+                          vote_average: item.vote_average ?? itemData.vote_average,
+                          genre_ids: item.genre_ids || itemData.genre_ids,
+                          type: (item.item_type || item.type || itemData.type || 'movie') as 'movie' | 'tv',
+                        }}
+                      />
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="py-12 text-center border rounded-lg bg-secondary/10 border-primary/10">
@@ -223,16 +230,23 @@ export default function PublicProfilePage() {
             <TabsContent value="watched" className="mt-6">
               {watched.length > 0 ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                  {watched.map((item) => (
-                    <MovieCard
-                      key={item.id}
-                      id={item.item_id}
-                      title={item.title}
-                      posterPath={item.poster_path}
-                      voteAverage={item.vote_average}
-                      type={item.item_type || 'movie'}
-                    />
-                  ))}
+                  {watched.map((item) => {
+                    const itemData = item.item_data || {};
+                    return (
+                      <MovieCard
+                        key={item.id || item.item_id}
+                        movie={{
+                          id: item.item_id ?? item.id,
+                          title: item.title || itemData.title || itemData.name || '',
+                          poster_path: item.poster_path || itemData.poster_path || '',
+                          release_date: item.release_date || itemData.release_date || itemData.first_air_date,
+                          vote_average: item.vote_average ?? itemData.vote_average ?? item.rating,
+                          genre_ids: item.genre_ids || itemData.genre_ids,
+                          type: (item.item_type || item.type || itemData.type || 'movie') as 'movie' | 'tv',
+                        }}
+                      />
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="py-12 text-center border rounded-lg bg-secondary/10 border-primary/10">

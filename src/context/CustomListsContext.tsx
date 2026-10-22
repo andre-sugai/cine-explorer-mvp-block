@@ -97,7 +97,7 @@ export const CustomListsProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      const remoteLists = data?.map(item => ({
+      const remoteLists: CustomList[] = data?.map(item => ({
         id: item.id, // Use UUID from Supabase
         name: item.name,
         description: item.description || undefined,

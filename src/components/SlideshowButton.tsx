@@ -29,7 +29,9 @@ export const SlideshowButton: React.FC<SlideshowButtonProps> = ({
     if (saved) {
       try {
         setConfig(JSON.parse(saved));
-      } catch(e) {}
+      } catch (e) {
+        // Ignore invalid JSON in localStorage
+      }
     }
   }, []);
 

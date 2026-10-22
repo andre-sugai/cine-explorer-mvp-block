@@ -420,9 +420,12 @@ export const isAdultContent = (item: any): boolean => {
   const voteCount = item.vote_count || 0;
   const voteAverage = item.vote_average || 0;
 
+  const hasRelevanceMetrics =
+    item.popularity !== undefined || item.vote_count !== undefined;
+
   // FILTRO GERAL DE RELEVÂNCIA (Bloqueia filmes obscuros independentemente do país)
   // Quase todos os filmes adultos/spam têm vote_count < 5 e popularidade muito baixa.
-  if (!skipKeywordChecks && popularity < 5 && voteCount < 5) {
+  if (hasRelevanceMetrics && !skipKeywordChecks && popularity < 5 && voteCount < 5) {
     // Para não bloquear filmes super recentes recém adicionados, validamos também a data
     const releaseYear = item.release_date ? new Date(item.release_date).getFullYear() : 0;
     const currentYear = new Date().getFullYear();

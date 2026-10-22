@@ -2,6 +2,7 @@ export default {
   preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'jsdom',
   setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
+  modulePathIgnorePatterns: ['<rootDir>/.agents/'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
@@ -14,7 +15,16 @@ export default {
         tsconfig: 'tsconfig.app.json',
       },
     ],
+    '^.+\\.(js|jsx|mjs)$': [
+      'babel-jest',
+      {
+        presets: [['@babel/preset-env', { targets: { node: 'current' } }]],
+      },
+    ],
   },
+  transformIgnorePatterns: [
+    'node_modules/(?!(isows|@supabase)/)',
+  ],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   testMatch: [
     '<rootDir>/src/**/__tests__/**/*.(ts|tsx|js)',

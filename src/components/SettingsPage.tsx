@@ -65,9 +65,11 @@ import { toast } from '@/hooks/use-toast';
  * Interface para os dados do perfil do usuário
  */
 interface UserProfile {
+  username?: string;
   nickname: string;
   bio: string;
   profileImage: string;
+  coverImage?: string;
   socialMedia: {
     instagram?: string;
     twitter?: string;

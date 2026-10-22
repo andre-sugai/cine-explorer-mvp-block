@@ -84,6 +84,7 @@ export const useWantToWatchFilters = () => {
       orderBy,
       orderDirection,
       selectedStreaming,
+      selectedRating,
       scrollPosition: window.scrollY || 0,
     };
 
@@ -94,6 +95,7 @@ export const useWantToWatchFilters = () => {
     orderBy,
     orderDirection,
     selectedStreaming,
+    selectedRating,
     isRestored,
   ]);
 
@@ -107,6 +109,7 @@ export const useWantToWatchFilters = () => {
       orderBy,
       orderDirection,
       selectedStreaming,
+      selectedRating,
       scrollPosition: window.scrollY || 0,
     };
 
@@ -117,6 +120,7 @@ export const useWantToWatchFilters = () => {
     orderBy,
     orderDirection,
     selectedStreaming,
+    selectedRating,
     isRestored,
   ]);
 

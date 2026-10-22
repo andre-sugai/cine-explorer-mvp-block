@@ -8,6 +8,8 @@ import { FavoritesProvider } from '../../context/FavoritesContext';
 import { WantToWatchProvider } from '../../context/WantToWatchContext';
 import { WatchedProvider } from '../../context/WatchedContext';
 import { SyncProvider } from '../../context/SyncContext';
+import * as adultContentFilter from '../../utils/adultContentFilter';
+import { toast as mockedToast } from '../ui/sonner';
 
 // Mock das funções de blacklist
 jest.mock('../../utils/adultContentFilter', () => ({
@@ -50,13 +52,30 @@ jest.mock('../../integrations/supabase/client', () => ({
       onAuthStateChange: jest.fn(() => ({
         data: { subscription: { unsubscribe: jest.fn() } },
       })),
-      getSession: jest.fn(() => Promise.resolve({ data: { session: null } })),
+      getSession: jest.fn(() =>
+        Promise.resolve({
+          data: {
+            session: {
+              user: { id: 'admin-user-id', email: 'guitarfreaks@gmail.com' },
+            },
+          },
+        })
+      ),
     },
+    from: jest.fn(() => ({
+      select: jest.fn(() => ({
+        eq: jest.fn(() => Promise.resolve({ data: [], error: null, count: 0 })),
+      })),
+      upsert: jest.fn(() => Promise.resolve({ data: null, error: null })),
+    })),
+    rpc: jest.fn(() => Promise.resolve({ data: null, error: null })),
   },
 }));
 
-const { isAdminUser, addToBlacklist, isInBlacklist, removeFromBlacklist } = require('../../utils/adultContentFilter');
-const { toast } = require('../ui/sonner');
+const isAdminUser = adultContentFilter.isAdminUser as jest.Mock;
+const addToBlacklist = adultContentFilter.addToBlacklist as jest.Mock;
+const isInBlacklist = adultContentFilter.isInBlacklist as jest.Mock;
+const toast = mockedToast as unknown as { success: jest.Mock; error: jest.Mock };
 
 // Wrapper para testes com todos os provedores necessários
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -109,7 +128,7 @@ describe('MovieCardActions - Sistema de Blacklist', () => {
       </TestWrapper>
     );
 
-    const blacklistButton = screen.getByTitle('Adicionar à blacklist (admin)');
+    const blacklistButton = screen.getByTitle('Banir filme (admin)');
     expect(blacklistButton).toBeInTheDocument();
   });
 
@@ -123,7 +142,7 @@ describe('MovieCardActions - Sistema de Blacklist', () => {
     );
 
     const blacklistButton = screen.queryByTitle(
-      'Adicionar à blacklist (admin)'
+      'Banir filme (admin)'
     );
     expect(blacklistButton).not.toBeInTheDocument();
   });
@@ -139,10 +158,9 @@ describe('MovieCardActions - Sistema de Blacklist', () => {
       </TestWrapper>
     );
 
-    const blacklistButton = screen.getByTitle('Adicionar à blacklist (admin)');
-    fireEvent.click(blacklistButton);
-
+    const blacklistButton = await screen.findByTitle('Banir filme (admin)');
     await waitFor(() => {
+      fireEvent.click(blacklistButton);
       expect(addToBlacklist).toHaveBeenCalled();
       expect(toast.success).toHaveBeenCalled();
     });
@@ -161,10 +179,9 @@ describe('MovieCardActions - Sistema de Blacklist', () => {
       </TestWrapper>
     );
 
-    const blacklistButton = screen.getByTitle('Adicionar à blacklist (admin)');
-    fireEvent.click(blacklistButton);
-
+    const blacklistButton = await screen.findByTitle('Banir filme (admin)');
     await waitFor(() => {
+      fireEvent.click(blacklistButton);
       expect(toast.error).toHaveBeenCalledWith('Erro de teste');
     });
   });

@@ -107,7 +107,7 @@ export const ContentCard = forwardRef<HTMLDivElement, ContentCardProps>(
         addToFavorites({
           id: item.id,
           type: 'person',
-          title: item.name,
+          title: 'name' in item ? item.name : item.title,
           poster_path: 'profile_path' in item ? item.profile_path : undefined,
         });
       }
@@ -122,7 +122,7 @@ export const ContentCard = forwardRef<HTMLDivElement, ContentCardProps>(
         addToFavorites({
           id: item.id,
           type: 'person',
-          title: item.name,
+          title: 'name' in item ? item.name : item.title,
           poster_path: 'profile_path' in item ? item.profile_path : undefined,
         });
       }

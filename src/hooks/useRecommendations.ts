@@ -356,7 +356,7 @@ export const useRecommendations = () => {
         manha: { genres: [16, 10751, 10402], type: 'both' },
       };
 
-      let targetGenres = new Set<number>();
+      const targetGenres = new Set<number>();
       let filterType: 'movie' | 'tv' | 'both' = 'both';
       
       let reason = '';

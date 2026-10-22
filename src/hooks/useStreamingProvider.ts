@@ -14,14 +14,14 @@ interface StreamingProvider {
 export const useStreamingProvider = (
   id: number | undefined,
   type: 'movie' | 'tv' | 'person' | undefined
-): StreamingProvider & { ref: React.RefObject<HTMLDivElement> } => {
+): StreamingProvider & { ref: React.MutableRefObject<HTMLDivElement | null> } => {
   const [provider, setProvider] = useState<StreamingProvider>({
     logoPath: null,
     providerName: null,
     isLoading: false,
   });
   const [isVisible, setIsVisible] = useState(false);
-  const elementRef = useRef<HTMLDivElement>(null);
+  const elementRef = useRef<HTMLDivElement | null>(null);
 
   // IntersectionObserver para detectar quando o elemento está visível
   useEffect(() => {

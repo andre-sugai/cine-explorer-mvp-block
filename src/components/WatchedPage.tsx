@@ -31,31 +31,19 @@ export const WatchedPage: React.FC = () => {
   };
 
   const handleRemove = (id: number, type: string, title: string) => {
-    if (
-      window.confirm(
-        `Tem certeza que deseja remover "${title}" da sua lista de assistidos?`
-      )
-    ) {
-      removeFromWatched(id, type as 'movie' | 'tv' | 'episode');
-      toast({
-        title: 'Removido da lista',
-        description: `${title} foi removido da sua lista de assistidos.`,
-      });
-    }
+    removeFromWatched(id, type as 'movie' | 'tv' | 'episode');
+    toast({
+      title: 'Removido da lista',
+      description: `${title} foi removido da sua lista de assistidos.`,
+    });
   };
 
   const handleClearAll = () => {
-    if (
-      window.confirm(
-        'Tem certeza que deseja limpar toda a lista de assistidos? Esta ação não pode ser desfeita.'
-      )
-    ) {
-      clearAllWatched();
-      toast({
-        title: 'Lista limpa',
-        description: 'Todos os itens foram removidos da lista de assistidos.',
-      });
-    }
+    clearAllWatched();
+    toast({
+      title: 'Lista limpa',
+      description: 'Todos os itens foram removidos da lista de assistidos.',
+    });
   };
 
   return (
@@ -73,6 +61,7 @@ export const WatchedPage: React.FC = () => {
         getItemsByType={getItemsByType}
         stats={stats}
         onRemove={handleRemove}
+        onClearAll={handleClearAll}
         enableStreamingFilter={true}
         renderCard={(item) => (
           <ContentCard

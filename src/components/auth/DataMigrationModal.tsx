@@ -64,7 +64,11 @@ export const DataMigrationModal: React.FC<DataMigrationModalProps> = ({
       let processedItems = 0;
 
       // Helper para processar em chunks
-      const processInChunks = async (tableName: string, items: any[], mapFn: (item: any) => any) => {
+      const processInChunks = async (
+        tableName: 'user_favorites' | 'user_watchlist' | 'user_watched',
+        items: any[],
+        mapFn: (item: any) => any
+      ) => {
          const CHUNK_SIZE = 500;
          let errors = 0;
          

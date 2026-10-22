@@ -129,7 +129,7 @@ export const ModalArena: React.FC<{
     try {
       let res = await fetch(buildUrl(params));
       if (!res.ok) return null;
-      let data = await res.json();
+      const data = await res.json();
       let results = filterAdultContent(data.results || []);
 
       const totalPages = data.total_pages || 1;

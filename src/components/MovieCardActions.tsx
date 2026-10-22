@@ -24,6 +24,7 @@ import SignupInviteModal from '@/components/auth/SignupInviteModal';
 import { TrailerCardModal } from '@/components/TrailerCardModal';
 import { ImageGalleryModal } from '@/components/ImageGalleryModal';
 import { supabase } from '@/integrations/supabase/client';
+import { getTVShowDetails, getTVSeasonDetails } from '@/utils/tmdb';
 
 interface MovieCardActionsProps {
   id: number;
@@ -176,26 +177,21 @@ export const MovieCardActions: React.FC<MovieCardActionsProps> = ({
       if (type === 'tv') {
         toast.promise(
           (async () => {
-            const { getTVShowDetails, getTVSeasonDetails } = await import('@/utils/tmdb');
-            
             // 1. Get number of seasons
             const details = await getTVShowDetails(id);
-            const seasonsCount = details.number_of_seasons || 0;
-            const seasonPromises = [];
 
-            // 2. Fetch all seasons
-            // Starting from season 1 (ignoring season 0/specials for now unless desired? logic usually implies main seasons)
-            // Let's include season 0 if it exists? Usually 'number_of_seasons' counts from 1.
-            // TMDB details.seasons is an array including season 0.
-            // Let's iterate based on details.seasons array if available, or 1..number_of_seasons
-            
+            // 2. Fetch all main seasons in controlled batches to avoid TMDB rate limit
             const seasonsToFetch = details.seasons?.filter(s => s.season_number > 0) || [];
+            const BATCH_SIZE = 4;
+            const seasonsData = [];
 
-            for (const season of seasonsToFetch) {
-               seasonPromises.push(getTVSeasonDetails(id, season.season_number));
+            for (let i = 0; i < seasonsToFetch.length; i += BATCH_SIZE) {
+              const batch = seasonsToFetch.slice(i, i + BATCH_SIZE);
+              const batchResults = await Promise.all(
+                batch.map((season) => getTVSeasonDetails(id, season.season_number))
+              );
+              seasonsData.push(...batchResults);
             }
-
-            const seasonsData = await Promise.all(seasonPromises);
             
             const allEpisodesToAdd: any[] = [];
             

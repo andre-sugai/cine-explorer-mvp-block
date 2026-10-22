@@ -6,6 +6,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Plus, Trash2, Film, Tv, MoreVertical, Search, Loader, X } from 'lucide-react';
 import { buildImageUrl, searchMulti } from '@/utils/tmdb';
 import { useNavigate } from 'react-router-dom';
@@ -230,19 +241,37 @@ const CustomListsPage: React.FC = () => {
                     >
                       <Plus className="w-5 h-5" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => {
-                        if (confirm('Tem certeza que deseja excluir esta lista?')) {
-                          deleteList(list.id);
-                        }
-                      }}
-                      title="Excluir lista"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          title="Excluir lista"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="bg-gradient-cinema border-primary/20">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="text-primary">
+                            Excluir lista "{list.name}"?
+                          </AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Tem certeza que deseja excluir esta lista personalizada? Esta ação não pode ser desfeita.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => deleteList(list.id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Excluir lista
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </CardHeader>
                 <CardContent>

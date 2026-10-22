@@ -691,7 +691,7 @@ export const HomePage: React.FC = () => {
           response = await getNowPlayingMovies(pageNum, 'BR', true);
         } else {
           // Se tiver keyword selecionada (texto), buscar o ID primeiro
-          if (selectedKeyword && category !== 'cinema') {
+          if (selectedKeyword) {
             try {
               // Mapeamento de termos em português para inglês
               const keywordTranslations: Record<string, string> = {
@@ -1113,7 +1113,7 @@ export const HomePage: React.FC = () => {
               (person: TMDBPerson) => person.known_for_department === 'Acting'
             );
             break;
-          case 'directors':
+          case 'directors': {
             const directors = await fetchDirectors(pageNum, 20);
 
             response = {
@@ -1121,6 +1121,7 @@ export const HomePage: React.FC = () => {
               total_pages: Math.ceil(famousDirectors.length / 20),
             };
             break;
+          }
           default:
             return;
         }
@@ -1232,7 +1233,9 @@ export const HomePage: React.FC = () => {
         try {
           const parsed = JSON.parse(savedStreamings);
           if (parsed.length > 0) hasMyStreamings = true;
-        } catch (e) {}
+        } catch (e) {
+          // Ignore invalid JSON in localStorage
+        }
       }
 
       // Filtrar e consolidar provedores duplicados/redundantes

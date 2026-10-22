@@ -146,12 +146,108 @@ export type Database = {
         }
         Relationships: []
       }
+      public_profiles: {
+        Row: {
+          id: string
+          username: string
+          nickname: string | null
+          bio: string | null
+          profile_image: string | null
+          cover_image: string | null
+          social_media: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          id: string
+          username: string
+          nickname?: string | null
+          bio?: string | null
+          profile_image?: string | null
+          cover_image?: string | null
+          social_media?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          username?: string
+          nickname?: string | null
+          bio?: string | null
+          profile_image?: string | null
+          cover_image?: string | null
+          social_media?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      reported_movies: {
+        Row: {
+          id: number
+          title: string
+          status: string | null
+          reports_count: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          id: number
+          title: string
+          status?: string | null
+          reports_count?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: number
+          title?: string
+          status?: string | null
+          reports_count?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_public_favorites: {
+        Args: {
+          p_user_id: string
+        }
+        Returns: {
+          id: string
+          item_id: number
+          item_type: string
+          title?: string
+          poster_path?: string
+          vote_average?: number
+          release_date?: string
+          genre_ids?: number[]
+          item_data?: Json
+        }[]
+      }
+      get_public_watched: {
+        Args: {
+          p_user_id: string
+        }
+        Returns: {
+          id: string
+          item_id: number
+          item_type: string
+          title?: string
+          poster_path?: string
+          vote_average?: number
+          release_date?: string
+          rating?: number | null
+          genre_ids?: number[]
+          item_data?: Json
+        }[]
+      }
+      increment_movie_report: {
+        Args: {
+          p_movie_id: number
+          p_title: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

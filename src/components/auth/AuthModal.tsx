@@ -144,7 +144,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         <DialogHeader>
           <DialogTitle>Acesse sua conta</DialogTitle>
         </DialogHeader>
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as 'login' | 'register')}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="login">Entrar</TabsTrigger>
             <TabsTrigger value="register">Criar Conta</TabsTrigger>
